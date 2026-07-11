@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Emre design tokens.
+  Dark is the default theme; a `.light` class flips to the light palette.
+*/
+:root,
+.dark {
+  --background: #0a0b0f;
+  --surface: #111319;
+  --surface-2: #171a22;
+  --card: #14161d;
+  --card-hover: #1a1d26;
+  --border: #23262f;
+  --border-strong: #2e323d;
+  --foreground: #e7e9ee;
+  --muted: #9aa0ac;
+  --muted-2: #6b7280;
+  --primary: #7c9cff;
+  --primary-strong: #5b7cfa;
+  --primary-foreground: #0a0b0f;
+  --accent: #8b5cf6;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --ring: #5b7cfa;
+}
+
+.light {
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --card: #ffffff;
+  --card-hover: #f7f8fa;
+  --border: #e4e7ec;
+  --border-strong: #d3d8e0;
+  --foreground: #14161d;
+  --muted: #5b616e;
+  --muted-2: #8a909c;
+  --primary: #5b7cfa;
+  --primary-strong: #4361e8;
+  --primary-foreground: #ffffff;
+  --accent: #7c3aed;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --ring: #5b7cfa;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-ring: var(--ring);
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-2);
+}
+
+/* Notion-style editor placeholder */
+[contenteditable][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted-2);
+  pointer-events: none;
+}
