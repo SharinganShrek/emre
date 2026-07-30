@@ -17,6 +17,7 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     pathname === "/unlock" ||
     pathname.startsWith("/api/unlock") ||
+    pathname.startsWith("/api/ai") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
     pathname === "/icon" ||

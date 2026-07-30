@@ -1,4 +1,4 @@
-# Senin yapman gerekenler (Emre Hub)
+# Senin yapman gerekenler (Emre OS)
 
 Kod tarafı (Phase 2 sync, College Counseling persist, OpenAPI, PWA) hazır.
 Aşağıdakiler **senin ortamında / dashboard’da** yapılmalı — agent bunları senin yerine tamamlayamaz.
@@ -78,7 +78,7 @@ Uygulamayı aç → unlock → Notes / Study / Research / College Counseling’i
 4. Test et:
    - `getTodaySummary`
    - `getCollegeCounselingContextPack`
-5. GPT instructions’a ekle: “Emre Hub Actions kullan; DELETE yok; financial documents isteme.”
+5. GPT instructions’a ekle: “Emre OS Actions kullan; DELETE yok; financial documents isteme.”
 
 Yerel test (deploy yokken):
 
@@ -126,7 +126,7 @@ Not: Service worker yalnızca **production**’da register olur (`NODE_ENV=produ
 | --- | --- |
 | Hub 503 | `SUPABASE_SERVICE_ROLE_KEY` eksik |
 | `relation "college_counseling" does not exist` | `phase2_schema.sql` çalıştırılmadı |
-| AI 401 | `AI_API_KEY` mismatch |
+| AI 401 Locked | Middleware unlock gate AI route’ları engelliyor — `/api/ai` public olmalı (Bearer `AI_API_KEY`) |
 | AI 500 “not configured” | Hosting’de `AI_API_KEY` yok |
 | PWA install yok | Dev mode veya HTTPS yok (localhost hariç) |
 
