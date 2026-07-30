@@ -9,7 +9,9 @@ import { useHub } from "@/lib/store";
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const { data } = useHub();
+  const { data, source, userId } = useHub();
+
+  const modeLabel = source === "local" ? "Local mode" : "Supabase sync";
 
   return (
     <div className="flex h-full flex-col">
@@ -73,9 +75,14 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <p className="truncate text-sm font-medium">
               {data.profile.display_name}
             </p>
-            <p className="truncate text-xs text-muted-2">Local mode</p>
+            <p className="truncate text-xs text-muted-2">{modeLabel}</p>
           </div>
         </div>
+        {source === "supabase" && userId && (
+          <p className="mt-2 truncate px-2 text-[10px] text-muted-2">
+            Synced: hub + notes · study · research
+          </p>
+        )}
       </div>
     </div>
   );

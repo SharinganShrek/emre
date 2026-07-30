@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getHubUserId } from "@/lib/access";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -7,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *
  * Design goals (see README "Security"):
  *  - The AI assistant authenticates with a single shared secret (AI_API_KEY).
- *  - Every request is scoped to ONE user id (AI_USER_ID) in this MVP.
+ *  - Every request is scoped to ONE user id (same owner as hub sync) in this MVP.
  *  - Access is limited to an explicit allow-list of tables + operations.
  *  - No destructive deletes are permitted for AI routes.
  *  - All write actions are audit-logged.
@@ -25,11 +26,10 @@ export const AI_RESOURCE_POLICY: Record<
   tasks: { read: true, write: true },
   goals: { read: true, write: false },
   study_sessions: { read: true, write: false },
-  practice_tests: { read: true, write: false },
-  gym_sessions: { read: true, write: false },
   books: { read: true, write: false },
   movies: { read: true, write: true },
   journal_entries: { read: true, write: true },
+  college_counseling: { read: true, write: false },
   // Aggregations are read-only views over the above.
 };
 
@@ -54,11 +54,10 @@ export interface AiContext {
  */
 export function authorizeAiRequest(request: Request): AiContext {
   const configured = process.env.AI_API_KEY;
-  const userId = process.env.AI_USER_ID;
 
-  if (!configured || !userId) {
+  if (!configured) {
     throw new AiPermissionError(
-      "AI API is not configured. Set AI_API_KEY and AI_USER_ID on the server.",
+      "AI API is not configured. Set AI_API_KEY on the server.",
       500,
     );
   }
@@ -68,7 +67,7 @@ export function authorizeAiRequest(request: Request): AiContext {
     throw new AiPermissionError("Invalid or missing AI API key.", 401);
   }
 
-  return { userId, admin: createAdminClient() };
+  return { userId: getHubUserId(), admin: createAdminClient() };
 }
 
 /** Assert the AI may perform `op` on `resource`, else throw. */

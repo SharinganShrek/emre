@@ -12,7 +12,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background pb-[env(safe-area-inset-bottom)]">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-surface lg:block">
         <SidebarContent />
@@ -25,11 +25,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 w-64 border-r border-border bg-surface">
-            <div className="absolute right-2 top-3">
+          <aside className="absolute inset-y-0 left-0 w-[min(100%,18rem)] border-r border-border bg-surface pt-[env(safe-area-inset-top)]">
+            <div className="absolute right-2 top-[max(0.75rem,env(safe-area-inset-top))]">
               <Button
                 variant="ghost"
                 size="icon"
+                className="size-10 touch-manipulation"
                 onClick={() => setMobileOpen(false)}
                 aria-label="Close menu"
               >
@@ -42,12 +43,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className={cn("lg:pl-64")}>
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/80 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md sm:px-6">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="size-10 touch-manipulation lg:hidden"
               onClick={() => setMobileOpen(true)}
               aria-label="Open menu"
             >
@@ -63,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+        <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-6 lg:py-8">
           {children}
         </main>
       </div>

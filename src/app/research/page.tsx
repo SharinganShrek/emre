@@ -104,14 +104,16 @@ function Research() {
         open={projectOpen}
         onClose={() => setProjectOpen(false)}
         onSave={(v) => {
-          const created = add("researchProjects", {
-            user_id: data.profile.user_id,
-            title: v.title,
-            description: v.description || null,
-            status: "planning",
-          });
-          setSelectedId(created.id);
-          setProjectOpen(false);
+          void (async () => {
+            const created = await add("researchProjects", {
+              user_id: data.profile.user_id,
+              title: v.title,
+              description: v.description || null,
+              status: "planning",
+            });
+            setSelectedId(created.id);
+            setProjectOpen(false);
+          })();
         }}
       />
     </div>

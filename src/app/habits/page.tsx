@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/states";
 import { PageHeader } from "@/components/ui/page-header";
 import { Hydrated } from "@/components/hydrated";
 import { useHub } from "@/lib/store";
+import { toast, withToast } from "@/lib/toast";
 import { habitStreak, isHabitDone } from "@/lib/selectors";
 import { cn, toISODate } from "@/lib/utils";
 import type { Habit } from "@/lib/types";
@@ -32,6 +33,7 @@ function Habits() {
   const { data, add, update } = useHub();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const active = data.habits
     .filter((h) => h.status === "active")
@@ -45,6 +47,40 @@ function Habits() {
   function openEdit(h: Habit) {
     setEditing(h);
     setDialogOpen(true);
+  }
+
+  async function saveHabit(values: {
+    name: string;
+    color: string;
+    frequency: "daily" | "weekly";
+    target_per_day: number;
+  }) {
+    setSaving(true);
+    const ok = await withToast(
+      async () => {
+        if (editing) {
+          await update("habits", editing.id, values);
+        } else {
+          await add("habits", {
+            user_id: data.profile.user_id,
+            name: values.name,
+            description: null,
+            icon: null,
+            color: values.color,
+            frequency: values.frequency,
+            target_per_day: values.target_per_day,
+            status: "active",
+            sort_order: data.habits.length,
+          });
+        }
+      },
+      {
+        loading: editing ? "Saving habit…" : "Creating habit…",
+        success: editing ? "Habit updated" : "Habit created",
+      },
+    );
+    setSaving(false);
+    if (ok) setDialogOpen(false);
   }
 
   return (
@@ -63,7 +99,7 @@ function Habits() {
         <EmptyState
           icon={CheckCircle2}
           title="No habits yet"
-          description="Add habits like SAT Math, Gym, or Skincare to start tracking."
+          description="Add habits like SAT, Gym, or Skincare to start tracking."
           action={
             <Button size="sm" onClick={openNew}>
               <Plus /> Add habit
@@ -97,7 +133,12 @@ function Habits() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => update("habits", h.id, { status: "active" })}
+                  onClick={() =>
+                    void withToast(
+                      () => update("habits", h.id, { status: "active" }),
+                      { success: "Habit restored" },
+                    )
+                  }
                 >
                   <ArchiveRestore /> Restore
                 </Button>
@@ -109,26 +150,10 @@ function Habits() {
 
       <HabitDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => !saving && setDialogOpen(false)}
         habit={editing}
-        onSave={(values) => {
-          if (editing) {
-            update("habits", editing.id, values);
-          } else {
-            add("habits", {
-              user_id: data.profile.user_id,
-              name: values.name,
-              description: null,
-              icon: null,
-              color: values.color,
-              frequency: values.frequency,
-              target_per_day: values.target_per_day,
-              status: "active",
-              sort_order: data.habits.length,
-            });
-          }
-          setDialogOpen(false);
-        }}
+        saving={saving}
+        onSave={saveHabit}
       />
     </div>
   );
@@ -136,15 +161,26 @@ function Habits() {
 
 function HabitRow({ habit, onEdit }: { habit: Habit; onEdit: () => void }) {
   const { data, update, toggleHabit } = useHub();
+  const [busyDay, setBusyDay] = useState<string | null>(null);
   const streak = habitStreak(data, habit.id);
 
-  // Last 21 days heatmap
   const days = Array.from({ length: 21 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (20 - i));
     const iso = toISODate(d);
     return { iso, done: isHabitDone(data, habit.id, iso) };
   });
+
+  async function onToggleDay(iso: string) {
+    setBusyDay(iso);
+    try {
+      await toggleHabit(habit.id, iso);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update habit");
+    } finally {
+      setBusyDay(null);
+    }
+  }
 
   return (
     <Card>
@@ -167,9 +203,10 @@ function HabitRow({ habit, onEdit }: { habit: Habit; onEdit: () => void }) {
             <button
               key={d.iso}
               title={d.iso}
-              onClick={() => toggleHabit(habit.id, d.iso)}
+              disabled={busyDay === d.iso}
+              onClick={() => void onToggleDay(d.iso)}
               className={cn(
-                "size-4 rounded-[4px] transition-transform hover:scale-110",
+                "size-4 rounded-[4px] transition-transform hover:scale-110 disabled:opacity-50",
                 !d.done && "bg-surface-2",
               )}
               style={d.done ? { backgroundColor: habit.color } : undefined}
@@ -190,7 +227,12 @@ function HabitRow({ habit, onEdit }: { habit: Habit; onEdit: () => void }) {
             size="icon"
             variant="ghost"
             aria-label="Archive habit"
-            onClick={() => update("habits", habit.id, { status: "archived" })}
+            onClick={() =>
+              void withToast(
+                () => update("habits", habit.id, { status: "archived" }),
+                { success: "Habit archived" },
+              )
+            }
           >
             <Archive />
           </Button>
@@ -204,17 +246,19 @@ function HabitDialog({
   open,
   onClose,
   habit,
+  saving,
   onSave,
 }: {
   open: boolean;
   onClose: () => void;
   habit: Habit | null;
+  saving: boolean;
   onSave: (values: {
     name: string;
     color: string;
     frequency: "daily" | "weekly";
     target_per_day: number;
-  }) => void;
+  }) => void | Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(COLORS[0]);
@@ -222,7 +266,6 @@ function HabitDialog({
   const [target, setTarget] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize the form whenever the dialog opens (for a new or existing habit).
   useEffect(() => {
     if (!open) return;
     setName(habit?.name ?? "");
@@ -244,8 +287,9 @@ function HabitDialog({
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. SAT Math"
+            placeholder="e.g. SAT"
             autoFocus
+            disabled={saving}
           />
         </div>
         <div>
@@ -254,6 +298,8 @@ function HabitDialog({
             {COLORS.map((c) => (
               <button
                 key={c}
+                type="button"
+                disabled={saving}
                 onClick={() => setColor(c)}
                 className={cn(
                   "size-7 rounded-full border-2",
@@ -270,6 +316,7 @@ function HabitDialog({
             <Label>Frequency</Label>
             <Select
               value={frequency}
+              disabled={saving}
               onChange={(e) =>
                 setFrequency(e.target.value as "daily" | "weekly")
               }
@@ -284,19 +331,21 @@ function HabitDialog({
               type="number"
               min={1}
               value={target}
+              disabled={saving}
               onChange={(e) => setTarget(Math.max(1, Number(e.target.value)))}
             />
           </div>
         </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button
+            disabled={saving}
             onClick={() => {
               if (!name.trim()) return setError("Name is required.");
-              onSave({
+              void onSave({
                 name: name.trim(),
                 color,
                 frequency,
@@ -304,7 +353,7 @@ function HabitDialog({
               });
             }}
           >
-            {habit ? "Save" : "Add habit"}
+            {saving ? "Saving…" : habit ? "Save" : "Add habit"}
           </Button>
         </div>
       </div>

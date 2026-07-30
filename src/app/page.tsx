@@ -7,7 +7,6 @@ import {
   GraduationCap,
   CalendarClock,
   Plus,
-  NotebookPen,
   StickyNote,
   ArrowRight,
 } from "lucide-react";
@@ -56,9 +55,6 @@ function Dashboard() {
       <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={() => open("task")}>
           <Plus /> Add task
-        </Button>
-        <Button size="sm" variant="secondary" onClick={() => open("journal")}>
-          <NotebookPen /> Journal
         </Button>
         <Button size="sm" variant="secondary" onClick={() => open("note")}>
           <StickyNote /> Note

@@ -1,5 +1,6 @@
 import "server-only";
 import type { AiContext } from "./permissions";
+import { AiPermissionError } from "./permissions";
 
 interface AuditArgs {
   ctx: AiContext;
@@ -13,9 +14,8 @@ interface AuditArgs {
 /**
  * Record an AI action in `ai_audit_logs`.
  *
- * Writes MUST always be logged. Reads are logged best-effort. Failures to log
- * never throw into the request path (logging must not break the API), but they
- * are surfaced in the server console for observability.
+ * Write actions MUST succeed in logging (fail the request if audit insert fails).
+ * Read actions are best-effort and never break the API response.
  */
 export async function logAiAction({
   ctx,
@@ -25,20 +25,27 @@ export async function logAiAction({
   summary,
   metadata,
 }: AuditArgs): Promise<void> {
-  try {
-    await ctx.admin.from("ai_audit_logs").insert({
-      user_id: ctx.userId,
-      route,
-      action,
-      resource,
-      summary,
-      metadata: metadata ?? null,
-    });
-  } catch (err) {
+  const { error } = await ctx.admin.from("ai_audit_logs").insert({
+    user_id: ctx.userId,
+    route,
+    action,
+    resource,
+    summary,
+    metadata: metadata ?? null,
+  });
+
+  if (error) {
     console.error("[ai-audit] failed to write audit log", {
       route,
       resource,
-      err,
+      action,
+      error,
     });
+    if (action === "write") {
+      throw new AiPermissionError(
+        "Failed to audit AI write action. Request aborted.",
+        500,
+      );
+    }
   }
 }

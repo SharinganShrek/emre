@@ -4,6 +4,7 @@ import {
 } from "@/lib/ai/permissions";
 import { logAiAction } from "@/lib/ai/audit";
 import { aiOk, aiError, aiCatch } from "@/lib/ai/response";
+import { journalRecentQuery } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,10 +16,9 @@ export async function GET(request: Request) {
     assertPermission("journal_entries", "read");
 
     const url = new URL(request.url);
-    const limit = Math.min(
-      Math.max(Number(url.searchParams.get("limit") ?? 7), 1),
-      30,
-    );
+    const { limit } = journalRecentQuery.parse({
+      limit: url.searchParams.get("limit") ?? undefined,
+    });
 
     const { data, error } = await ctx.admin
       .from("journal_entries")

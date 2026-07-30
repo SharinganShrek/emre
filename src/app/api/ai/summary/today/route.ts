@@ -13,7 +13,9 @@ export async function GET(request: Request) {
   try {
     const ctx = authorizeAiRequest(request);
     assertPermission("habits", "read");
+    assertPermission("habit_logs", "read");
     assertPermission("tasks", "read");
+    assertPermission("journal_entries", "read");
 
     const today = new Date().toISOString().slice(0, 10);
 

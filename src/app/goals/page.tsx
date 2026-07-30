@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Target, Flag, Trash2, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/states";
 import { PageHeader } from "@/components/ui/page-header";
 import { Hydrated } from "@/components/hydrated";
 import { useHub } from "@/lib/store";
+import { toast, withToast } from "@/lib/toast";
 import { formatLongDate } from "@/lib/utils";
 import type { Goal } from "@/lib/types";
 
@@ -26,6 +27,31 @@ export default function GoalsPage() {
 function Goals() {
   const { data, add } = useHub();
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function createGoal(v: {
+    title: string;
+    description: string;
+    category: string;
+    target_date: string;
+  }) {
+    setSaving(true);
+    const ok = await withToast(
+      () =>
+        add("goals", {
+          user_id: data.profile.user_id,
+          title: v.title,
+          description: v.description || null,
+          category: v.category || null,
+          status: "active",
+          progress: 0,
+          target_date: v.target_date || null,
+        }),
+      { loading: "Creating goal…", success: "Goal created" },
+    );
+    setSaving(false);
+    if (ok) setOpen(false);
+  }
 
   return (
     <div className="space-y-6">
@@ -60,19 +86,9 @@ function Goals() {
 
       <GoalDialog
         open={open}
-        onClose={() => setOpen(false)}
-        onSave={(v) => {
-          add("goals", {
-            user_id: data.profile.user_id,
-            title: v.title,
-            description: v.description || null,
-            category: v.category || null,
-            status: "active",
-            progress: 0,
-            target_date: v.target_date || null,
-          });
-          setOpen(false);
-        }}
+        onClose={() => !saving && setOpen(false)}
+        saving={saving}
+        onSave={createGoal}
       />
     </div>
   );
@@ -81,9 +97,39 @@ function Goals() {
 function GoalCard({ goal }: { goal: Goal }) {
   const { data, update, remove, add } = useHub();
   const [newMilestone, setNewMilestone] = useState("");
+  const [progress, setProgress] = useState(goal.progress);
+  const [savingProgress, setSavingProgress] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setProgress(goal.progress);
+  }, [goal.progress]);
+
   const milestones = data.milestones
     .filter((m) => m.goal_id === goal.id)
     .sort((a, b) => a.sort_order - b.sort_order);
+
+  function onProgressChange(value: number) {
+    setProgress(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void (async () => {
+        setSavingProgress(true);
+        try {
+          await update("goals", goal.id, {
+            progress: value,
+            status: value >= 100 ? "completed" : "active",
+          });
+          toast.success("Progress updated");
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Could not save progress");
+          setProgress(goal.progress);
+        } finally {
+          setSavingProgress(false);
+        }
+      })();
+    }, 400);
+  }
 
   return (
     <Card>
@@ -97,13 +143,20 @@ function GoalCard({ goal }: { goal: Goal }) {
             >
               {goal.status}
             </Badge>
+            {savingProgress && (
+              <span className="text-[10px] text-muted-2">Saving…</span>
+            )}
           </div>
         </div>
         <Button
           size="icon"
           variant="ghost"
           aria-label="Delete goal"
-          onClick={() => remove("goals", goal.id)}
+          onClick={() =>
+            void withToast(() => remove("goals", goal.id), {
+              success: "Goal deleted",
+            })
+          }
         >
           <Trash2 />
         </Button>
@@ -116,21 +169,15 @@ function GoalCard({ goal }: { goal: Goal }) {
         <div>
           <div className="mb-1.5 flex items-center justify-between text-xs text-muted">
             <span>Progress</span>
-            <span>{goal.progress}%</span>
+            <span>{progress}%</span>
           </div>
-          <Progress value={goal.progress} />
+          <Progress value={progress} />
           <input
             type="range"
             min={0}
             max={100}
-            value={goal.progress}
-            onChange={(e) =>
-              update("goals", goal.id, {
-                progress: Number(e.target.value),
-                status:
-                  Number(e.target.value) >= 100 ? "completed" : "active",
-              })
-            }
+            value={progress}
+            onChange={(e) => onProgressChange(Number(e.target.value))}
             className="mt-2 w-full accent-[var(--primary)]"
           />
         </div>
@@ -147,9 +194,8 @@ function GoalCard({ goal }: { goal: Goal }) {
           {milestones.map((m) => (
             <div key={m.id} className="flex items-center gap-2">
               <button
-                onClick={() =>
-                  update("milestones", m.id, { done: !m.done })
-                }
+                type="button"
+                onClick={() => void update("milestones", m.id, { done: !m.done })}
                 className={`flex size-4 items-center justify-center rounded border ${
                   m.done
                     ? "border-transparent bg-success text-white"
@@ -167,7 +213,8 @@ function GoalCard({ goal }: { goal: Goal }) {
                 {m.title}
               </span>
               <button
-                onClick={() => remove("milestones", m.id)}
+                type="button"
+                onClick={() => void remove("milestones", m.id)}
                 className="text-muted-2 hover:text-danger"
                 aria-label="Remove milestone"
               >
@@ -179,7 +226,7 @@ function GoalCard({ goal }: { goal: Goal }) {
             onSubmit={(e) => {
               e.preventDefault();
               if (!newMilestone.trim()) return;
-              add("milestones", {
+              void add("milestones", {
                 user_id: data.profile.user_id,
                 goal_id: goal.id,
                 title: newMilestone.trim(),
@@ -210,16 +257,18 @@ function GoalCard({ goal }: { goal: Goal }) {
 function GoalDialog({
   open,
   onClose,
+  saving,
   onSave,
 }: {
   open: boolean;
   onClose: () => void;
+  saving: boolean;
   onSave: (v: {
     title: string;
     description: string;
     category: string;
     target_date: string;
-  }) => void;
+  }) => void | Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -245,6 +294,7 @@ function GoalDialog({
           <Input
             autoFocus
             value={title}
+            disabled={saving}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. SAT 1550+"
           />
@@ -253,6 +303,7 @@ function GoalDialog({
           <Label>Description</Label>
           <Textarea
             value={description}
+            disabled={saving}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What does success look like?"
           />
@@ -262,6 +313,7 @@ function GoalDialog({
             <Label>Category</Label>
             <Input
               value={category}
+              disabled={saving}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="Academics"
             />
@@ -271,19 +323,21 @@ function GoalDialog({
             <Input
               type="date"
               value={targetDate}
+              disabled={saving}
               onChange={(e) => setTargetDate(e.target.value)}
             />
           </div>
         </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2 pt-1">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button
+            disabled={saving}
             onClick={() => {
               if (!title.trim()) return setError("Title is required.");
-              onSave({
+              void onSave({
                 title: title.trim(),
                 description,
                 category,
@@ -291,7 +345,7 @@ function GoalDialog({
               });
             }}
           >
-            Create goal
+            {saving ? "Creating…" : "Create goal"}
           </Button>
         </div>
       </div>

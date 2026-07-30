@@ -32,9 +32,9 @@ import { useHub } from "@/lib/store";
 import { formatLongDate, todayISO } from "@/lib/utils";
 
 const SUBJECTS = [
+  "SAT",
   "SAT Math",
   "SAT Reading",
-  "SAT Vocabulary",
   "SAT Writing",
   "Other",
 ];

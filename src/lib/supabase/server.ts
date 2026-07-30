@@ -1,14 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getSupabasePublicConfig } from "./config";
 
-/**
- * Server Supabase client bound to the request cookies (uses the anon key).
- * RLS still applies — this client acts as the signed-in user.
- */
+/** Server Supabase client bound to cookies (anon key, RLS applies). */
 export async function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) {
+  const config = getSupabasePublicConfig();
+  if (!config) {
     throw new Error(
       "Supabase env vars are missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     );
@@ -16,7 +13,7 @@ export async function createClient() {
 
   const cookieStore = await cookies();
 
-  return createServerClient(url, anonKey, {
+  return createServerClient(config.url, config.anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -27,10 +24,16 @@ export async function createClient() {
             cookieStore.set(name, value, options),
           );
         } catch {
-          // Called from a Server Component — safe to ignore when middleware
-          // refreshes the session.
+          // Called from a Server Component — middleware refreshes the session.
         }
       },
     },
   });
+}
+
+/** Returns null when Supabase env vars are not set. */
+export async function createClientIfConfigured() {
+  const config = getSupabasePublicConfig();
+  if (!config) return null;
+  return createClient();
 }

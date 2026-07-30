@@ -9,12 +9,14 @@ export function Checkbox({
   className,
   label,
   color,
+  disabled,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   className?: string;
   label?: string;
   color?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -22,9 +24,10 @@ export function Checkbox({
       role="checkbox"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+        "flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors disabled:opacity-50",
         checked
           ? "border-transparent text-white"
           : "border-border-strong bg-surface-2 hover:border-muted-2",

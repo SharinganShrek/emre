@@ -18,12 +18,9 @@ function dateOnly(offsetDays = 0): string {
 const now = ts(0);
 
 const HABIT_DEFS = [
-  { name: "SAT Vocabulary", color: "#7c9cff", icon: "BookA" },
-  { name: "SAT Reading", color: "#8b5cf6", icon: "BookOpen" },
-  { name: "SAT Math", color: "#34d399", icon: "Sigma" },
+  { name: "SAT", color: "#7c9cff", icon: "BookA" },
   { name: "Skincare", color: "#fbbf24", icon: "Sparkles" },
   { name: "Gym", color: "#f87171", icon: "Dumbbell" },
-  { name: "Sleep goal", color: "#38bdf8", icon: "Moon" },
 ];
 
 /** Build a fresh copy of the seed dataset. */
@@ -104,7 +101,7 @@ export function buildSeedData(): HubData {
     studySessions: [
       { id: "ss_1", user_id: USER, subject: "SAT Math", duration_minutes: 60, session_date: dateOnly(-1), notes: "Algebra + heart of algebra drills", created_at: ts(-1), updated_at: now },
       { id: "ss_2", user_id: USER, subject: "SAT Reading", duration_minutes: 45, session_date: dateOnly(-2), notes: "2 passages, timed", created_at: ts(-2), updated_at: now },
-      { id: "ss_3", user_id: USER, subject: "SAT Vocabulary", duration_minutes: 30, session_date: dateOnly(-3), notes: "Anki review", created_at: ts(-3), updated_at: now },
+      { id: "ss_3", user_id: USER, subject: "SAT", duration_minutes: 30, session_date: dateOnly(-3), notes: "Anki review", created_at: ts(-3), updated_at: now },
       { id: "ss_4", user_id: USER, subject: "SAT Math", duration_minutes: 75, session_date: dateOnly(-5), notes: "Problem set 3", created_at: ts(-5), updated_at: now },
       { id: "ss_5", user_id: USER, subject: "SAT Reading", duration_minutes: 50, session_date: dateOnly(-8), notes: null, created_at: ts(-8), updated_at: now },
       { id: "ss_6", user_id: USER, subject: "SAT Math", duration_minutes: 40, session_date: dateOnly(-9), notes: null, created_at: ts(-9), updated_at: now },

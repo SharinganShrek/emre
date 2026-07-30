@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/states";
 import { PageHeader } from "@/components/ui/page-header";
 import { Hydrated } from "@/components/hydrated";
 import { useHub } from "@/lib/store";
+import { withToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { Movie, WatchStatus } from "@/lib/types";
 
@@ -38,11 +39,41 @@ function Movies() {
   const { data, add, update, remove } = useHub();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Movie | null>(null);
+  const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<WatchStatus | "all">("all");
 
   const items = data.movies.filter(
     (m) => filter === "all" || m.status === filter,
   );
+
+  async function saveMovie(v: {
+    title: string;
+    kind: "anime" | "movie" | "series";
+    status: WatchStatus;
+    rating: number | null;
+    review: string | null;
+    watched_date: string | null;
+  }) {
+    setSaving(true);
+    const ok = await withToast(
+      async () => {
+        if (editing) {
+          await update("movies", editing.id, v);
+        } else {
+          await add("movies", {
+            user_id: data.profile.user_id,
+            ...v,
+          });
+        }
+      },
+      {
+        loading: editing ? "Saving…" : "Adding title…",
+        success: editing ? "Movie updated" : "Movie added",
+      },
+    );
+    setSaving(false);
+    if (ok) setOpen(false);
+  }
 
   return (
     <div className="space-y-6">
@@ -66,6 +97,7 @@ function Movies() {
         {FILTERS.map((f) => (
           <button
             key={f}
+            type="button"
             onClick={() => setFilter(f)}
             className={cn(
               "rounded-lg px-3 py-1.5 text-sm capitalize transition-colors",
@@ -143,7 +175,11 @@ function Movies() {
                     size="icon"
                     variant="ghost"
                     aria-label="Delete"
-                    onClick={() => remove("movies", m.id)}
+                    onClick={() =>
+                      void withToast(() => remove("movies", m.id), {
+                        success: "Removed from list",
+                      })
+                    }
                   >
                     <Trash2 />
                   </Button>
@@ -156,19 +192,10 @@ function Movies() {
 
       <MovieDialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => !saving && setOpen(false)}
         movie={editing}
-        onSave={(v) => {
-          if (editing) {
-            update("movies", editing.id, v);
-          } else {
-            add("movies", {
-              user_id: data.profile.user_id,
-              ...v,
-            });
-          }
-          setOpen(false);
-        }}
+        saving={saving}
+        onSave={saveMovie}
       />
     </div>
   );
@@ -178,11 +205,13 @@ function MovieDialog({
   open,
   onClose,
   movie,
+  saving,
   onSave,
 }: {
   open: boolean;
   onClose: () => void;
   movie: Movie | null;
+  saving: boolean;
   onSave: (v: {
     title: string;
     kind: "anime" | "movie" | "series";
@@ -190,7 +219,7 @@ function MovieDialog({
     rating: number | null;
     review: string | null;
     watched_date: string | null;
-  }) => void;
+  }) => void | Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<"anime" | "movie" | "series">("anime");
@@ -219,6 +248,7 @@ function MovieDialog({
           <Input
             autoFocus
             value={title}
+            disabled={saving}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Frieren"
           />
@@ -228,6 +258,7 @@ function MovieDialog({
             <Label>Kind</Label>
             <Select
               value={kind}
+              disabled={saving}
               onChange={(e) =>
                 setKind(e.target.value as "anime" | "movie" | "series")
               }
@@ -241,6 +272,7 @@ function MovieDialog({
             <Label>Status</Label>
             <Select
               value={status}
+              disabled={saving}
               onChange={(e) => setStatus(e.target.value as WatchStatus)}
             >
               <option value="planned">Planned</option>
@@ -257,6 +289,7 @@ function MovieDialog({
               min={0}
               max={10}
               value={rating}
+              disabled={saving}
               onChange={(e) => setRating(Number(e.target.value))}
               className="w-full accent-[var(--primary)]"
             />
@@ -266,6 +299,7 @@ function MovieDialog({
             <Input
               type="date"
               value={watchedDate}
+              disabled={saving}
               onChange={(e) => setWatchedDate(e.target.value)}
             />
           </div>
@@ -274,19 +308,21 @@ function MovieDialog({
           <Label>Review</Label>
           <Textarea
             value={review}
+            disabled={saving}
             onChange={(e) => setReview(e.target.value)}
             placeholder="What did you think?"
           />
         </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button
+            disabled={saving}
             onClick={() => {
               if (!title.trim()) return setError("Title is required.");
-              onSave({
+              void onSave({
                 title: title.trim(),
                 kind,
                 status,
@@ -296,7 +332,7 @@ function MovieDialog({
               });
             }}
           >
-            {movie ? "Save" : "Add"}
+            {saving ? "Saving…" : movie ? "Save" : "Add"}
           </Button>
         </div>
       </div>

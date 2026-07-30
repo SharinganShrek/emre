@@ -15,7 +15,6 @@ export async function GET(request: Request) {
     for (const r of [
       "habit_logs",
       "study_sessions",
-      "gym_sessions",
       "journal_entries",
       "movies",
       "books",
@@ -28,7 +27,7 @@ export async function GET(request: Request) {
     const startISO = start.toISOString().slice(0, 10);
     const endISO = new Date().toISOString().slice(0, 10);
 
-    const [logs, study, gym, journal, movies, books] = await Promise.all([
+    const [logs, study, journal, movies, books] = await Promise.all([
       ctx.admin
         .from("habit_logs")
         .select("completed")
@@ -37,11 +36,6 @@ export async function GET(request: Request) {
       ctx.admin
         .from("study_sessions")
         .select("duration_minutes")
-        .eq("user_id", ctx.userId)
-        .gte("session_date", startISO),
-      ctx.admin
-        .from("gym_sessions")
-        .select("id")
         .eq("user_id", ctx.userId)
         .gte("session_date", startISO),
       ctx.admin
@@ -82,7 +76,6 @@ export async function GET(request: Request) {
           ? Math.round((completed / logRows.length) * 100)
           : 0,
       study_hours: Number((studyMinutes / 60).toFixed(1)),
-      gym_sessions: (gym.data ?? []).length,
       journal_entries: moods.length,
       avg_mood: avgMood,
       movies_watched: (movies.data ?? []).length,

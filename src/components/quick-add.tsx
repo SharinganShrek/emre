@@ -6,14 +6,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Plus, CheckSquare, StickyNote, NotebookPen } from "lucide-react";
+import { Plus, CheckSquare, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { useHub } from "@/lib/store";
-import { cn, todayISO } from "@/lib/utils";
+import { withToast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
-type Kind = "task" | "note" | "journal";
+type Kind = "task" | "note";
 
 const QuickAddContext = createContext<{ open: (kind?: Kind) => void } | null>(
   null,
@@ -28,7 +29,6 @@ export function useQuickAdd() {
 const TABS: { key: Kind; label: string; icon: typeof Plus }[] = [
   { key: "task", label: "Task", icon: CheckSquare },
   { key: "note", label: "Note", icon: StickyNote },
-  { key: "journal", label: "Journal", icon: NotebookPen },
 ];
 
 export function QuickAddProvider({ children }: { children: ReactNode }) {
@@ -44,9 +44,8 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
   const [taskDue, setTaskDue] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
   const [noteBody, setNoteBody] = useState("");
-  const [journalMood, setJournalMood] = useState(3);
-  const [journalContent, setJournalContent] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   function reset() {
     setTaskTitle("");
@@ -54,8 +53,6 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
     setTaskPriority("medium");
     setNoteTitle("");
     setNoteBody("");
-    setJournalMood(3);
-    setJournalContent("");
     setError(null);
   }
 
@@ -65,44 +62,56 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
   }
 
   function close() {
+    if (saving) return;
     setOpen(false);
     reset();
   }
 
-  function submit() {
+  async function submit() {
     setError(null);
     if (kind === "task") {
       if (!taskTitle.trim()) return setError("Task title is required.");
-      add("tasks", {
-        user_id,
-        title: taskTitle.trim(),
-        notes: null,
-        status: "todo",
-        priority: taskPriority,
-        due_date: taskDue || null,
-        project: null,
-      });
-    } else if (kind === "note") {
-      if (!noteTitle.trim()) return setError("Note title is required.");
-      add("notes", {
-        user_id,
-        title: noteTitle.trim(),
-        body: noteBody,
-        tags: [],
-        category: "note",
-        pinned: false,
-      });
-    } else {
-      if (!journalContent.trim())
-        return setError("Write something for your journal.");
-      add("journal", {
-        user_id,
-        entry_date: todayISO(),
-        mood: journalMood,
-        content: journalContent.trim(),
-      });
+      setSaving(true);
+      const ok = await withToast(
+        () =>
+          add("tasks", {
+            user_id,
+            title: taskTitle.trim(),
+            notes: null,
+            status: "todo",
+            priority: taskPriority,
+            due_date: taskDue || null,
+            project: null,
+          }),
+        { loading: "Creating task…", success: "Task created" },
+      );
+      setSaving(false);
+      if (ok) {
+        setOpen(false);
+        reset();
+      }
+      return;
     }
-    close();
+
+    if (!noteTitle.trim()) return setError("Note title is required.");
+    setSaving(true);
+    const ok = await withToast(
+      () =>
+        add("notes", {
+          user_id,
+          title: noteTitle.trim(),
+          body: noteBody,
+          tags: [],
+          category: "note",
+          pinned: false,
+        }),
+      { loading: "Saving note…", success: "Note saved" },
+    );
+    setSaving(false);
+    if (ok) {
+      setOpen(false);
+      reset();
+    }
   }
 
   return (
@@ -194,40 +203,15 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        {kind === "journal" && (
-          <div className="space-y-3">
-            <div>
-              <Label>Mood</Label>
-              <Select
-                value={journalMood}
-                onChange={(e) => setJournalMood(Number(e.target.value))}
-              >
-                {[1, 2, 3, 4, 5].map((m) => (
-                  <option key={m} value={m}>
-                    {m} — {["Rough", "Low", "Okay", "Good", "Great"][m - 1]}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label>Entry</Label>
-              <Textarea
-                autoFocus
-                value={journalContent}
-                onChange={(e) => setJournalContent(e.target.value)}
-                placeholder="How did today go?"
-              />
-            </div>
-          </div>
-        )}
-
         {error && <p className="mt-3 text-sm text-danger">{error}</p>}
 
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="ghost" onClick={close}>
+          <Button variant="ghost" onClick={close} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={submit}>Add</Button>
+          <Button onClick={() => void submit()} disabled={saving}>
+            {saving ? "Saving…" : "Add"}
+          </Button>
         </div>
       </Dialog>
     </QuickAddContext.Provider>

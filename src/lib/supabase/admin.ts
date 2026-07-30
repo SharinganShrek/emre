@@ -6,8 +6,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  *
  * SECURITY: This bypasses Row Level Security. Never import this into client
  * components and never expose SUPABASE_SERVICE_ROLE_KEY to the browser.
- * It is used only by the AI permission layer, which scopes every query to a
- * single user id and a small allow-list of tables/columns.
+ * It is used by `/api/hub` and the AI layer, which always scope queries to a
+ * single built-in owner UUID.
  */
 let cached: SupabaseClient | null = null;
 

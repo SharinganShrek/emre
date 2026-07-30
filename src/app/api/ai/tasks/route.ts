@@ -4,7 +4,7 @@ import {
 } from "@/lib/ai/permissions";
 import { logAiAction } from "@/lib/ai/audit";
 import { aiOk, aiError, aiCatch } from "@/lib/ai/response";
-import { taskInput } from "@/lib/validation";
+import { taskInput, taskListQuery } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,9 @@ export async function GET(request: Request) {
     assertPermission("tasks", "read");
 
     const url = new URL(request.url);
-    const status = url.searchParams.get("status");
+    const { status } = taskListQuery.parse({
+      status: url.searchParams.get("status") ?? undefined,
+    });
 
     let query = ctx.admin
       .from("tasks")

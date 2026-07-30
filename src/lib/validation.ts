@@ -47,3 +47,13 @@ export const noteInput = z.object({
   category: z.enum(["idea", "project", "quote", "note"]).default("note"),
 });
 export type NoteInput = z.infer<typeof noteInput>;
+
+/** GET /api/ai/tasks?status= */
+export const taskListQuery = z.object({
+  status: z.enum(["todo", "in_progress", "done"]).optional(),
+});
+
+/** GET /api/ai/journal/recent?limit= */
+export const journalRecentQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(30).default(7),
+});

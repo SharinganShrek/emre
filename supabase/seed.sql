@@ -10,7 +10,7 @@
 do $$
 declare
   uid uuid := '00000000-0000-0000-0000-000000000000'; -- <-- replace me
-  h_vocab uuid; h_read uuid; h_math uuid; h_skin uuid; h_gym uuid; h_sleep uuid;
+  h_sat uuid; h_skin uuid; h_gym uuid;
   g_sat uuid; g_paper uuid;
   proj uuid;
 begin
@@ -25,22 +25,16 @@ begin
 
   -- Habits
   insert into public.habits (user_id, name, color, icon, sort_order) values
-    (uid,'SAT Vocabulary','#7c9cff','BookA',0) returning id into h_vocab;
+    (uid,'SAT','#7c9cff','BookA',0) returning id into h_sat;
   insert into public.habits (user_id, name, color, icon, sort_order) values
-    (uid,'SAT Reading','#8b5cf6','BookOpen',1) returning id into h_read;
+    (uid,'Skincare','#fbbf24','Sparkles',1) returning id into h_skin;
   insert into public.habits (user_id, name, color, icon, sort_order) values
-    (uid,'SAT Math','#34d399','Sigma',2) returning id into h_math;
-  insert into public.habits (user_id, name, color, icon, sort_order) values
-    (uid,'Skincare','#fbbf24','Sparkles',3) returning id into h_skin;
-  insert into public.habits (user_id, name, color, icon, sort_order) values
-    (uid,'Gym','#f87171','Dumbbell',4) returning id into h_gym;
-  insert into public.habits (user_id, name, color, icon, sort_order) values
-    (uid,'Sleep goal','#38bdf8','Moon',5) returning id into h_sleep;
+    (uid,'Gym','#f87171','Dumbbell',2) returning id into h_gym;
 
   -- A week of habit logs
   insert into public.habit_logs (user_id, habit_id, log_date, completed, count)
   select uid, h.id, current_date - g, true, 1
-  from (values (h_vocab),(h_read),(h_math),(h_skin),(h_gym),(h_sleep)) as h(id),
+  from (values (h_sat),(h_skin),(h_gym)) as h(id),
        generate_series(0,6) as g
   on conflict (habit_id, log_date) do nothing;
 

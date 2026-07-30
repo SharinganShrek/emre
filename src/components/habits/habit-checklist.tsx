@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Flame } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useHub } from "@/lib/store";
+import { toast } from "@/lib/toast";
 import { activeHabits, habitStreak, isHabitDone } from "@/lib/selectors";
 import { cn, todayISO } from "@/lib/utils";
 
@@ -17,6 +19,7 @@ export function HabitChecklist({
   const { data, toggleHabit } = useHub();
   const day = date ?? todayISO();
   const habits = activeHabits(data);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   if (habits.length === 0) {
     return (
@@ -40,7 +43,23 @@ export function HabitChecklist({
               checked={done}
               color={habit.color}
               label={habit.name}
-              onChange={() => toggleHabit(habit.id, day)}
+              disabled={busyId === habit.id}
+              onChange={() => {
+                void (async () => {
+                  setBusyId(habit.id);
+                  try {
+                    await toggleHabit(habit.id, day);
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error
+                        ? err.message
+                        : "Could not update habit",
+                    );
+                  } finally {
+                    setBusyId(null);
+                  }
+                })();
+              }}
             />
             <span
               className={cn(

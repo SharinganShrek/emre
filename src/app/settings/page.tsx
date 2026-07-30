@@ -29,6 +29,7 @@ const AI_ROUTES = [
   "POST /api/ai/movies",
   "GET /api/ai/journal/recent",
   "POST /api/ai/journal",
+  "GET /api/ai/college-counseling/context-pack",
   "GET /api/ai/analytics/last-30-days",
 ];
 
@@ -41,16 +42,20 @@ export default function SettingsPage() {
 }
 
 function Settings() {
-  const { data, setProfile, reset } = useHub();
+  const { data, setProfile, reset, source, userId, lock } = useHub();
   const [name, setName] = useState(data.profile.display_name);
   const [timezone, setTimezone] = useState(data.profile.timezone);
   const [bio, setBio] = useState(data.profile.bio ?? "");
   const [saved, setSaved] = useState(false);
 
-  function saveProfile() {
-    setProfile({ display_name: name, timezone, bio });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+  async function saveProfile() {
+    try {
+      await setProfile({ display_name: name, timezone, bio });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch {
+      /* toast not required here; inline saved flag only on success */
+    }
   }
 
   function exportData() {
@@ -68,6 +73,26 @@ function Settings() {
   return (
     <div className="space-y-6">
       <PageHeader title="Settings" description="Manage your profile and data." />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Access</CardTitle>
+          <CardDescription>
+            The hub is protected by a fixed password (`APP_PASSWORD`). There is
+            no Supabase login.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => void lock()}>
+            Lock hub
+          </Button>
+          {source === "supabase" && userId && (
+            <Badge variant="default" className="font-mono text-[10px]">
+              hub:{userId.slice(0, 8)}…
+            </Badge>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -95,7 +120,7 @@ function Settings() {
             <Textarea value={bio} onChange={(e) => setBio(e.target.value)} />
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={saveProfile}>Save profile</Button>
+            <Button onClick={() => void saveProfile()}>Save profile</Button>
             {saved && (
               <span className="flex items-center gap-1 text-sm text-success">
                 <CheckCircle2 className="size-4" /> Saved
@@ -130,8 +155,9 @@ function Settings() {
             <Download className="size-4 text-accent" /> Data
           </CardTitle>
           <CardDescription>
-            Your data is stored locally in this browser. Export a backup any
-            time.
+            {source === "local"
+              ? "All data is stored in this browser (localStorage)."
+              : "Habits, tasks, journal, movies, and goals sync to Supabase. Study, research, notes, and milestones remain local until a later migration."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -179,9 +205,8 @@ function Settings() {
             />
             <p className="mt-1.5 text-xs text-muted-2">
               For security, API keys are never entered or stored in the browser.
-              Set <code className="text-foreground">AI_API_KEY</code> and{" "}
-              <code className="text-foreground">AI_USER_ID</code> in your server
-              environment.
+              Set <code className="text-foreground">AI_API_KEY</code> in your
+              server environment.
             </p>
           </div>
           <div>
