@@ -1,5 +1,5 @@
 -- =============================================================================
--- Emre Hub — Phase 2 schema (additive)
+-- Emre OS — Phase 2 schema (additive)
 -- =============================================================================
 -- Run AFTER mvp_schema.sql if you already applied MVP.
 -- Safe to re-run (IF NOT EXISTS / DROP POLICY IF EXISTS).

@@ -1,6 +1,6 @@
-/* Emre Hub — lightweight offline shell cache (no third-party PWA package). */
+/* Emre OS — lightweight offline shell cache (no third-party PWA package). */
 const CACHE = "emre-hub-shell-v1";
-const PRECACHE = ["/", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+const PRECACHE = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -25,10 +25,7 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Emre",
   },
-  icons: {
-    icon: [{ url: "/icons/icon-192.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/icons/icon-192.svg" }],
-  },
+  // Icons: app/icon.png + app/apple-icon.png (file-based metadata).
 };
 
 export const viewport: Viewport = {

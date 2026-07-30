@@ -302,7 +302,7 @@ Fallback header (same secret): `x-ai-api-key: $AI_API_KEY`.
 
 Step-by-step checklist (env, deploy, import): see **`USER_ACTION_ITEMS.md`**.
 
-1. Deploy Emre Hub to a public HTTPS URL (Vercel, etc.).
+1. Deploy Emre OS to a public HTTPS URL (Vercel, etc.).
 2. In ChatGPT → **Create a GPT** → **Actions** → **Import from URL** or paste
    the contents of `openapi/emre-hub-ai-actions.yaml`.
 3. Set the server URL to your deployment host (replace

@@ -18,7 +18,11 @@ export async function updateSession(request: NextRequest) {
     pathname === "/unlock" ||
     pathname.startsWith("/api/unlock") ||
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico";
+    pathname === "/favicon.ico" ||
+    pathname === "/icon" ||
+    pathname === "/apple-icon" ||
+    pathname.startsWith("/icons/") ||
+    pathname === "/manifest.webmanifest";
 
   if (!password || isPublic) {
     return NextResponse.next({ request });
