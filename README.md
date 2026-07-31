@@ -328,6 +328,7 @@ Step-by-step checklist (env, deploy, import): see **`USER_ACTION_ITEMS.md`**.
 
 - Wire a Custom GPT / internal agent using `openapi/emre-hub-ai-actions.yaml`
   (see `USER_ACTION_ITEMS.md`).
+- SAT Vocab: run `supabase/sat_vocab_schema.sql` then use `/sat-vocab`.
 - Confirmation-gated destructive actions for the AI (if ever needed).
 - Richer offline caching / background sync for PWA.
 

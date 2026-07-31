@@ -5,6 +5,7 @@ import {
   ListTodo,
   Target,
   GraduationCap,
+  BookA,
   FlaskConical,
   Clapperboard,
   StickyNote,
@@ -28,6 +29,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Tasks", href: "/tasks", icon: ListTodo, group: "Overview" },
   { label: "Goals", href: "/goals", icon: Target, group: "Growth" },
   { label: "Study", href: "/study", icon: GraduationCap, group: "Growth" },
+  { label: "SAT Vocab", href: "/sat-vocab", icon: BookA, group: "Growth" },
   { label: "Research", href: "/research", icon: FlaskConical, group: "Growth" },
   {
     label: "College Counseling",

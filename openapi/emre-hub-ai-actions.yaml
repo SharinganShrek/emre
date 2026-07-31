@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: Emre Hub AI Actions
+  title: Emre OS AI Actions
   version: 1.0.0
   description: |
-    Safe, AI-ready HTTP API for Emre Hub (personal life dashboard).
+    Safe, AI-ready HTTP API for Emre OS (personal life dashboard).
 
     Designed for a future Custom GPT Action, OpenAI Assistants tool, or
     internal agent. Routes are **non-destructive** (no DELETE). Writes are
@@ -12,7 +12,7 @@ info:
     Authentication: `Authorization: Bearer <AI_API_KEY>` (server env).
     All data access is scoped to a single hub owner UUID on the server.
   contact:
-    name: Emre Hub
+    name: Emre OS
 servers:
   - url: https://YOUR_DEPLOYMENT_HOST
     description: Production (replace with your deployed Next.js URL)
@@ -27,6 +27,7 @@ tags:
   - name: Journal
   - name: Analytics
   - name: College Counseling
+  - name: SAT Vocab
 
 paths:
   /api/ai/summary/today:
@@ -368,6 +369,33 @@ paths:
         "500":
           $ref: "#/components/responses/Error"
 
+  /api/ai/sat-vocab/progress:
+    get:
+      operationId: getSatVocabProgress
+      tags: [SAT Vocab]
+      summary: SAT vocabulary progress + today's session
+      description: |
+        Read-only summary of the 10-week SAT vocab plan progress, today's
+        scheduled session (if any), and completed calendar dates.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Progress payload
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/SatVocabProgress"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/Error"
+
   /api/ai/college-counseling/context-pack:
     get:
       operationId: getCollegeCounselingContextPack
@@ -616,3 +644,33 @@ components:
         markdown:
           type: string
           description: Full counselor context pack in Markdown
+
+    SatVocabProgress:
+      type: object
+      properties:
+        plan_start: { type: string, format: date }
+        word_count: { type: integer }
+        summary:
+          type: object
+          properties:
+            learn_total: { type: integer }
+            learned: { type: integer }
+            tested: { type: integer }
+            completed_days: { type: integer }
+            plan_total: { type: integer }
+            words_touched: { type: integer }
+            words_total: { type: integer }
+        today:
+          type: object
+          properties:
+            date: { type: string, format: date }
+            plan_id: { type: string, nullable: true }
+            session_label: { type: string }
+            kind: { type: string, enum: [learn, review, rest] }
+            theme_focus: { type: string }
+            words:
+              type: array
+              items: { type: string }
+        completed_dates:
+          type: array
+          items: { type: string, format: date }

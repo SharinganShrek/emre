@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Hydrated } from "@/components/hydrated";
 import { HabitChecklist } from "@/components/habits/habit-checklist";
 import { useHub } from "@/lib/store";
+import { SatVocabProvider, useSatVocab } from "@/lib/sat-vocab/store";
 import { completionForDate } from "@/lib/selectors";
 import { cn, formatLongDate, toISODate, todayISO } from "@/lib/utils";
 
@@ -17,13 +18,20 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export default function CalendarPage() {
   return (
     <Hydrated>
-      <CalendarView />
+      <SatVocabProvider>
+        <CalendarView />
+      </SatVocabProvider>
     </Hydrated>
   );
 }
 
 function CalendarView() {
   const { data } = useHub();
+  const { progress } = useSatVocab();
+  const satDone = useMemo(
+    () => new Set(progress.completed_dates),
+    [progress.completed_dates],
+  );
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -41,7 +49,7 @@ function CalendarView() {
     <div className="space-y-6">
       <PageHeader
         title="Calendar"
-        description="See your habit completion across the month."
+        description="Habits + SAT vocab session days (blue = vocab day completed)."
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -121,20 +129,25 @@ function CalendarView() {
                     >
                       {day.getDate()}
                     </span>
-                    {!future && comp.total > 0 && (
-                      <span
-                        className={cn(
-                          "h-1.5 w-6 rounded-full",
-                          comp.pct === 100
-                            ? "bg-success"
-                            : comp.pct >= 50
-                              ? "bg-warning"
-                              : comp.pct > 0
-                                ? "bg-danger/70"
-                                : "bg-surface-2",
-                        )}
-                      />
-                    )}
+                    <span className="flex h-1.5 items-center justify-center gap-0.5">
+                      {!future && comp.total > 0 && (
+                        <span
+                          className={cn(
+                            "h-1.5 w-3 rounded-full",
+                            comp.pct === 100
+                              ? "bg-success"
+                              : comp.pct >= 50
+                                ? "bg-warning"
+                                : comp.pct > 0
+                                  ? "bg-danger/70"
+                                  : "bg-surface-2",
+                          )}
+                        />
+                      )}
+                      {satDone.has(iso) && (
+                        <span className="h-1.5 w-3 rounded-full bg-primary" />
+                      )}
+                    </span>
                   </button>
                 );
               })}

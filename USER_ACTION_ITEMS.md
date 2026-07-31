@@ -32,6 +32,19 @@ supabase/drop_auth_fks.sql
 - `practice_tests`, `research_projects`, `research_papers`, `research_experiments`
 - `goal_milestones`
 - `college_counseling`
+- `sat_vocab_progress` ← ayrıca çalıştır: `supabase/sat_vocab_schema.sql`
+
+### SAT Vocab (yeni)
+
+Supabase SQL Editor’da şunu çalıştır:
+
+```text
+supabase/sat_vocab_schema.sql
+```
+
+Sonra Vercel’e deploy et. Custom GPT Actions schema’sını yeniden import et
+(`getSatVocabProgress` eklendi). Uygulamada **SAT Vocab** menüsünden
+31 Temmuz 2026’dan başlayan 10 haftalık planı kullan.
 
 ---
 
