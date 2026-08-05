@@ -119,7 +119,10 @@ function PlanTab() {
   const [mode, setMode] = useState<"flash" | "pick" | "drill" | null>(null);
   const [drill, setDrill] = useState<SatDrillType | null>(null);
 
-  const words = active ? getWordsForPlanDay(active) : [];
+  const words = useMemo(
+    () => (active ? getWordsForPlanDay(active) : []),
+    [active],
+  );
 
   function openLearn(day: SatPlanDay) {
     setActive(day);

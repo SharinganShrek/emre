@@ -87,7 +87,11 @@ export function DrillRunner({
   onFinish: (score: number) => void;
   onCancel: () => void;
 }) {
-  const pool = useMemo(() => shuffle(words).slice(0, Math.min(20, words.length)), [words]);
+  // Shuffle once for this drill mount — do NOT reshuffle when parent re-renders
+  // after onWordResult (progress save) or the current question flashes randomly.
+  const [pool] = useState(() =>
+    shuffle(words).slice(0, Math.min(20, words.length)),
+  );
 
   if (drill === "matching") {
     return (
@@ -265,15 +269,16 @@ function MultipleChoiceDrill({
   const [i, setI] = useState(0);
   const [correctN, setCorrectN] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
+  const [bank] = useState(() => allWords);
   const word = words[i];
 
   const choices = useMemo(() => {
     if (!word) return [];
     const distractors = shuffle(
-      allWords.filter((w) => w.word !== word.word),
+      bank.filter((w) => w.word !== word.word),
     ).slice(0, 3);
     return shuffle([word, ...distractors]);
-  }, [word, allWords]);
+  }, [word?.word, bank]);
 
   if (!word) return null;
 
