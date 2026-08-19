@@ -373,10 +373,10 @@ paths:
     get:
       operationId: getSatVocabProgress
       tags: [SAT Vocab]
-      summary: SAT vocabulary progress + today's session
+      summary: SAT vocabulary progress + today + next open session
       description: |
-        Read-only summary of the 10-week SAT vocab plan progress, today's
-        scheduled session (if any), and completed calendar dates.
+        Compact dashboard: completion counts, today's session, next unfinished
+        plan day, and completed calendar dates.
       security:
         - bearerAuth: []
       responses:
@@ -395,6 +395,162 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/Error"
+    post:
+      operationId: updateSatVocabProgress
+      tags: [SAT Vocab]
+      summary: Record learn / test / rest / quiz results
+      description: |
+        Non-destructive progress upsert. Same calendar rules as the app:
+        learn days complete after learn+test; review after test; rest after rest.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SatVocabProgressWrite"
+      responses:
+        "200":
+          description: Updated summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/sat-vocab/plan:
+    get:
+      operationId: getSatVocabPlan
+      tags: [SAT Vocab]
+      summary: 10-week plan (optionally one week)
+      description: Sessions in Excel order with learned/tested/complete flags.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: week
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10 }
+      responses:
+        "200":
+          description: Plan days
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/ai/sat-vocab/session:
+    get:
+      operationId: getSatVocabSession
+      tags: [SAT Vocab]
+      summary: One session with word cards (flashcards)
+      description: |
+        Returns the day's words with definitions (compact or full Excel fields).
+        If no query is given, uses today's scheduled session.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: plan_id
+          in: query
+          schema: { type: string, example: plan-001 }
+        - name: date
+          in: query
+          schema: { $ref: "#/components/schemas/IsoDate" }
+        - name: session_num
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50 }
+        - name: detail
+          in: query
+          schema: { type: string, enum: [compact, full], default: compact }
+      responses:
+        "200":
+          description: Session + word cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/sat-vocab/themes:
+    get:
+      operationId: getSatVocabThemes
+      tags: [SAT Vocab]
+      summary: 25 themes in Excel order
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Theme list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+
+  /api/ai/sat-vocab/words:
+    get:
+      operationId: getSatVocabWords
+      tags: [SAT Vocab]
+      summary: Lookup / search / list theme words
+      description: |
+        Prefer `word=` for one card or `theme=` / `q=` with pagination.
+        Default limit 20, max 40. Use detail=full for morphology + long notes.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: word
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: theme
+          in: query
+          schema: { type: string }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 40, default: 20 }
+        - name: detail
+          in: query
+          schema: { type: string, enum: [compact, full], default: compact }
+      responses:
+        "200":
+          description: Paginated word cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+
+  /api/ai/sat-vocab/weak-words:
+    get:
+      operationId: getSatVocabWeakWords
+      tags: [SAT Vocab]
+      summary: Words with under 70% quiz accuracy
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 40, default: 20 }
+      responses:
+        "200":
+          description: Weak words
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
 
   /api/ai/college-counseling/context-pack:
     get:
@@ -674,3 +830,40 @@ components:
         completed_dates:
           type: array
           items: { type: string, format: date }
+        next_open:
+          type: object
+          nullable: true
+          properties:
+            plan_id: { type: string }
+            scheduled_date: { type: string, format: date }
+            session_label: { type: string }
+            kind: { type: string, enum: [learn, review, rest] }
+
+    SatVocabProgressWrite:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [learn, test, rest, word_results]
+        plan_id:
+          type: string
+          example: plan-001
+        known_words:
+          type: array
+          items: { type: string }
+        drill:
+          type: string
+          enum: [matching, type_word, type_definition, multiple_choice]
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        results:
+          type: array
+          items:
+            type: object
+            required: [word, correct]
+            properties:
+              word: { type: string }
+              correct: { type: boolean }

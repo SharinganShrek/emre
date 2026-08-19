@@ -42,9 +42,11 @@ Supabase SQL Editor’da şunu çalıştır:
 supabase/sat_vocab_schema.sql
 ```
 
-Sonra Vercel’e deploy et. Custom GPT Actions schema’sını yeniden import et
-(`getSatVocabProgress` eklendi). Uygulamada **SAT Vocab** menüsünden
-31 Temmuz 2026’dan başlayan 10 haftalık planı kullan.
+Sonra Vercel’e deploy et. Custom GPT: `custom-gpt/SAT_VOCAB.md`
+(OpenAPI yeniden import + Instructions yapıştır). SAT Vocab Actions:
+`getSatVocabProgress`, `updateSatVocabProgress`, `getSatVocabPlan`,
+`getSatVocabSession`, `getSatVocabThemes`, `getSatVocabWords`,
+`getSatVocabWeakWords`.
 
 ---
 

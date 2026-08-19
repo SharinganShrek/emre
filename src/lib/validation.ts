@@ -57,3 +57,76 @@ export const taskListQuery = z.object({
 export const journalRecentQuery = z.object({
   limit: z.coerce.number().int().min(1).max(30).default(7),
 });
+
+const satPlanId = z
+  .string()
+  .regex(/^plan-\d{3}$/, "Expected plan-001 … plan-070");
+
+export const satVocabPlanQuery = z.object({
+  week: z.coerce.number().int().min(1).max(10).optional(),
+});
+
+export const satVocabSessionQuery = z.object({
+  plan_id: satPlanId.optional(),
+  date: isoDate.optional(),
+  session_num: z.coerce.number().int().min(1).max(50).optional(),
+  detail: z.enum(["compact", "full"]).default("compact"),
+});
+
+export const satVocabWordsQuery = z.object({
+  word: z.string().min(1).max(80).optional(),
+  q: z.string().min(1).max(80).optional(),
+  theme: z.string().min(1).max(80).optional(),
+  offset: z.coerce.number().int().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(40).default(20),
+  detail: z.enum(["compact", "full"]).default("compact"),
+});
+
+export const satVocabWeakQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(40).default(20),
+});
+
+export const satVocabProgressWrite = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("learn"),
+    plan_id: satPlanId,
+    known_words: z.array(z.string().min(1).max(80)).max(40).optional(),
+  }),
+  z.object({
+    action: z.literal("test"),
+    plan_id: satPlanId,
+    drill: z.enum([
+      "matching",
+      "type_word",
+      "type_definition",
+      "multiple_choice",
+    ]),
+    score: z.number().int().min(0).max(100),
+    results: z
+      .array(
+        z.object({
+          word: z.string().min(1).max(80),
+          correct: z.boolean(),
+        }),
+      )
+      .max(40)
+      .optional(),
+  }),
+  z.object({
+    action: z.literal("rest"),
+    plan_id: satPlanId,
+  }),
+  z.object({
+    action: z.literal("word_results"),
+    results: z
+      .array(
+        z.object({
+          word: z.string().min(1).max(80),
+          correct: z.boolean(),
+        }),
+      )
+      .min(1)
+      .max(40),
+  }),
+]);
+export type SatVocabProgressWrite = z.infer<typeof satVocabProgressWrite>;

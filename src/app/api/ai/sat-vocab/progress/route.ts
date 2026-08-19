@@ -3,34 +3,37 @@ import {
   assertPermission,
 } from "@/lib/ai/permissions";
 import { logAiAction } from "@/lib/ai/audit";
-import { aiOk, aiCatch } from "@/lib/ai/response";
-import { isHubSyncConfigured } from "@/lib/access";
-import { fetchSatVocabProgress } from "@/lib/supabase/sat-vocab-repository";
+import { aiOk, aiCatch, aiError } from "@/lib/ai/response";
 import {
+  applyLearn,
+  applyRest,
+  applyTest,
+  applyWordResults,
+  loadSatProgress,
+  persistSatProgress,
   progressSummary,
   satVocabData,
-  getWordsForPlanDay,
-} from "@/lib/sat-vocab";
-import { emptySatProgress } from "@/lib/sat-vocab/types";
+  findPlanDay,
+  nextOpenDay,
+} from "@/lib/sat-vocab/ai";
+import { satVocabProgressWrite } from "@/lib/validation";
 import { todayISO } from "@/lib/utils";
+import { getWordsForPlanDay } from "@/lib/sat-vocab";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** GET /api/ai/sat-vocab/progress — summary of SAT vocab progress. */
+/** GET /api/ai/sat-vocab/progress */
 export async function GET(request: Request) {
   try {
     const ctx = authorizeAiRequest(request);
     assertPermission("sat_vocab", "read");
 
-    let progress = emptySatProgress(satVocabData.meta.plan_start);
-    if (isHubSyncConfigured()) {
-      progress = await fetchSatVocabProgress(ctx.admin, ctx.userId);
-    }
-
+    const progress = await loadSatProgress(ctx);
     const summary = progressSummary(progress);
     const today = todayISO();
     const todayPlan = satVocabData.plan.find((p) => p.scheduled_date === today);
+    const nextOpen = nextOpenDay(progress);
 
     await logAiAction({
       ctx,
@@ -55,10 +58,68 @@ export async function GET(request: Request) {
             session_progress: progress.sessions[todayPlan.id] ?? null,
           }
         : { date: today, plan_id: null },
+      next_open: nextOpen
+        ? {
+            plan_id: nextOpen.id,
+            scheduled_date: nextOpen.scheduled_date,
+            session_label: nextOpen.session_label,
+            kind: nextOpen.kind,
+          }
+        : null,
       completed_dates: progress.completed_dates,
     });
   } catch (err) {
     return aiCatch(err);
   }
 }
-
+
+/**
+ * POST /api/ai/sat-vocab/progress
+ * Non-destructive upserts: learn / test / rest / word_results.
+ */
+export async function POST(request: Request) {
+  try {
+    const ctx = authorizeAiRequest(request);
+    assertPermission("sat_vocab", "write");
+
+    const body = satVocabProgressWrite.parse(await request.json());
+    let progress = await loadSatProgress(ctx);
+
+    if (body.action !== "word_results") {
+      const day = findPlanDay({ plan_id: body.plan_id });
+      if (!day) return aiError("Unknown plan_id.", 404);
+    }
+
+    if (body.action === "learn") {
+      progress = applyLearn(progress, body.plan_id, body.known_words);
+    } else if (body.action === "test") {
+      if (body.results?.length) {
+        progress = applyWordResults(progress, body.results);
+      }
+      progress = applyTest(progress, body.plan_id, body.drill, body.score);
+    } else if (body.action === "rest") {
+      progress = applyRest(progress, body.plan_id);
+    } else {
+      progress = applyWordResults(progress, body.results);
+    }
+
+    const saved = await persistSatProgress(ctx, progress);
+
+    await logAiAction({
+      ctx,
+      route: "/api/ai/sat-vocab/progress",
+      action: "write",
+      resource: "sat_vocab",
+      summary: `SAT vocab ${body.action}`,
+      metadata: { action: body.action },
+    });
+
+    return aiOk({
+      action: body.action,
+      summary: progressSummary(saved),
+      completed_dates: saved.completed_dates,
+    });
+  } catch (err) {
+    return aiCatch(err);
+  }
+}
