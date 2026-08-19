@@ -49,7 +49,7 @@ function CalendarView() {
     <div className="space-y-6">
       <PageHeader
         title="Calendar"
-        description="Habits + SAT vocab session days (blue = vocab day completed)."
+        description="Habits + SAT vocab study days (blue = you studied vocab that day)."
       />
 
       <div className="grid gap-4 lg:grid-cols-3">

@@ -83,7 +83,9 @@ export type SatVocabProgress = {
   plan_start: string;
   sessions: Record<string, SatSessionProgress>;
   word_stats: Record<string, SatWordStat>;
-  /** ISO dates where a learn/review day was fully completed */
+  /** Calendar days you actually studied (YYYY-MM-DD). */
+  activity_dates: string[];
+  /** Alias of activity_dates (calendar dots). */
   completed_dates: string[];
 };
 
@@ -92,6 +94,7 @@ export function emptySatProgress(planStart = "2026-07-31"): SatVocabProgress {
     plan_start: planStart,
     sessions: {},
     word_stats: {},
+    activity_dates: [],
     completed_dates: [],
   };
 }

@@ -42,11 +42,9 @@ Supabase SQL Editor’da şunu çalıştır:
 supabase/sat_vocab_schema.sql
 ```
 
-Sonra Vercel’e deploy et. Custom GPT: `custom-gpt/SAT_VOCAB.md`
-(OpenAPI yeniden import + Instructions yapıştır). SAT Vocab Actions:
-`getSatVocabProgress`, `updateSatVocabProgress`, `getSatVocabPlan`,
-`getSatVocabSession`, `getSatVocabThemes`, `getSatVocabWords`,
-`getSatVocabWeakWords`.
+Sonra Vercel’e deploy et. Custom GPT talimatları **tek dosya**:
+`custom-gpt/INSTRUCTIONS.md` (OpenAPI import + Instructions yapıştır).
+SAT Vocab, College Counseling ve Study aynı blokta.
 
 ---
 
@@ -93,7 +91,7 @@ Uygulamayı aç → unlock → Notes / Study / Research / College Counseling’i
 4. Test et:
    - `getTodaySummary`
    - `getCollegeCounselingContextPack`
-5. GPT instructions’a ekle: “Emre OS Actions kullan; DELETE yok; financial documents isteme.”
+5. GPT instructions: `custom-gpt/INSTRUCTIONS.md` içindeki **Instructions** bloğunun tamamını yapıştır (SAT Vocab + College Counseling + Study).
 
 Yerel test (deploy yokken):
 

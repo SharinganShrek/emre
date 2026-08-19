@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { collegeCounselingData as seedData } from "@/lib/college-counseling/data";
+import { mergeCollegeCounseling } from "@/lib/college-counseling/merge";
 import type { CollegeCounselingData } from "@/lib/college-counseling/types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { toast } from "@/lib/toast";
@@ -41,7 +42,11 @@ function loadLocal(): CollegeCounselingData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return structuredClone(seedData);
     const parsed = JSON.parse(raw) as CollegeCounselingData;
-    return { ...structuredClone(seedData), ...parsed };
+    const merged = mergeCollegeCounseling(parsed);
+    if ((parsed.activities_seed_rev ?? 0) < (merged.activities_seed_rev ?? 0)) {
+      saveLocal(merged);
+    }
+    return merged;
   } catch {
     return structuredClone(seedData);
   }

@@ -22,6 +22,8 @@ import {
   type SatWord,
 } from "@/lib/sat-vocab/types";
 import { AiPermissionError } from "@/lib/ai/permissions";
+import { stampActivityDate } from "@/lib/sat-vocab/streak";
+import { todayISO } from "@/lib/utils";
 
 export type SatWordCard = {
   no: number;
@@ -103,9 +105,7 @@ export function findPlanDay(opts: {
   if (plan_id) {
     return satVocabData.plan.find((p) => p.id === plan_id);
   }
-  if (date) {
-    return satVocabData.plan.find((p) => p.scheduled_date === date);
-  }
+  void date;
   if (session_num != null) {
     return satVocabData.plan.find((p) => p.session_num === session_num);
   }
@@ -249,7 +249,16 @@ export function applyWordResults(
       last_seen: now,
     };
   }
-  return { ...progress, word_stats };
+  const activity_dates = stampActivityDate(
+    progress.activity_dates,
+    todayISO(),
+  );
+  return {
+    ...progress,
+    word_stats,
+    activity_dates,
+    completed_dates: activity_dates,
+  };
 }
 
 function withSession(
@@ -257,9 +266,15 @@ function withSession(
   planId: string,
   session: SatSessionProgress,
 ): SatVocabProgress {
+  const activity_dates = stampActivityDate(
+    progress.activity_dates,
+    todayISO(),
+  );
   const next = {
     ...progress,
     sessions: { ...progress.sessions, [planId]: session },
+    activity_dates,
+    completed_dates: activity_dates,
   };
   return { ...next, completed_dates: recomputeCompletedDates(next) };
 }

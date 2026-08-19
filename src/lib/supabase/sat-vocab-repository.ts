@@ -40,9 +40,11 @@ export async function saveSatVocabProgress(
   userId: string,
   payload: SatVocabProgress,
 ): Promise<void> {
+  const dates = recomputeCompletedDates(payload);
   const next = {
     ...payload,
-    completed_dates: recomputeCompletedDates(payload),
+    activity_dates: dates,
+    completed_dates: dates,
   };
   const { error } = await supabase.from("sat_vocab_progress").upsert(
     {

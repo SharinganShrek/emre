@@ -130,3 +130,65 @@ export const satVocabProgressWrite = z.discriminatedUnion("action", [
   }),
 ]);
 export type SatVocabProgressWrite = z.infer<typeof satVocabProgressWrite>;
+
+const activityPriority = z.enum(["high", "medium", "low"]);
+const activityStatus = z.enum(["draft", "needs_revision", "ready"]);
+
+export const activityItemInput = z.object({
+  id: z.string().min(1).max(80).optional(),
+  title: z.string().min(1).max(200),
+  category: z.string().min(1).max(80).default("Other"),
+  role: z.string().max(200).default(""),
+  organization: z.string().max(200).default(""),
+  grade_levels: z.string().max(80).default(""),
+  hours_per_week: z.number().min(0).max(168).default(0),
+  weeks_per_year: z.number().min(0).max(52).default(0),
+  common_app_description: z.string().max(4000).default(""),
+  expanded_description: z.string().max(20000).default(""),
+  impact_metrics: z.string().max(4000).default(""),
+  evidence_link: z.string().max(500).nullable().optional(),
+  priority: activityPriority.default("medium"),
+  framing_notes: z.string().max(2000).default(""),
+  risk_notes: z.string().max(2000).default(""),
+  status: activityStatus.default("draft"),
+});
+
+export const collegeCounselingWrite = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("replace"),
+    data: z.record(z.string(), z.unknown()),
+  }),
+  z.object({
+    action: z.literal("add_activity"),
+    activity: activityItemInput,
+  }),
+  z.object({
+    action: z.literal("update_activity"),
+    id: z.string().min(1).max(80),
+    patch: activityItemInput.partial(),
+  }),
+]);
+export type CollegeCounselingWrite = z.infer<typeof collegeCounselingWrite>;
+
+export const studySessionQuery = z.object({
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+  subject: z.string().min(1).max(80).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(60),
+});
+
+export const studySessionInput = z.object({
+  subject: z.string().min(1).max(80),
+  duration_minutes: z.number().int().min(1).max(24 * 60),
+  session_date: isoDate.optional(),
+  notes: z.string().max(4000).nullable().optional(),
+});
+
+export const studySessionPatch = z.object({
+  id: z.string().min(1),
+  subject: z.string().min(1).max(80).optional(),
+  duration_minutes: z.number().int().min(1).max(24 * 60).optional(),
+  session_date: isoDate.optional(),
+  notes: z.string().max(4000).nullable().optional(),
+});
+export type StudySessionInput = z.infer<typeof studySessionInput>;

@@ -34,7 +34,6 @@ export async function GET(request: Request) {
           plan_id: row.id,
           week: row.week,
           day_name: row.day_name,
-          scheduled_date: row.scheduled_date,
           session_label: row.session_label,
           session_num: row.session_num,
           kind: row.kind,

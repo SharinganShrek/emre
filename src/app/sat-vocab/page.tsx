@@ -3,16 +3,18 @@
 import { useMemo, useState } from "react";
 import {
   BookOpen,
-  CalendarDays,
   CheckCircle2,
+  Flame,
   Play,
   FlaskConical,
   Layers,
+  Shield,
+  ShieldOff,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { StatCard } from "@/components/ui/stat-card";
 import { Hydrated } from "@/components/hydrated";
@@ -20,9 +22,11 @@ import { FlashcardSession } from "@/components/sat-vocab/flashcards";
 import { DrillPicker, DrillRunner } from "@/components/sat-vocab/drills";
 import {
   getWordsForPlanDay,
+  nextOpenDay,
   satVocabData,
   wordsByTheme,
 } from "@/lib/sat-vocab";
+import { computeSatStreak } from "@/lib/sat-vocab/streak";
 import { SatVocabProvider, useSatVocab } from "@/lib/sat-vocab/store";
 import {
   isSessionComplete,
@@ -33,7 +37,7 @@ import {
 import { toast } from "@/lib/toast";
 import { cn, todayISO } from "@/lib/utils";
 
-const TABS = ["Plan", "Themes", "Calendar", "Weak words"] as const;
+const TABS = ["Plan", "Themes", "Weak words"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function SatVocabPage() {
@@ -47,8 +51,12 @@ export default function SatVocabPage() {
 }
 
 function SatVocabApp() {
-  const { loading, summary, source, saving, dirty } = useSatVocab();
+  const { loading, summary, source, saving, dirty, progress } = useSatVocab();
   const [tab, setTab] = useState<Tab>("Plan");
+  const streak = useMemo(
+    () => computeSatStreak(progress.activity_dates ?? [], todayISO()),
+    [progress.activity_dates],
+  );
 
   if (loading) {
     return <p className="text-sm text-muted">Loading SAT vocabulary…</p>;
@@ -58,8 +66,10 @@ function SatVocabApp() {
     <div className="space-y-6">
       <PageHeader
         title="SAT Vocab"
-        description={`${satVocabData.meta.word_count} words · 10-week plan from ${satVocabData.meta.plan_start} · 20 words / learn day`}
+        description={`${satVocabData.meta.word_count} words · 10-week plan · 20 words / learn session`}
       />
+
+      <StreakBanner streak={streak} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -71,8 +81,8 @@ function SatVocabApp() {
           value={`${summary.tested}/${summary.learn_total}`}
         />
         <StatCard
-          label="Calendar days done"
-          value={`${summary.completed_days}/${summary.plan_total}`}
+          label="Study days"
+          value={summary.study_days ?? summary.completed_days}
         />
         <StatCard
           label="Words touched"
@@ -100,7 +110,6 @@ function SatVocabApp() {
 
       {tab === "Plan" && <PlanTab />}
       {tab === "Themes" && <ThemesTab />}
-      {tab === "Calendar" && <CalendarTab />}
       {tab === "Weak words" && <WeakWordsTab />}
 
       <p className="text-xs text-muted-2">
@@ -111,10 +120,82 @@ function SatVocabApp() {
   );
 }
 
+function StreakBanner({
+  streak,
+}: {
+  streak: ReturnType<typeof computeSatStreak>;
+}) {
+  return (
+    <Card className="border-primary/25 bg-primary/5">
+      <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+            <Flame className="size-7" />
+          </div>
+          <div>
+            <p className="text-3xl font-semibold tracking-tight">
+              {streak.current}
+              <span className="ml-2 text-base font-medium text-muted">
+                day streak
+              </span>
+            </p>
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
+              {streak.shield_available ? (
+                <>
+                  <Shield className="size-3.5 text-primary" />
+                  Weekly shield ready — 1 miss this week won’t break it
+                </>
+              ) : (
+                <>
+                  <ShieldOff className="size-3.5 text-muted-2" />
+                  Shield used this week — study today to keep the streak
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-1.5">
+          {streak.week_days.map((d) => (
+            <div key={d.date} className="flex flex-col items-center gap-1">
+              <span className="text-[10px] text-muted-2">{d.label}</span>
+              <span
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-full border text-[10px]",
+                  d.studied && "border-primary bg-primary text-primary-foreground",
+                  d.shielded &&
+                    !d.studied &&
+                    "border-warning/40 bg-warning/15 text-warning",
+                  !d.studied &&
+                    !d.shielded &&
+                    d.is_today &&
+                    "border-primary/50 text-primary",
+                  !d.studied &&
+                    !d.shielded &&
+                    !d.is_today &&
+                    "border-border text-muted-2",
+                )}
+                title={
+                  d.studied
+                    ? `${d.date} studied`
+                    : d.shielded
+                      ? `${d.date} shielded`
+                      : d.date
+                }
+              >
+                {d.studied ? "✓" : d.shielded ? "🛡" : d.is_today ? "·" : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function PlanTab() {
   const { progress, markLearned, markTested, recordWordResult, markRestDone } =
     useSatVocab();
-  const today = todayISO();
+  const next = nextOpenDay(progress);
   const [active, setActive] = useState<SatPlanDay | null>(null);
   const [mode, setMode] = useState<"flash" | "pick" | "drill" | null>(null);
   const [drill, setDrill] = useState<SatDrillType | null>(null);
@@ -141,14 +222,11 @@ function PlanTab() {
       {satVocabData.plan.map((day) => {
         const sp = progress.sessions[day.id];
         const done = isSessionComplete(day, sp);
-        const isToday = day.scheduled_date === today;
+        const isNext = next?.id === day.id;
         return (
           <Card
             key={day.id}
-            className={cn(
-              isToday && "border-primary/50",
-              done && "opacity-90",
-            )}
+            className={cn(isNext && "border-primary/50", done && "opacity-90")}
           >
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
@@ -156,7 +234,7 @@ function PlanTab() {
                   <p className="text-sm font-medium">
                     Week {day.week} · {day.session_label}
                   </p>
-                  {isToday && <Badge variant="accent">Today</Badge>}
+                  {isNext && <Badge variant="accent">Next</Badge>}
                   {done && (
                     <Badge variant="success">
                       <CheckCircle2 className="size-3" /> Done
@@ -167,7 +245,7 @@ function PlanTab() {
                   )}
                 </div>
                 <p className="text-xs text-muted">
-                  {day.scheduled_date} · {day.theme_focus}
+                  {day.day_name} · {day.theme_focus}
                   {day.kind === "learn" ? ` · ${day.words.length} words` : ""}
                 </p>
                 {day.task_note && (
@@ -220,11 +298,7 @@ function PlanTab() {
           setMode(null);
           setDrill(null);
         }}
-        title={
-          active
-            ? `${active.session_label} · ${active.scheduled_date}`
-            : "Session"
-        }
+        title={active ? `${active.session_label} · Week ${active.week}` : "Session"}
       >
         {active && mode === "flash" && (
           <FlashcardSession
@@ -235,9 +309,7 @@ function PlanTab() {
             }}
             onComplete={(known) => {
               markLearned(active.id, known);
-              toast.success(
-                "Session learned — calendar updates after you also finish a test",
-              );
+              toast.success("Session learned — finish a test when you’re ready");
               setMode("pick");
             }}
           />
@@ -266,7 +338,10 @@ function PlanTab() {
             }}
             onFinish={(score) => {
               markTested(active.id, drill, score);
-              if (active.kind === "learn" && !progress.sessions[active.id]?.learned) {
+              if (
+                active.kind === "learn" &&
+                !progress.sessions[active.id]?.learned
+              ) {
                 markLearned(active.id);
               }
               if (active.kind === "review") {
@@ -372,60 +447,6 @@ function WordDetail({ word }: { word: SatWord }) {
       {word.example_pattern && (
         <p className="text-xs text-muted-2">{word.example_pattern}</p>
       )}
-    </div>
-  );
-}
-
-function CalendarTab() {
-  const { progress } = useSatVocab();
-  const completed = new Set(progress.completed_dates);
-  const byMonth = useMemo(() => {
-    const map = new Map<string, SatPlanDay[]>();
-    for (const day of satVocabData.plan) {
-      const key = day.scheduled_date.slice(0, 7);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(day);
-    }
-    return [...map.entries()];
-  }, []);
-
-  return (
-    <div className="space-y-6">
-      <p className="text-sm text-muted">
-        Days turn green when a learn session is both studied and tested (review
-        days: finish a test; rest: mark done). Start date:{" "}
-        {satVocabData.meta.plan_start}.
-      </p>
-      {byMonth.map(([month, days]) => (
-        <Card key={month}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CalendarDays className="size-4" /> {month}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {days.map((d) => {
-              const done = completed.has(d.scheduled_date);
-              return (
-                <div
-                  key={d.id}
-                  className={cn(
-                    "rounded-lg border px-3 py-2 text-sm",
-                    done
-                      ? "border-success/40 bg-success/10"
-                      : "border-border bg-surface",
-                  )}
-                >
-                  <p className="font-medium">{d.scheduled_date}</p>
-                  <p className="text-xs text-muted">
-                    {d.session_label} · {d.kind}
-                  </p>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      ))}
     </div>
   );
 }

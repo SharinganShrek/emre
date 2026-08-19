@@ -7,11 +7,10 @@ import { aiOk, aiCatch, aiError } from "@/lib/ai/response";
 import {
   findPlanDay,
   loadSatProgress,
+  nextOpenDay,
   sessionPayload,
-  satVocabData,
 } from "@/lib/sat-vocab/ai";
 import { satVocabSessionQuery } from "@/lib/validation";
-import { todayISO } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,15 +32,13 @@ export async function GET(request: Request) {
       detail: url.searchParams.get("detail") ?? undefined,
     });
 
+    const progress = await loadSatProgress(ctx);
     const day =
       findPlanDay({
         plan_id: q.plan_id,
-        date: q.date,
         session_num: q.session_num,
-      }) ?? satVocabData.plan.find((p) => p.scheduled_date === todayISO());
+      }) ?? nextOpenDay(progress);
     if (!day) return aiError("Session not found.", 404);
-
-    const progress = await loadSatProgress(ctx);
     const payload = sessionPayload(day, progress, q.detail);
 
     await logAiAction({

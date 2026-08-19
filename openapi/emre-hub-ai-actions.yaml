@@ -14,7 +14,7 @@ info:
   contact:
     name: Emre OS
 servers:
-  - url: https://YOUR_DEPLOYMENT_HOST
+  - url: https://emre-xi.vercel.app
     description: Production (replace with your deployed Next.js URL)
   - url: http://localhost:3000
     description: Local development
@@ -28,6 +28,7 @@ tags:
   - name: Analytics
   - name: College Counseling
   - name: SAT Vocab
+  - name: Study
 
 paths:
   /api/ai/summary/today:
@@ -373,10 +374,11 @@ paths:
     get:
       operationId: getSatVocabProgress
       tags: [SAT Vocab]
-      summary: SAT vocabulary progress + today + next open session
+      summary: SAT vocabulary progress + streak + next session
       description: |
-        Compact dashboard: completion counts, today's session, next unfinished
-        plan day, and completed calendar dates.
+        Completion counts, day streak (1 miss-shield per ISO week), next
+        unfinished plan session, and activity dates (days actually studied).
+        Sessions are not bound to calendar dates.
       security:
         - bearerAuth: []
       responses:
@@ -400,8 +402,9 @@ paths:
       tags: [SAT Vocab]
       summary: Record learn / test / rest / quiz results
       description: |
-        Non-destructive progress upsert. Same calendar rules as the app:
-        learn days complete after learn+test; review after test; rest after rest.
+        Non-destructive progress upsert. Learn sessions complete after
+        learn+test; review after test; rest after rest. Each write stamps
+        today's date for the day streak.
       security:
         - bearerAuth: []
       requestBody:
@@ -454,8 +457,8 @@ paths:
       tags: [SAT Vocab]
       summary: One session with word cards (flashcards)
       description: |
-        Returns the day's words with definitions (compact or full Excel fields).
-        If no query is given, uses today's scheduled session.
+        Returns the session's words with definitions (compact or full Excel fields).
+        If no query is given, uses the next unfinished session.
       security:
         - bearerAuth: []
       parameters:
@@ -552,6 +555,64 @@ paths:
               schema:
                 $ref: "#/components/schemas/OkEnvelope"
 
+  /api/ai/college-counseling:
+    get:
+      operationId: getCollegeCounseling
+      tags: [College Counseling]
+      summary: Full college counseling document
+      description: |
+        Returns the persisted counseling JSON (profile, activities, research,
+        school list, timeline, essays, aid, recommendations, check-ins).
+        Activities are the source of truth for the Activities / CV tab
+        (UI is read-only; edits go through these Actions).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Counseling document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: updateCollegeCounseling
+      tags: [College Counseling]
+      summary: Replace document, add activity, or update activity
+      description: |
+        Full write access. No DELETE of the document.
+        - `add_activity` — append a new activity (optional `id`, otherwise generated)
+        - `update_activity` — patch fields of an existing activity by `id`
+        - `replace` — merge a partial/full document over the current payload
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollegeCounselingWrite"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
   /api/ai/college-counseling/context-pack:
     get:
       operationId: getCollegeCounselingContextPack
@@ -580,6 +641,94 @@ paths:
         "403":
           $ref: "#/components/responses/Error"
         "500":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/study/sessions:
+    get:
+      operationId: getStudySessions
+      tags: [Study]
+      summary: List study timer sessions
+      description: Logged YPT-style study blocks (subject + minutes + date).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          schema: { $ref: "#/components/schemas/IsoDate" }
+        - name: to
+          in: query
+          schema: { $ref: "#/components/schemas/IsoDate" }
+        - name: subject
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 60 }
+      responses:
+        "200":
+          description: Session list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: saveStudySession
+      tags: [Study]
+      summary: Log or update a study session
+      description: |
+        Create: `{ subject, duration_minutes, session_date?, notes? }`.
+        Update: include `id` plus any fields to change. No DELETE.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudySessionWrite"
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/study/stats:
+    get:
+      operationId: getStudyStats
+      tags: [Study]
+      summary: Today / week / month study totals
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Totals in minutes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
           $ref: "#/components/responses/Error"
 
 components:
@@ -804,7 +953,6 @@ components:
     SatVocabProgress:
       type: object
       properties:
-        plan_start: { type: string, format: date }
         word_count: { type: integer }
         summary:
           type: object
@@ -812,32 +960,30 @@ components:
             learn_total: { type: integer }
             learned: { type: integer }
             tested: { type: integer }
+            study_days: { type: integer }
             completed_days: { type: integer }
             plan_total: { type: integer }
             words_touched: { type: integer }
             words_total: { type: integer }
-        today:
+        streak:
           type: object
           properties:
-            date: { type: string, format: date }
-            plan_id: { type: string, nullable: true }
-            session_label: { type: string }
-            kind: { type: string, enum: [learn, review, rest] }
-            theme_focus: { type: string }
-            words:
-              type: array
-              items: { type: string }
-        completed_dates:
-          type: array
-          items: { type: string, format: date }
+            current: { type: integer }
+            studied_today: { type: boolean }
+            shield_available: { type: boolean }
+            shield_used_this_week: { type: boolean }
         next_open:
           type: object
           nullable: true
           properties:
             plan_id: { type: string }
-            scheduled_date: { type: string, format: date }
+            week: { type: integer }
             session_label: { type: string }
             kind: { type: string, enum: [learn, review, rest] }
+            theme_focus: { type: string }
+        activity_dates:
+          type: array
+          items: { type: string, format: date }
 
     SatVocabProgressWrite:
       type: object
@@ -867,3 +1013,75 @@ components:
             properties:
               word: { type: string }
               correct: { type: boolean }
+
+    CollegeCounselingWrite:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [replace, add_activity, update_activity]
+        data:
+          type: object
+          additionalProperties: true
+          description: Partial or full counseling document (action=replace)
+        activity:
+          $ref: "#/components/schemas/CollegeActivity"
+        id:
+          type: string
+          description: Existing activity id (action=update_activity)
+        patch:
+          $ref: "#/components/schemas/CollegeActivityPatch"
+
+    CollegeActivity:
+      type: object
+      required: [title]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        category: { type: string }
+        role: { type: string }
+        organization: { type: string }
+        grade_levels: { type: string }
+        hours_per_week: { type: number }
+        weeks_per_year: { type: number }
+        common_app_description: { type: string }
+        expanded_description: { type: string }
+        impact_metrics: { type: string }
+        evidence_link: { type: string, nullable: true }
+        priority: { type: string, enum: [high, medium, low] }
+        framing_notes: { type: string }
+        risk_notes: { type: string }
+        status: { type: string, enum: [draft, needs_revision, ready] }
+
+    CollegeActivityPatch:
+      type: object
+      additionalProperties: true
+      properties:
+        title: { type: string }
+        category: { type: string }
+        role: { type: string }
+        organization: { type: string }
+        grade_levels: { type: string }
+        hours_per_week: { type: number }
+        weeks_per_year: { type: number }
+        common_app_description: { type: string }
+        expanded_description: { type: string }
+        impact_metrics: { type: string }
+        evidence_link: { type: string, nullable: true }
+        priority: { type: string, enum: [high, medium, low] }
+        framing_notes: { type: string }
+        risk_notes: { type: string }
+        status: { type: string, enum: [draft, needs_revision, ready] }
+
+    StudySessionWrite:
+      type: object
+      properties:
+        id:
+          type: string
+          description: If present, update that session
+        subject: { type: string }
+        duration_minutes: { type: integer, minimum: 1 }
+        session_date: { $ref: "#/components/schemas/IsoDate" }
+        notes: { type: string, nullable: true }
+

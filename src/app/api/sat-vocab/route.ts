@@ -64,9 +64,11 @@ export async function PUT(request: Request) {
   try {
     const userId = getHubUserId();
     const supabase = createAdminClient();
+    const dates = recomputeCompletedDates(body.data);
     const payload = {
       ...body.data,
-      completed_dates: recomputeCompletedDates(body.data),
+      activity_dates: dates,
+      completed_dates: dates,
     };
     await saveSatVocabProgress(supabase, userId, payload);
     return NextResponse.json({ ok: true, data: payload });

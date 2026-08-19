@@ -53,27 +53,32 @@ export function mergeProgress(
 ): SatVocabProgress {
   const base = emptySatProgress(satVocabData.meta.plan_start);
   if (!partial) return base;
+  const activity = Array.isArray(partial.activity_dates)
+    ? [...partial.activity_dates]
+    : [];
+  const completed = [...new Set(activity)].sort();
   return {
     plan_start: partial.plan_start || base.plan_start,
     sessions: { ...partial.sessions },
     word_stats: { ...partial.word_stats },
-    completed_dates: Array.isArray(partial.completed_dates)
-      ? [...partial.completed_dates]
-      : [],
+    activity_dates: completed,
+    completed_dates: completed,
   };
 }
 
+/** Keep completed_dates in sync with days actually studied. */
 export function recomputeCompletedDates(
   progress: SatVocabProgress,
 ): string[] {
-  const dates: string[] = [];
-  for (const day of satVocabData.plan) {
-    const sp = progress.sessions[day.id];
-    if (isSessionComplete(day, sp)) {
-      dates.push(day.scheduled_date);
-    }
-  }
-  return dates;
+  return [...new Set(progress.activity_dates ?? [])].sort();
+}
+
+export function nextOpenDay(progress: SatVocabProgress) {
+  return (
+    satVocabData.plan.find(
+      (d) => !isSessionComplete(d, progress.sessions[d.id]),
+    ) ?? null
+  );
 }
 
 export function progressSummary(progress: SatVocabProgress) {
@@ -87,7 +92,8 @@ export function progressSummary(progress: SatVocabProgress) {
     learn_total: learnDays.length,
     learned,
     tested,
-    completed_days: progress.completed_dates.length,
+    study_days: (progress.activity_dates ?? []).length,
+    completed_days: (progress.activity_dates ?? []).length,
     plan_total: satVocabData.plan.length,
     words_touched: wordsSeen,
     words_total: satVocabData.meta.word_count,

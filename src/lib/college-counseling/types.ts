@@ -191,6 +191,8 @@ export interface OverviewStats {
 }
 
 export interface CollegeCounselingData {
+  /** Bump when seed activity copy should overwrite matching ids once. */
+  activities_seed_rev?: number;
   profile: CollegeProfile;
   overview: OverviewStats;
   activities: ActivityItem[];

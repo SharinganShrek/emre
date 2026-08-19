@@ -103,7 +103,7 @@ function CollegeCounseling() {
     <div className="space-y-6">
       <PageHeader
         title="College Counseling"
-        description="Editable application strategy + copyable counselor context pack — no LLM calls."
+        description="Application strategy + copyable counselor context pack. Activities/CV is read-only here — Custom GPT can add and edit via Actions."
         actions={
           <Button
             size="sm"
@@ -469,7 +469,7 @@ function ProfileTab() {
 }
 
 function ActivitiesTab() {
-  const { data, setData } = useCounseling();
+  const { data } = useCounseling();
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
@@ -485,15 +485,6 @@ function ActivitiesTab() {
     if (priority !== "all" && a.priority !== priority) return false;
     return true;
   });
-
-  function updateActivity(id: string, patch: Partial<ActivityItem>) {
-    setData((prev) => ({
-      ...prev,
-      activities: prev.activities.map((a) =>
-        a.id === id ? { ...a, ...patch } : a,
-      ),
-    }));
-  }
 
   return (
     <div className="space-y-4">
@@ -534,24 +525,14 @@ function ActivitiesTab() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {filtered.map((a) => (
-          <ActivityCard
-            key={a.id}
-            activity={a}
-            onChange={(patch) => updateActivity(a.id, patch)}
-          />
+          <ActivityCard key={a.id} activity={a} />
         ))}
       </div>
     </div>
   );
 }
 
-function ActivityCard({
-  activity: a,
-  onChange,
-}: {
-  activity: ActivityItem;
-  onChange: (patch: Partial<ActivityItem>) => void;
-}) {
+function ActivityCard({ activity: a }: { activity: ActivityItem }) {
   return (
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-2">
@@ -567,42 +548,41 @@ function ActivityCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
-        <p className="text-muted">{a.common_app_description}</p>
-        <p className="text-xs text-muted-2">
-          Grades {a.grade_levels} · {a.hours_per_week} hr/wk · {a.weeks_per_year}{" "}
-          wk/yr · {a.category}
-        </p>
-        <div>
-          <Label>Status</Label>
-          <Select
-            value={a.status}
-            onChange={(e) =>
-              onChange({ status: e.target.value as ActivityItem["status"] })
-            }
-          >
-            <option value="draft">Draft</option>
-            <option value="needs_revision">Needs revision</option>
-            <option value="ready">Ready</option>
-          </Select>
-        </div>
-        <div>
-          <Label>Framing notes</Label>
-          <Textarea
-            value={a.framing_notes}
-            onChange={(e) => onChange({ framing_notes: e.target.value })}
-            rows={2}
+        <dl className="space-y-2">
+          <MetaRow label="Category" value={a.category} />
+          <MetaRow label="Dates / grades" value={a.grade_levels} />
+          <MetaRow
+            label="Time"
+            value={`${a.hours_per_week} hr/wk · ${a.weeks_per_year} wk/yr`}
           />
-        </div>
-        <div>
-          <Label>Evidence link</Label>
-          <Input
-            value={a.evidence_link ?? ""}
-            onChange={(e) =>
-              onChange({ evidence_link: e.target.value || null })
+          <MetaRow label="Summary" value={a.common_app_description} />
+          <MetaRow
+            label="Full description"
+            value={
+              <span className="whitespace-pre-wrap">{a.expanded_description}</span>
             }
-            placeholder="https://…"
           />
-        </div>
+          <MetaRow label="Impact" value={a.impact_metrics} />
+          {a.framing_notes ? (
+            <MetaRow label="Framing" value={a.framing_notes} />
+          ) : null}
+          {a.risk_notes ? <MetaRow label="Notes" value={a.risk_notes} /> : null}
+          {a.evidence_link ? (
+            <MetaRow
+              label="Evidence"
+              value={
+                <a
+                  href={a.evidence_link}
+                  className="break-all text-primary underline-offset-2 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {a.evidence_link}
+                </a>
+              }
+            />
+          ) : null}
+        </dl>
       </CardContent>
     </Card>
   );

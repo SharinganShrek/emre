@@ -1,4 +1,4 @@
-# Custom GPT — SAT Vocab
+# Custom GPT — College Counseling + Study
 
 Talimatlar birleştirildi. Yapıştırma paketi:
 

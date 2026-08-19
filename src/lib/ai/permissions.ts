@@ -25,11 +25,11 @@ export const AI_RESOURCE_POLICY: Record<
   habit_logs: { read: true, write: true },
   tasks: { read: true, write: true },
   goals: { read: true, write: false },
-  study_sessions: { read: true, write: false },
+  study_sessions: { read: true, write: true },
   books: { read: true, write: false },
   movies: { read: true, write: true },
   journal_entries: { read: true, write: true },
-  college_counseling: { read: true, write: false },
+  college_counseling: { read: true, write: true },
   sat_vocab: { read: true, write: true },
   // Aggregations are read-only views over the above.
 };

@@ -16,9 +16,9 @@ import {
   findPlanDay,
   nextOpenDay,
 } from "@/lib/sat-vocab/ai";
+import { computeSatStreak } from "@/lib/sat-vocab/streak";
 import { satVocabProgressWrite } from "@/lib/validation";
 import { todayISO } from "@/lib/utils";
-import { getWordsForPlanDay } from "@/lib/sat-vocab";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,8 +32,8 @@ export async function GET(request: Request) {
     const progress = await loadSatProgress(ctx);
     const summary = progressSummary(progress);
     const today = todayISO();
-    const todayPlan = satVocabData.plan.find((p) => p.scheduled_date === today);
     const nextOpen = nextOpenDay(progress);
+    const streak = computeSatStreak(progress.activity_dates ?? [], today);
 
     await logAiAction({
       ctx,
@@ -44,29 +44,24 @@ export async function GET(request: Request) {
     });
 
     return aiOk({
-      plan_start: satVocabData.meta.plan_start,
       word_count: satVocabData.meta.word_count,
       summary,
-      today: todayPlan
-        ? {
-            date: today,
-            plan_id: todayPlan.id,
-            session_label: todayPlan.session_label,
-            kind: todayPlan.kind,
-            theme_focus: todayPlan.theme_focus,
-            words: getWordsForPlanDay(todayPlan).map((w) => w.word),
-            session_progress: progress.sessions[todayPlan.id] ?? null,
-          }
-        : { date: today, plan_id: null },
+      streak: {
+        current: streak.current,
+        studied_today: streak.studied_today,
+        shield_available: streak.shield_available,
+        shield_used_this_week: streak.shield_used_this_week,
+      },
       next_open: nextOpen
         ? {
             plan_id: nextOpen.id,
-            scheduled_date: nextOpen.scheduled_date,
+            week: nextOpen.week,
             session_label: nextOpen.session_label,
             kind: nextOpen.kind,
+            theme_focus: nextOpen.theme_focus,
           }
         : null,
-      completed_dates: progress.completed_dates,
+      activity_dates: progress.activity_dates,
     });
   } catch (err) {
     return aiCatch(err);
@@ -117,7 +112,8 @@ export async function POST(request: Request) {
     return aiOk({
       action: body.action,
       summary: progressSummary(saved),
-      completed_dates: saved.completed_dates,
+      activity_dates: saved.activity_dates,
+      streak: computeSatStreak(saved.activity_dates ?? []),
     });
   } catch (err) {
     return aiCatch(err);

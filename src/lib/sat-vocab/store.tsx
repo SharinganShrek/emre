@@ -20,6 +20,8 @@ import type {
   SatSessionProgress,
   SatVocabProgress,
 } from "@/lib/sat-vocab/types";
+import { todayISO } from "@/lib/utils";
+import { stampActivityDate } from "@/lib/sat-vocab/streak";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { toast } from "@/lib/toast";
 
@@ -65,7 +67,11 @@ function saveLocal(data: SatVocabProgress) {
 }
 
 function withCompleted(p: SatVocabProgress): SatVocabProgress {
-  return { ...p, completed_dates: recomputeCompletedDates(p) };
+  const activity_dates = recomputeCompletedDates({
+    ...p,
+    activity_dates: p.activity_dates ?? [],
+  });
+  return { ...p, activity_dates, completed_dates: activity_dates };
 }
 
 export function SatVocabProvider({ children }: { children: ReactNode }) {
@@ -196,6 +202,7 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
             ...prev.sessions,
             [planId]: next,
           },
+          activity_dates: stampActivityDate(prev.activity_dates, todayISO()),
         };
       });
     },
@@ -239,6 +246,7 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
               scores,
             },
           },
+          activity_dates: stampActivityDate(prev.activity_dates, todayISO()),
         });
       });
       setDirty(true);
