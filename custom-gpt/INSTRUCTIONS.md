@@ -13,6 +13,7 @@ OpenAPI: `openapi/emre-hub-ai-actions.yaml` (`servers[0].url` production URL olm
 1. GPT düzenle → **Actions** → schema **Import**: `openapi/emre-hub-ai-actions.yaml`
 2. Authentication: API Key → **Bearer** → Vercel `AI_API_KEY` (`.env.local` ile aynı)
 3. Deploy etmeden yeni endpoint’ler 404 olur.
+4. OpenAPI güncelledikten sonra schema’yı **yeniden import** et (eski schema SAT plan’da boş `week=` ile 422 verebilir).
 
 Kontrol listesi:
 

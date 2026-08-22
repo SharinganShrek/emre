@@ -21,12 +21,12 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const q = satVocabWordsQuery.parse({
-      word: url.searchParams.get("word") ?? undefined,
-      q: url.searchParams.get("q") ?? undefined,
-      theme: url.searchParams.get("theme") ?? undefined,
-      offset: url.searchParams.get("offset") ?? undefined,
-      limit: url.searchParams.get("limit") ?? undefined,
-      detail: url.searchParams.get("detail") ?? undefined,
+      word: url.searchParams.get("word"),
+      q: url.searchParams.get("q"),
+      theme: url.searchParams.get("theme"),
+      offset: url.searchParams.get("offset"),
+      limit: url.searchParams.get("limit"),
+      detail: url.searchParams.get("detail"),
     });
 
     const result = lookupWords(q);

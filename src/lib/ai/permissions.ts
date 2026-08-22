@@ -68,7 +68,17 @@ export function authorizeAiRequest(request: Request): AiContext {
     throw new AiPermissionError("Invalid or missing AI API key.", 401);
   }
 
-  return { userId: getHubUserId(), admin: createAdminClient() };
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    throw new AiPermissionError(
+      "Supabase admin is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+      503,
+    );
+  }
+
+  return { userId: getHubUserId(), admin };
 }
 
 /** Assert the AI may perform `op` on `resource`, else throw. */
@@ -83,12 +93,15 @@ export function assertPermission(resource: string, op: AiOperation): void {
 }
 
 function extractBearer(request: Request): string | null {
-  const header = request.headers.get("authorization");
-  if (header?.toLowerCase().startsWith("bearer ")) {
-    return header.slice(7).trim();
+  const header = request.headers.get("authorization")?.trim();
+  if (header) {
+    if (header.toLowerCase().startsWith("bearer ")) {
+      return header.slice(7).trim();
+    }
+    // Some API clients (including misconfigured GPT Actions) send the raw key.
+    return header;
   }
-  // Fallback header some clients use.
-  return request.headers.get("x-ai-api-key");
+  return request.headers.get("x-ai-api-key")?.trim() ?? null;
 }
 
 /** Constant-time string comparison to avoid timing attacks. */

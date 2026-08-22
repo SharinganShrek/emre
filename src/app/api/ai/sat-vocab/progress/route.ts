@@ -20,6 +20,14 @@ import { computeSatStreak } from "@/lib/sat-vocab/streak";
 import { satVocabProgressWrite } from "@/lib/validation";
 import { todayISO } from "@/lib/utils";
 
+async function readJsonBody(request: Request): Promise<unknown> {
+  try {
+    return await request.json();
+  } catch {
+    throw new SyntaxError("Invalid JSON body");
+  }
+}
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -77,7 +85,7 @@ export async function POST(request: Request) {
     const ctx = authorizeAiRequest(request);
     assertPermission("sat_vocab", "write");
 
-    const body = satVocabProgressWrite.parse(await request.json());
+    const body = satVocabProgressWrite.parse(await readJsonBody(request));
     let progress = await loadSatProgress(ctx);
 
     if (body.action !== "word_results") {

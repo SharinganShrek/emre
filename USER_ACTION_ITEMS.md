@@ -139,7 +139,8 @@ Not: Service worker yalnızca **production**’da register olur (`NODE_ENV=produ
 | --- | --- |
 | Hub 503 | `SUPABASE_SERVICE_ROLE_KEY` eksik |
 | `relation "college_counseling" does not exist` | `phase2_schema.sql` çalıştırılmadı |
-| AI 401 Locked | Middleware unlock gate AI route’ları engelliyor — `/api/ai` public olmalı (Bearer `AI_API_KEY`) |
+| AI 401 Invalid API key | Custom GPT Actions auth — Bearer token must match Vercel `AI_API_KEY` exactly |
+| AI 422 on SAT plan | ChatGPT sent empty `week=` query — fixed server-side; redeploy and re-import OpenAPI |
 | AI 500 “not configured” | Hosting’de `AI_API_KEY` yok |
 | PWA install yok | Dev mode veya HTTPS yok (localhost hariç) |
 

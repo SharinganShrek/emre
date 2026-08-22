@@ -21,8 +21,9 @@ export async function GET(request: Request) {
     assertPermission("sat_vocab", "read");
 
     const url = new URL(request.url);
-    const { week } = satVocabPlanQuery.parse({
-      week: url.searchParams.get("week") ?? undefined,
+    const { week, include_words } = satVocabPlanQuery.parse({
+      week: url.searchParams.get("week"),
+      include_words: url.searchParams.get("include_words"),
     });
 
     const progress = await loadSatProgress(ctx);
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
           kind: row.kind,
           theme_focus: row.theme_focus,
           word_count: row.word_count,
-          words: row.words,
+          ...(include_words ? { words: row.words } : {}),
           task_note: row.task_note || undefined,
           complete: row.complete,
           learned: row.session_progress.learned,
@@ -59,6 +60,7 @@ export async function GET(request: Request) {
     return aiOk({
       plan_start: satVocabData.meta.plan_start,
       week: week ?? null,
+      include_words,
       days,
     });
   } catch (err) {

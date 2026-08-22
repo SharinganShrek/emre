@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const { limit } = satVocabWeakQuery.parse({
-      limit: url.searchParams.get("limit") ?? undefined,
+      limit: url.searchParams.get("limit"),
     });
 
     const progress = await loadSatProgress(ctx);

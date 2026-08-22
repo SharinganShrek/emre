@@ -62,28 +62,54 @@ const satPlanId = z
   .string()
   .regex(/^plan-\d{3}$/, "Expected plan-001 … plan-070");
 
+/** ChatGPT Actions often send empty strings for omitted optional query params. */
+function emptyQueryValue(value: unknown): unknown {
+  if (value === "" || value === null || value === undefined) return undefined;
+  return value;
+}
+
+function queryBool(value: unknown, defaultValue = false): boolean {
+  if (value === "true" || value === true) return true;
+  if (value === "false" || value === false) return false;
+  if (value === "" || value == null) return defaultValue;
+  return defaultValue;
+}
+
+const optionalInt = (schema: z.ZodNumber) =>
+  z.preprocess(emptyQueryValue, schema.optional());
+
 export const satVocabPlanQuery = z.object({
-  week: z.coerce.number().int().min(1).max(10).optional(),
+  week: optionalInt(z.coerce.number().int().min(1).max(10)),
+  include_words: z.preprocess(
+    (value) => queryBool(value, false),
+    z.boolean(),
+  ),
 });
 
 export const satVocabSessionQuery = z.object({
-  plan_id: satPlanId.optional(),
-  date: isoDate.optional(),
-  session_num: z.coerce.number().int().min(1).max(50).optional(),
-  detail: z.enum(["compact", "full"]).default("compact"),
+  plan_id: z.preprocess(emptyQueryValue, satPlanId.optional()),
+  date: z.preprocess(emptyQueryValue, isoDate.optional()),
+  session_num: optionalInt(z.coerce.number().int().min(1).max(50)),
+  detail: z.preprocess(
+    emptyQueryValue,
+    z.enum(["compact", "full"]).default("compact"),
+  ),
 });
 
 export const satVocabWordsQuery = z.object({
-  word: z.string().min(1).max(80).optional(),
-  q: z.string().min(1).max(80).optional(),
-  theme: z.string().min(1).max(80).optional(),
-  offset: z.coerce.number().int().min(0).default(0),
-  limit: z.coerce.number().int().min(1).max(40).default(20),
-  detail: z.enum(["compact", "full"]).default("compact"),
+  word: z.preprocess(emptyQueryValue, z.string().min(1).max(80).optional()),
+  q: z.preprocess(emptyQueryValue, z.string().min(1).max(80).optional()),
+  theme: z.preprocess(emptyQueryValue, z.string().min(1).max(80).optional()),
+  offset: z.preprocess(emptyQueryValue, z.coerce.number().int().min(0).default(0)),
+  limit: z.preprocess(emptyQueryValue, z.coerce.number().int().min(1).max(40).default(20)),
+  detail: z.preprocess(
+    emptyQueryValue,
+    z.enum(["compact", "full"]).default("compact"),
+  ),
 });
 
 export const satVocabWeakQuery = z.object({
-  limit: z.coerce.number().int().min(1).max(40).default(20),
+  limit: z.preprocess(emptyQueryValue, z.coerce.number().int().min(1).max(40).default(20)),
 });
 
 export const satVocabProgressWrite = z.discriminatedUnion("action", [

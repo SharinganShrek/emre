@@ -434,13 +434,19 @@ paths:
       operationId: getSatVocabPlan
       tags: [SAT Vocab]
       summary: 10-week plan (optionally one week)
-      description: Sessions in Excel order with learned/tested/complete flags.
+      description: |
+        Sessions in Excel order with learned/tested/complete flags.
+        Word lists are omitted by default — use getSatVocabSession for cards.
       security:
         - bearerAuth: []
       parameters:
         - name: week
           in: query
           schema: { type: integer, minimum: 1, maximum: 10 }
+        - name: include_words
+          in: query
+          schema: { type: boolean, default: false }
+          description: Include full word lists per learn day (large payload).
       responses:
         "200":
           description: Plan days

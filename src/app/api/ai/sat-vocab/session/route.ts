@@ -26,10 +26,10 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const q = satVocabSessionQuery.parse({
-      plan_id: url.searchParams.get("plan_id") ?? undefined,
-      date: url.searchParams.get("date") ?? undefined,
-      session_num: url.searchParams.get("session_num") ?? undefined,
-      detail: url.searchParams.get("detail") ?? undefined,
+      plan_id: url.searchParams.get("plan_id"),
+      date: url.searchParams.get("date"),
+      session_num: url.searchParams.get("session_num"),
+      detail: url.searchParams.get("detail"),
     });
 
     const progress = await loadSatProgress(ctx);

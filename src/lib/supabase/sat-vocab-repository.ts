@@ -31,7 +31,24 @@ export async function fetchSatVocabProgress(
     user_id: userId,
     payload: seeded,
   });
-  if (inserted.error) throw inserted.error;
+  if (inserted.error) {
+    if (inserted.error.code === "23505") {
+      const retry = await supabase
+        .from("sat_vocab_progress")
+        .select("payload")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (retry.error) throw retry.error;
+      if (retry.data?.payload && typeof retry.data.payload === "object") {
+        const merged = mergeProgress(
+          retry.data.payload as Partial<SatVocabProgress>,
+        );
+        merged.completed_dates = recomputeCompletedDates(merged);
+        return merged;
+      }
+    }
+    throw inserted.error;
+  }
   return seeded;
 }
 
