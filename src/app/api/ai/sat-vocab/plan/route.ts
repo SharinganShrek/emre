@@ -7,8 +7,8 @@ import { aiOk, aiCatch } from "@/lib/ai/response";
 import {
   loadSatProgress,
   planDayWithProgress,
-  satVocabData,
 } from "@/lib/sat-vocab/ai";
+import { satVocabCatalog } from "@/lib/sat-vocab/catalog";
 import { satVocabPlanQuery } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     });
 
     const progress = await loadSatProgress(ctx);
-    const days = satVocabData.plan
+    const days = satVocabCatalog.plan
       .filter((d) => (week ? d.week === week : true))
       .map((d) => {
         const row = planDayWithProgress(d, progress);
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     });
 
     return aiOk({
-      plan_start: satVocabData.meta.plan_start,
+      plan_start: satVocabCatalog.meta.plan_start,
       week: week ?? null,
       include_words,
       days,

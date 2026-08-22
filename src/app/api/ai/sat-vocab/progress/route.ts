@@ -12,10 +12,10 @@ import {
   loadSatProgress,
   persistSatProgress,
   progressSummary,
-  satVocabData,
   findPlanDay,
   nextOpenDay,
 } from "@/lib/sat-vocab/ai";
+import { satVocabCatalog } from "@/lib/sat-vocab/catalog";
 import { computeSatStreak } from "@/lib/sat-vocab/streak";
 import { satVocabProgressWrite } from "@/lib/validation";
 import { todayISO } from "@/lib/utils";
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     });
 
     return aiOk({
-      word_count: satVocabData.meta.word_count,
+      word_count: satVocabCatalog.meta.word_count,
       summary,
       streak: {
         current: streak.current,

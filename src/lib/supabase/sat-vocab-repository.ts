@@ -4,7 +4,7 @@ import {
   type SatVocabProgress,
 } from "@/lib/sat-vocab/types";
 import { mergeProgress, recomputeCompletedDates } from "@/lib/sat-vocab";
-import { satVocabData } from "@/lib/sat-vocab";
+import { satVocabCatalog } from "@/lib/sat-vocab/catalog";
 
 export async function fetchSatVocabProgress(
   supabase: SupabaseClient,
@@ -26,7 +26,7 @@ export async function fetchSatVocabProgress(
     return merged;
   }
 
-  const seeded = emptySatProgress(satVocabData.meta.plan_start);
+  const seeded = emptySatProgress(satVocabCatalog.meta.plan_start);
   const inserted = await supabase.from("sat_vocab_progress").insert({
     user_id: userId,
     payload: seeded,

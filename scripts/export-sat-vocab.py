@@ -129,6 +129,13 @@ out_path = Path(
 )
 out_path.parent.mkdir(parents=True, exist_ok=True)
 out_path.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
+catalog_path = out_path.parent / "catalog.json"
+words_path = out_path.parent / "words.json"
+catalog_path.write_text(
+    json.dumps({"meta": out["meta"], "themes": out["themes"], "plan": out["plan"]}, ensure_ascii=False),
+    encoding="utf-8",
+)
+words_path.write_text(json.dumps({"words": out["words"]}, ensure_ascii=False), encoding="utf-8")
 print(out["meta"])
 print(
     "kinds",

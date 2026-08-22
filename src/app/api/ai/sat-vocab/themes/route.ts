@@ -4,7 +4,7 @@ import {
 } from "@/lib/ai/permissions";
 import { logAiAction } from "@/lib/ai/audit";
 import { aiOk, aiCatch } from "@/lib/ai/response";
-import { satVocabData } from "@/lib/sat-vocab";
+import { satVocabCatalog } from "@/lib/sat-vocab/catalog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,8 +24,8 @@ export async function GET(request: Request) {
     });
 
     return aiOk({
-      theme_count: satVocabData.meta.theme_count,
-      themes: satVocabData.themes,
+      theme_count: satVocabCatalog.meta.theme_count,
+      themes: satVocabCatalog.themes,
     });
   } catch (err) {
     return aiCatch(err);

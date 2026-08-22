@@ -31,6 +31,24 @@ tags:
   - name: Study
 
 paths:
+  /api/ai/health:
+    get:
+      operationId: getAiHealth
+      tags: [Summary]
+      summary: AI Actions connectivity check
+      description: Lightweight ping to verify Bearer auth and deployment reachability.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Service is reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /api/ai/summary/today:
     get:
       operationId: getTodaySummary

@@ -9,9 +9,10 @@ import {
   getWordsForPlanDay,
   progressSummary,
   recomputeCompletedDates,
-  satVocabData,
   wordsByTheme,
 } from "@/lib/sat-vocab";
+import { satVocabCatalog } from "@/lib/sat-vocab/catalog";
+import { getSatWords } from "@/lib/sat-vocab/words-data";
 import {
   emptySatProgress,
   isSessionComplete,
@@ -48,7 +49,7 @@ export async function loadSatProgress(
   ctx: AiContext,
 ): Promise<SatVocabProgress> {
   if (!isHubSyncConfigured()) {
-    return emptySatProgress(satVocabData.meta.plan_start);
+    return emptySatProgress(satVocabCatalog.meta.plan_start);
   }
   return fetchSatVocabProgress(ctx.admin, ctx.userId);
 }
@@ -103,11 +104,11 @@ export function findPlanDay(opts: {
 }): SatPlanDay | undefined {
   const { plan_id, date, session_num } = opts;
   if (plan_id) {
-    return satVocabData.plan.find((p) => p.id === plan_id);
+    return satVocabCatalog.plan.find((p) => p.id === plan_id);
   }
   void date;
   if (session_num != null) {
-    return satVocabData.plan.find((p) => p.session_num === session_num);
+    return satVocabCatalog.plan.find((p) => p.session_num === session_num);
   }
   return undefined;
 }
@@ -129,7 +130,7 @@ export function planDayWithProgress(
 
 export function nextOpenDay(progress: SatVocabProgress): SatPlanDay | null {
   return (
-    satVocabData.plan.find(
+    satVocabCatalog.plan.find(
       (d) => !isSessionComplete(d, progress.sessions[d.id]),
     ) ?? null
   );
@@ -170,14 +171,14 @@ export function lookupWords(opts: {
     list = wordsByTheme(opts.theme);
   } else if (opts.q) {
     const needle = opts.q.toLowerCase();
-    list = satVocabData.words.filter(
+    list = getSatWords().filter(
       (w) =>
         w.word.toLowerCase().includes(needle) ||
         w.definition.toLowerCase().includes(needle) ||
         w.turkish.toLowerCase().includes(needle),
     );
   } else {
-    list = satVocabData.words;
+    list = getSatWords();
   }
 
   const total = list.length;
@@ -297,4 +298,4 @@ export function sessionPayload(
   };
 }
 
-export { progressSummary, satVocabData };
+export { progressSummary, satVocabCatalog };

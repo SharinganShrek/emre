@@ -17,7 +17,7 @@ OpenAPI: `openapi/emre-hub-ai-actions.yaml` (`servers[0].url` production URL olm
 
 Kontrol listesi:
 
-- Summary / dashboard: `getTodaySummary`, habits, tasks, movies, journal, analytics
+- Summary / dashboard: `getAiHealth`, `getTodaySummary`, habits, tasks, movies, journal, analytics
 - SAT Vocab: `getSatVocabProgress`, `updateSatVocabProgress`, `getSatVocabPlan`, `getSatVocabSession`, `getSatVocabThemes`, `getSatVocabWords`, `getSatVocabWeakWords`
 - College Counseling: `getCollegeCounseling`, `updateCollegeCounseling`, `getCollegeCounselingContextPack`
 - Study: `getStudySessions`, `saveStudySession`, `getStudyStats`

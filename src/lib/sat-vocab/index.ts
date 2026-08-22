@@ -1,4 +1,5 @@
-import raw from "./data.json";
+import { satVocabCatalog } from "./catalog";
+import { getSatWords, getWordMap } from "./words-data";
 import type {
   SatPlanDay,
   SatVocabData,
@@ -7,14 +8,20 @@ import type {
 } from "./types";
 import { emptySatProgress, isSessionComplete } from "./types";
 
-export const satVocabData = raw as SatVocabData;
+export { satVocabCatalog } from "./catalog";
 
-const wordByLower = new Map(
-  satVocabData.words.map((w) => [w.word.toLowerCase(), w] as const),
-);
+/** Back-compat view: plan/meta load eagerly; words load on first access. */
+export const satVocabData: SatVocabData = {
+  meta: satVocabCatalog.meta,
+  themes: satVocabCatalog.themes,
+  plan: satVocabCatalog.plan,
+  get words() {
+    return getSatWords();
+  },
+};
 
 export function getWord(word: string): SatWord | undefined {
-  return wordByLower.get(word.toLowerCase());
+  return getWordMap().get(word.toLowerCase());
 }
 
 export function getWordsForPlanDay(day: SatPlanDay): SatWord[] {
@@ -24,8 +31,7 @@ export function getWordsForPlanDay(day: SatPlanDay): SatWord[] {
       .filter((w): w is SatWord => Boolean(w));
   }
   if (day.kind === "review") {
-    // Review = all learn sessions in the same week
-    const weekLearn = satVocabData.plan.filter(
+    const weekLearn = satVocabCatalog.plan.filter(
       (p) => p.week === day.week && p.kind === "learn",
     );
     const words: SatWord[] = [];
@@ -45,13 +51,13 @@ export function getWordsForPlanDay(day: SatPlanDay): SatWord[] {
 }
 
 export function wordsByTheme(theme: string): SatWord[] {
-  return satVocabData.words.filter((w) => w.theme === theme);
+  return getSatWords().filter((w) => w.theme === theme);
 }
 
 export function mergeProgress(
   partial: Partial<SatVocabProgress> | null | undefined,
 ): SatVocabProgress {
-  const base = emptySatProgress(satVocabData.meta.plan_start);
+  const base = emptySatProgress(satVocabCatalog.meta.plan_start);
   if (!partial) return base;
   const activity = Array.isArray(partial.activity_dates)
     ? [...partial.activity_dates]
@@ -75,14 +81,14 @@ export function recomputeCompletedDates(
 
 export function nextOpenDay(progress: SatVocabProgress) {
   return (
-    satVocabData.plan.find(
+    satVocabCatalog.plan.find(
       (d) => !isSessionComplete(d, progress.sessions[d.id]),
     ) ?? null
   );
 }
 
 export function progressSummary(progress: SatVocabProgress) {
-  const learnDays = satVocabData.plan.filter((p) => p.kind === "learn");
+  const learnDays = satVocabCatalog.plan.filter((p) => p.kind === "learn");
   const learned = learnDays.filter(
     (d) => progress.sessions[d.id]?.learned,
   ).length;
@@ -94,8 +100,8 @@ export function progressSummary(progress: SatVocabProgress) {
     tested,
     study_days: (progress.activity_dates ?? []).length,
     completed_days: (progress.activity_dates ?? []).length,
-    plan_total: satVocabData.plan.length,
+    plan_total: satVocabCatalog.plan.length,
     words_touched: wordsSeen,
-    words_total: satVocabData.meta.word_count,
+    words_total: satVocabCatalog.meta.word_count,
   };
 }
