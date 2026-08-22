@@ -75,11 +75,11 @@ function queryBool(value: unknown, defaultValue = false): boolean {
   return defaultValue;
 }
 
-const optionalInt = (schema: z.ZodNumber) =>
-  z.preprocess(emptyQueryValue, schema.optional());
-
 export const satVocabPlanQuery = z.object({
-  week: optionalInt(z.coerce.number().int().min(1).max(10)),
+  week: z.preprocess(
+    emptyQueryValue,
+    z.coerce.number().int().min(1).max(10).optional(),
+  ),
   include_words: z.preprocess(
     (value) => queryBool(value, false),
     z.boolean(),
@@ -89,7 +89,10 @@ export const satVocabPlanQuery = z.object({
 export const satVocabSessionQuery = z.object({
   plan_id: z.preprocess(emptyQueryValue, satPlanId.optional()),
   date: z.preprocess(emptyQueryValue, isoDate.optional()),
-  session_num: optionalInt(z.coerce.number().int().min(1).max(50)),
+  session_num: z.preprocess(
+    emptyQueryValue,
+    z.coerce.number().int().min(1).max(50).optional(),
+  ),
   detail: z.preprocess(
     emptyQueryValue,
     z.enum(["compact", "full"]).default("compact"),
