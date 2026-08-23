@@ -10,6 +10,7 @@ import {
   applySendTest,
   applyTest,
   applyWordResults,
+  dueReviews,
   loadSatProgress,
   persistSatProgress,
   pendingGptTestSummaries,
@@ -73,6 +74,8 @@ export async function GET(request: Request) {
         : null,
       activity_dates: progress.activity_dates,
       pending_gpt_tests: pendingGptTestSummaries(progress),
+      due_review: dueReviews(progress, 20),
+      recent_results: progress.recent_quiz_log ?? [],
     });
   } catch (err) {
     return aiCatch(err);

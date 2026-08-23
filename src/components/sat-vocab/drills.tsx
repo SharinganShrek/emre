@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import type { SatDrillType, SatWord } from "@/lib/sat-vocab/types";
+import type {
+  SatDrillType,
+  SatWord,
+  SatWordResultHandler,
+} from "@/lib/sat-vocab/types";
 import { cn } from "@/lib/utils";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -60,7 +64,7 @@ export function DrillPicker({
       title: "Sent from GPT",
       blurb: gptReady
         ? (gptBlurb ?? "Custom GPT wrote this quiz. Tap to start.")
-        : "Ask Custom GPT for a session test, then come back here.",
+        : "Ask Custom GPT for a mixed-format session test, then come back here.",
     },
   ];
 
@@ -101,7 +105,7 @@ export function DrillRunner({
 }: {
   words: SatWord[];
   drill: SatDrillType;
-  onWordResult: (word: string, correct: boolean) => void;
+  onWordResult: SatWordResultHandler;
   onFinish: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -142,14 +146,17 @@ export function DrillRunner({
       />
     );
   }
-  return (
-    <TypeDefinitionDrill
-      words={pool}
-      onWordResult={onWordResult}
-      onFinish={onFinish}
-      onCancel={onCancel}
-    />
-  );
+  if (drill === "type_definition") {
+    return (
+      <TypeDefinitionDrill
+        words={pool}
+        onWordResult={onWordResult}
+        onFinish={onFinish}
+        onCancel={onCancel}
+      />
+    );
+  }
+  return null;
 }
 
 function MatchingDrill({
@@ -159,7 +166,7 @@ function MatchingDrill({
   onCancel,
 }: {
   words: SatWord[];
-  onWordResult: (word: string, correct: boolean) => void;
+  onWordResult: SatWordResultHandler;
   onFinish: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -187,7 +194,13 @@ function MatchingDrill({
     if (matched.has(selectedWord.toLowerCase())) return;
     setAttempts((a) => a + 1);
     const ok = selectedWord.toLowerCase() === defWord.word.toLowerCase();
-    onWordResult(selectedWord, ok);
+    const expected =
+      chunk.find((w) => w.word.toLowerCase() === selectedWord.toLowerCase())
+        ?.definition ?? selectedWord;
+    onWordResult(selectedWord, ok, {
+      chosen: defWord.definition,
+      expected,
+    });
     if (ok) {
       const next = new Set(matched);
       next.add(selectedWord.toLowerCase());
@@ -280,7 +293,7 @@ function MultipleChoiceDrill({
 }: {
   words: SatWord[];
   allWords: SatWord[];
-  onWordResult: (word: string, correct: boolean) => void;
+  onWordResult: SatWordResultHandler;
   onFinish: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -304,7 +317,10 @@ function MultipleChoiceDrill({
     if (picked) return;
     const ok = choice.word === word.word;
     setPicked(choice.word);
-    onWordResult(word.word, ok);
+    onWordResult(word.word, ok, {
+      chosen: choice.definition,
+      expected: word.definition,
+    });
     const nextCorrect = correctN + (ok ? 1 : 0);
     if (ok) setCorrectN(nextCorrect);
     setTimeout(() => {
@@ -370,7 +386,7 @@ function TypeWordDrill({
   onCancel,
 }: {
   words: SatWord[];
-  onWordResult: (word: string, correct: boolean) => void;
+  onWordResult: SatWordResultHandler;
   onFinish: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -382,16 +398,23 @@ function TypeWordDrill({
   if (!word) return null;
 
   function submit() {
+    if (feedback) return;
     const ok = normalize(value) === normalize(word.word);
-    onWordResult(word.word, ok);
+    onWordResult(word.word, ok, {
+      chosen: value,
+      expected: word.word,
+    });
     const next = correctN + (ok ? 1 : 0);
     if (ok) setCorrectN(next);
     setFeedback(ok ? "Correct" : `Answer: ${word.word}`);
     setTimeout(() => {
       setFeedback(null);
       setValue("");
-      if (i >= words.length - 1) onFinish(Math.round((next / words.length) * 100));
-      else setI((x) => x + 1);
+      if (i >= words.length - 1) {
+        onFinish(Math.round((next / words.length) * 100));
+      } else {
+        setI((x) => x + 1);
+      }
     }, 900);
   }
 
@@ -414,6 +437,7 @@ function TypeWordDrill({
         }}
         placeholder="Type the English word…"
         autoFocus
+        disabled={Boolean(feedback)}
       />
       {feedback && (
         <p
@@ -426,9 +450,11 @@ function TypeWordDrill({
         </p>
       )}
       <div className="flex gap-2">
-        <Button size="sm" onClick={submit}>
-          Check
-        </Button>
+        {!feedback && (
+          <Button size="sm" onClick={submit}>
+            Check
+          </Button>
+        )}
         <Button size="sm" variant="ghost" onClick={onCancel}>
           Exit
         </Button>
@@ -444,7 +470,7 @@ function TypeDefinitionDrill({
   onCancel,
 }: {
   words: SatWord[];
-  onWordResult: (word: string, correct: boolean) => void;
+  onWordResult: SatWordResultHandler;
   onFinish: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -464,21 +490,28 @@ function TypeDefinitionDrill({
   }, [word]);
 
   function submit() {
+    if (feedback) return;
     const answer = normalize(value);
     const ok =
       keywords.some((k) => answer.includes(k)) ||
       normalize(word.turkish)
         .split(/[,;]/)
         .some((t) => t && answer.includes(normalize(t)));
-    onWordResult(word.word, ok);
+    onWordResult(word.word, ok, {
+      chosen: value,
+      expected: word.definition,
+    });
     const next = correctN + (ok ? 1 : 0);
     if (ok) setCorrectN(next);
     setFeedback(ok ? "Accepted" : `Expected idea: ${word.definition}`);
     setTimeout(() => {
       setFeedback(null);
       setValue("");
-      if (i >= words.length - 1) onFinish(Math.round((next / words.length) * 100));
-      else setI((x) => x + 1);
+      if (i >= words.length - 1) {
+        onFinish(Math.round((next / words.length) * 100));
+      } else {
+        setI((x) => x + 1);
+      }
     }, 1000);
   }
 
@@ -501,12 +534,15 @@ function TypeDefinitionDrill({
         }}
         placeholder="e.g. rhythm / ritim"
         autoFocus
+        disabled={Boolean(feedback)}
       />
       {feedback && <p className="text-sm text-muted">{feedback}</p>}
       <div className="flex gap-2">
-        <Button size="sm" onClick={submit}>
-          Check
-        </Button>
+        {!feedback && (
+          <Button size="sm" onClick={submit}>
+            Check
+          </Button>
+        )}
         <Button size="sm" variant="ghost" onClick={onCancel}>
           Exit
         </Button>

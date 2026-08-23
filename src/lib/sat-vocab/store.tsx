@@ -16,10 +16,12 @@ import {
   satVocabData,
 } from "@/lib/sat-vocab";
 import type {
+  SatAnswerDetail,
   SatDrillType,
   SatSessionProgress,
   SatVocabProgress,
 } from "@/lib/sat-vocab/types";
+import { appendQuizLog, applySrsResult } from "@/lib/sat-vocab/srs";
 import { todayISO } from "@/lib/utils";
 import { stampActivityDate } from "@/lib/sat-vocab/streak";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -42,7 +44,11 @@ type SatVocabContextValue = {
   save: () => Promise<void>;
   markLearned: (planId: string, knownWords?: string[]) => void;
   markTested: (planId: string, drill: SatDrillType, score: number) => void;
-  recordWordResult: (word: string, correct: boolean) => void;
+  recordWordResult: (
+    word: string,
+    correct: boolean,
+    detail?: SatAnswerDetail,
+  ) => void;
   markRestDone: (planId: string) => void;
   consumeGptTest: (planId: string) => void;
   refresh: () => Promise<void>;
@@ -288,27 +294,22 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
   );
 
   const recordWordResult = useCallback(
-    (word: string, correct: boolean) => {
+    (word: string, correct: boolean, detail?: SatAnswerDetail) => {
       const key = word.toLowerCase();
-      setProgress((prev) => {
-        const cur = prev.word_stats[key] ?? {
-          seen: 0,
-          correct: 0,
-          wrong: 0,
-        };
-        return {
-          ...prev,
-          word_stats: {
-            ...prev.word_stats,
-            [key]: {
-              seen: cur.seen + 1,
-              correct: cur.correct + (correct ? 1 : 0),
-              wrong: cur.wrong + (correct ? 0 : 1),
-              last_seen: new Date().toISOString(),
-            },
-          },
-        };
-      });
+      setProgress((prev) => ({
+        ...prev,
+        word_stats: {
+          ...prev.word_stats,
+          [key]: applySrsResult(prev.word_stats[key], correct, detail),
+        },
+        recent_quiz_log: appendQuizLog(prev.recent_quiz_log, {
+          word: key,
+          correct,
+          chosen: detail?.chosen ?? null,
+          expected: detail?.expected ?? null,
+          at: new Date().toISOString(),
+        }),
+      }));
     },
     [setProgress],
   );

@@ -17,6 +17,8 @@ import {
   emptySatProgress,
   isSessionComplete,
   type SatDrillType,
+  type SatAnswerDetail,
+  type SatGptItem,
   type SatPlanDay,
   type SatSessionProgress,
   type SatGptQueuedTest,
@@ -25,6 +27,11 @@ import {
 } from "@/lib/sat-vocab/types";
 import { AiPermissionError } from "@/lib/ai/permissions";
 import { stampActivityDate } from "@/lib/sat-vocab/streak";
+import {
+  appendQuizLog,
+  applySrsResult,
+  normalizeWordStat,
+} from "@/lib/sat-vocab/srs";
 import { todayISO, uid } from "@/lib/utils";
 import type { SatVocabProgressWrite } from "@/lib/validation";
 
@@ -140,20 +147,65 @@ export function nextOpenDay(progress: SatVocabProgress): SatPlanDay | null {
 
 export function weakWords(progress: SatVocabProgress, limit = 20) {
   return Object.entries(progress.word_stats)
-    .map(([word, s]) => ({
-      word,
-      seen: s.seen,
-      correct: s.correct,
-      wrong: s.wrong,
-      accuracy: s.seen ? Math.round((s.correct / s.seen) * 100) : 0,
-      last_seen: s.last_seen ?? null,
-      card: (() => {
-        const full = getWord(word);
-        return full ? toCard(full, "compact") : null;
-      })(),
-    }))
+    .map(([word, raw]) => {
+      const s = normalizeWordStat(raw);
+      return {
+        word,
+        seen: s.seen,
+        correct: s.correct,
+        wrong: s.wrong,
+        accuracy: s.accuracy,
+        last_seen: s.last_seen ?? null,
+        next_review: s.next_review ?? null,
+        lapse_count: s.lapse_count,
+        confidence: s.confidence,
+        last_chosen: s.last_chosen ?? null,
+        last_expected: s.last_expected ?? null,
+        card: (() => {
+          const full = getWord(word);
+          return full ? toCard(full, "compact") : null;
+        })(),
+      };
+    })
     .filter((w) => w.seen >= 1 && w.accuracy < 70)
     .sort((a, b) => a.accuracy - b.accuracy || b.wrong - a.wrong)
+    .slice(0, limit);
+}
+
+export function dueReviews(
+  progress: SatVocabProgress,
+  limit = 20,
+  today: string = todayISO(),
+) {
+  return Object.entries(progress.word_stats)
+    .map(([word, raw]) => {
+      const s = normalizeWordStat(raw);
+      return {
+        word,
+        seen: s.seen,
+        correct: s.correct,
+        wrong: s.wrong,
+        accuracy: s.accuracy,
+        last_seen: s.last_seen ?? null,
+        next_review: s.next_review ?? null,
+        lapse_count: s.lapse_count,
+        confidence: s.confidence,
+        last_chosen: s.last_chosen ?? null,
+        last_expected: s.last_expected ?? null,
+        card: (() => {
+          const full = getWord(word);
+          return full ? toCard(full, "compact") : null;
+        })(),
+      };
+    })
+    .filter(
+      (w) => Boolean(w.seen >= 1 && w.next_review && w.next_review <= today),
+    )
+    .sort(
+      (a, b) =>
+        (a.next_review ?? "").localeCompare(b.next_review ?? "") ||
+        a.accuracy - b.accuracy,
+    )
     .slice(0, limit);
 }
 
@@ -238,19 +290,30 @@ export function applyRest(
 
 export function applyWordResults(
   progress: SatVocabProgress,
-  results: { word: string; correct: boolean }[],
+  results: {
+    word: string;
+    correct: boolean;
+    chosen?: string | null;
+    expected?: string | null;
+  }[],
 ): SatVocabProgress {
   const word_stats = { ...progress.word_stats };
+  let recent_quiz_log = progress.recent_quiz_log ?? [];
   const now = new Date().toISOString();
   for (const r of results) {
     const key = r.word.toLowerCase();
-    const cur = word_stats[key] ?? { seen: 0, correct: 0, wrong: 0 };
-    word_stats[key] = {
-      seen: cur.seen + 1,
-      correct: cur.correct + (r.correct ? 1 : 0),
-      wrong: cur.wrong + (r.correct ? 0 : 1),
-      last_seen: now,
+    const detail: SatAnswerDetail = {
+      chosen: r.chosen ?? null,
+      expected: r.expected ?? null,
     };
+    word_stats[key] = applySrsResult(word_stats[key], r.correct, detail);
+    recent_quiz_log = appendQuizLog(recent_quiz_log, {
+      word: key,
+      correct: r.correct,
+      chosen: detail.chosen ?? null,
+      expected: detail.expected ?? null,
+      at: now,
+    });
   }
   const activity_dates = stampActivityDate(
     progress.activity_dates,
@@ -259,8 +322,34 @@ export function applyWordResults(
   return {
     ...progress,
     word_stats,
+    recent_quiz_log,
     activity_dates,
     completed_dates: activity_dates,
+  };
+}
+
+function resolveMcAnswer(item: {
+  word: string;
+  prompt: string;
+  choices: string[];
+  answer: string | number;
+}): Extract<SatGptItem, { kind: "multiple_choice" }> {
+  const answer =
+    typeof item.answer === "number"
+      ? (item.choices[item.answer] ?? item.choices[0] ?? "")
+      : item.answer;
+  if (!item.choices.includes(answer)) {
+    throw new AiPermissionError(
+      `Choice answer for "${item.word}" must match one of the choices.`,
+      422,
+    );
+  }
+  return {
+    kind: "multiple_choice",
+    word: item.word,
+    prompt: item.prompt,
+    choices: item.choices,
+    answer,
   };
 }
 
@@ -269,28 +358,18 @@ export function applySendTest(
   body: Extract<SatVocabProgressWrite, { action: "send_test" }>,
 ): SatVocabProgress {
   const test = body.test;
-  let items: SatGptQueuedTest["items"];
-  if (test.format === "multiple_choice") {
+  let items: SatGptItem[];
+  if (test.format === "mixed") {
     items = test.items.map((item) => {
-      const answer =
-        typeof item.answer === "number"
-          ? (item.choices[item.answer] ?? item.choices[0] ?? "")
-          : item.answer;
-      if (!item.choices.includes(answer)) {
-        throw new AiPermissionError(
-          `Choice answer for "${item.word}" must match one of the choices.`,
-          422,
-        );
-      }
-      return {
-        word: item.word,
-        prompt: item.prompt,
-        choices: item.choices,
-        answer,
-      };
+      if (item.kind === "multiple_choice") return resolveMcAnswer(item);
+      return item;
     });
+  } else if (test.format === "multiple_choice") {
+    items = test.items.map((item) => resolveMcAnswer(item));
+  } else if (test.format === "matching") {
+    items = test.items.map((item) => ({ kind: "matching" as const, ...item }));
   } else {
-    items = test.items;
+    items = test.items.map((item) => ({ kind: test.format, ...item }));
   }
 
   const queued: SatGptQueuedTest = {
@@ -345,15 +424,19 @@ export function sessionPayload(
   detail: "compact" | "full",
 ) {
   const cards = getWordsForPlanDay(day).map((w) => toCard(w, detail));
+  const sessionWords = new Set(cards.map((c) => c.word.toLowerCase()));
   return {
     ...planDayWithProgress(day, progress),
     word_cards: cards,
     pending_gpt_test: progress.pending_gpt_tests?.[day.id] ?? null,
+    recent_results: (progress.recent_quiz_log ?? [])
+      .filter((row) => sessionWords.has(row.word.toLowerCase()))
+      .slice(-20),
     how_to_run:
       day.kind === "learn"
-        ? "Teach each word with flashcards (EN definition + TR + morphology). Then either send_test for an in-app quiz, or quiz in chat."
+        ? "Teach each word with flashcards (EN definition + TR + morphology). Then send_test — prefer format mixed (context MC + type word + type definition in one quiz) — or quiz in chat."
         : day.kind === "review"
-          ? "Quiz this week's learned words (send_test or in-chat). Mark the review tested when done."
+          ? "Quiz this week's learned words. Prefer send_test format mixed, or quiz in-chat. Mark the review tested when done."
           : "Rest / catch-up day. Mark rest done; no new words.",
   };
 }

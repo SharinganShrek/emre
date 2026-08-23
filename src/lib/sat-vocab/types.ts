@@ -70,9 +70,32 @@ export type SatDrillType =
   | "matching"
   | "type_word"
   | "type_definition"
-  | "multiple_choice";
+  | "multiple_choice"
+  | "mixed";
+
+export type SatAnswerDetail = {
+  /** What Emre picked or typed. */
+  chosen?: string | null;
+  /** The accepted / correct answer. */
+  expected?: string | null;
+};
+
+export type SatWordResultHandler = (
+  word: string,
+  correct: boolean,
+  detail?: SatAnswerDetail,
+) => void;
+
+export type SatQuizLogItem = {
+  word: string;
+  correct: boolean;
+  chosen?: string | null;
+  expected?: string | null;
+  at: string;
+};
 
 export type SatGptMcItem = {
+  kind?: "multiple_choice";
   word: string;
   prompt: string;
   choices: string[];
@@ -81,15 +104,22 @@ export type SatGptMcItem = {
 };
 
 export type SatGptTypeItem = {
+  kind?: "type_word" | "type_definition";
   word: string;
   prompt: string;
   accepted: string[];
 };
 
 export type SatGptMatchPair = {
+  kind?: "matching";
   word: string;
   definition: string;
 };
+
+export type SatGptItem =
+  | (SatGptMcItem & { kind: "multiple_choice" })
+  | (SatGptTypeItem & { kind: "type_word" | "type_definition" })
+  | (SatGptMatchPair & { kind: "matching" });
 
 export type SatGptQueuedTest = {
   id: string;
@@ -97,7 +127,7 @@ export type SatGptQueuedTest = {
   format: SatDrillType;
   title?: string;
   created_at: string;
-  items: SatGptMcItem[] | SatGptTypeItem[] | SatGptMatchPair[];
+  items: SatGptItem[];
 };
 
 export type SatWordStat = {
@@ -105,6 +135,16 @@ export type SatWordStat = {
   correct: number;
   wrong: number;
   last_seen?: string | null;
+  /** 0–100, derived from correct/seen. */
+  accuracy: number;
+  /** YYYY-MM-DD when this word is due again. */
+  next_review?: string | null;
+  lapse_count: number;
+  /** 0–5 recall strength. */
+  confidence: number;
+  interval_days?: number;
+  last_chosen?: string | null;
+  last_expected?: string | null;
 };
 
 export type SatVocabProgress = {
@@ -117,6 +157,8 @@ export type SatVocabProgress = {
   completed_dates: string[];
   /** One queued Custom GPT test per plan session. */
   pending_gpt_tests?: Record<string, SatGptQueuedTest>;
+  /** Latest in-app quiz answers (chosen vs expected), newest last. */
+  recent_quiz_log?: SatQuizLogItem[];
 };
 
 export function emptySatProgress(planStart = "2026-07-31"): SatVocabProgress {
@@ -127,6 +169,7 @@ export function emptySatProgress(planStart = "2026-07-31"): SatVocabProgress {
     activity_dates: [],
     completed_dates: [],
     pending_gpt_tests: {},
+    recent_quiz_log: [],
   };
 }
 

@@ -419,14 +419,7 @@ paths:
       operationId: updateSatVocabProgress
       tags: [SAT Vocab]
       summary: Record learn / test / rest / quiz results
-      description: |
-        Non-destructive progress upsert. Learn sessions complete after
-        learn+test; review after test; rest after rest. Each write stamps
-        today's date for the day streak.
-
-        `send_test` queues a Custom GPT–authored quiz for a session. Emre
-        takes it in the app: SAT Vocab → Test session → Sent from GPT.
-        Format must be matching | type_word | type_definition | multiple_choice.
+      description: Upsert learn, test, rest, word_results, or send_test. send_test queues an in-app GPT quiz. Prefer format mixed (context multiple_choice + type_word + type_definition in one test). Single-format tests still work.
       security:
         - bearerAuth: []
       requestBody:
@@ -568,7 +561,7 @@ paths:
     get:
       operationId: getSatVocabWeakWords
       tags: [SAT Vocab]
-      summary: Words with under 70% quiz accuracy
+      summary: Words with under 70% quiz accuracy, plus due_review from spaced repetition
       security:
         - bearerAuth: []
       parameters:
@@ -993,6 +986,7 @@ components:
             plan_total: { type: integer }
             words_touched: { type: integer }
             words_total: { type: integer }
+            due_today: { type: integer }
         streak:
           type: object
           properties:
@@ -1012,6 +1006,29 @@ components:
         activity_dates:
           type: array
           items: { type: string, format: date }
+        due_review:
+          type: array
+          items:
+            type: object
+            properties:
+              word: { type: string }
+              accuracy: { type: integer }
+              next_review: { type: string, format: date, nullable: true }
+              confidence: { type: integer }
+              lapse_count: { type: integer }
+              last_chosen: { type: string, nullable: true }
+              last_expected: { type: string, nullable: true }
+        recent_results:
+          type: array
+          description: Latest in-app answers (chosen vs expected), newest last
+          items:
+            type: object
+            properties:
+              word: { type: string }
+              correct: { type: boolean }
+              chosen: { type: string, nullable: true }
+              expected: { type: string, nullable: true }
+              at: { type: string, format: date-time }
 
     SatVocabProgressWrite:
       type: object
@@ -1028,7 +1045,7 @@ components:
           items: { type: string }
         drill:
           type: string
-          enum: [matching, type_word, type_definition, multiple_choice]
+          enum: [matching, type_word, type_definition, multiple_choice, mixed]
         score:
           type: integer
           minimum: 0
@@ -1041,6 +1058,12 @@ components:
             properties:
               word: { type: string }
               correct: { type: boolean }
+              chosen:
+                type: string
+                description: What Emre picked or typed
+              expected:
+                type: string
+                description: The accepted / correct answer
         title:
           type: string
           description: Optional label for send_test
@@ -1053,7 +1076,7 @@ components:
       properties:
         format:
           type: string
-          enum: [matching, type_word, type_definition, multiple_choice]
+          enum: [matching, type_word, type_definition, multiple_choice, mixed]
         items:
           type: array
           minItems: 3
@@ -1062,6 +1085,10 @@ components:
             type: object
             additionalProperties: true
             properties:
+              kind:
+                type: string
+                enum: [multiple_choice, type_word, type_definition]
+                description: Required when format is mixed
               word: { type: string }
               prompt: { type: string }
               choices:

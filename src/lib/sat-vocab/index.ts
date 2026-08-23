@@ -1,5 +1,6 @@
 import { satVocabCatalog } from "./catalog";
 import { getSatWords, getWordMap } from "./words-data";
+import { normalizeWordStat } from "./srs";
 import type {
   SatPlanDay,
   SatVocabData,
@@ -7,6 +8,7 @@ import type {
   SatWord,
 } from "./types";
 import { emptySatProgress, isSessionComplete } from "./types";
+import { todayISO } from "@/lib/utils";
 
 export { satVocabCatalog } from "./catalog";
 
@@ -63,13 +65,18 @@ export function mergeProgress(
     ? [...partial.activity_dates]
     : [];
   const completed = [...new Set(activity)].sort();
+  const word_stats: SatVocabProgress["word_stats"] = {};
+  for (const [key, stat] of Object.entries(partial.word_stats ?? {})) {
+    word_stats[key] = normalizeWordStat(stat);
+  }
   return {
     plan_start: partial.plan_start || base.plan_start,
     sessions: { ...partial.sessions },
-    word_stats: { ...partial.word_stats },
+    word_stats,
     activity_dates: completed,
     completed_dates: completed,
     pending_gpt_tests: { ...(partial.pending_gpt_tests ?? {}) },
+    recent_quiz_log: [...(partial.recent_quiz_log ?? [])].slice(-40),
   };
 }
 
@@ -95,6 +102,11 @@ export function progressSummary(progress: SatVocabProgress) {
   ).length;
   const tested = learnDays.filter((d) => progress.sessions[d.id]?.tested).length;
   const wordsSeen = Object.keys(progress.word_stats).length;
+  const today = todayISO();
+  const dueToday = Object.values(progress.word_stats).filter((raw) => {
+    const s = normalizeWordStat(raw);
+    return Boolean(s.seen >= 1 && s.next_review && s.next_review <= today);
+  }).length;
   return {
     learn_total: learnDays.length,
     learned,
@@ -104,5 +116,6 @@ export function progressSummary(progress: SatVocabProgress) {
     plan_total: satVocabCatalog.plan.length,
     words_touched: wordsSeen,
     words_total: satVocabCatalog.meta.word_count,
+    due_today: dueToday,
   };
 }

@@ -4,7 +4,7 @@ import {
 } from "@/lib/ai/permissions";
 import { logAiAction } from "@/lib/ai/audit";
 import { aiOk, aiCatch } from "@/lib/ai/response";
-import { loadSatProgress, weakWords } from "@/lib/sat-vocab/ai";
+import { dueReviews, loadSatProgress, weakWords } from "@/lib/sat-vocab/ai";
 import { satVocabWeakQuery } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -32,7 +32,11 @@ export async function GET(request: Request) {
       summary: `Listed ${items.length} weak SAT words`,
     });
 
-    return aiOk({ count: items.length, words: items });
+    return aiOk({
+      count: items.length,
+      words: items,
+      due_review: dueReviews(progress, limit),
+    });
   } catch (err) {
     return aiCatch(err);
   }

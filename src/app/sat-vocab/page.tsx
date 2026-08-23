@@ -28,6 +28,7 @@ import {
   wordsByTheme,
 } from "@/lib/sat-vocab";
 import { computeSatStreak } from "@/lib/sat-vocab/streak";
+import { normalizeWordStat } from "@/lib/sat-vocab/srs";
 import { SatVocabProvider, useSatVocab } from "@/lib/sat-vocab/store";
 import {
   isSessionComplete,
@@ -72,7 +73,7 @@ function SatVocabApp() {
 
       <StreakBanner streak={streak} />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="Sessions learned"
           value={`${summary.learned}/${summary.learn_total}`}
@@ -89,6 +90,7 @@ function SatVocabApp() {
           label="Words touched"
           value={`${summary.words_touched}/${summary.words_total}`}
         />
+        <StatCard label="Due today" value={summary.due_today ?? 0} />
       </div>
 
       <div className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
@@ -515,37 +517,83 @@ function WordDetail({ word }: { word: SatWord }) {
 
 function WeakWordsTab() {
   const { progress } = useSatVocab();
-  const weak = useMemo(() => {
-    return Object.entries(progress.word_stats)
-      .map(([word, s]) => ({
-        word,
-        ...s,
-        rate: s.seen ? s.correct / s.seen : 0,
-      }))
-      .filter((w) => w.seen >= 1 && w.rate < 0.7)
-      .sort((a, b) => a.rate - b.rate || b.wrong - a.wrong)
-      .slice(0, 40);
+  const today = todayISO();
+  const rows = useMemo(() => {
+    return Object.entries(progress.word_stats).map(([word, raw]) => {
+      const s = normalizeWordStat(raw);
+      return { word, ...s };
+    });
   }, [progress.word_stats]);
 
-  if (weak.length === 0) {
+  const due = useMemo(
+    () =>
+      rows
+        .filter((w) => w.seen >= 1 && w.next_review && w.next_review <= today)
+        .sort(
+          (a, b) =>
+            (a.next_review ?? "").localeCompare(b.next_review ?? "") ||
+            a.accuracy - b.accuracy,
+        )
+        .slice(0, 40),
+    [rows, today],
+  );
+
+  const weak = useMemo(
+    () =>
+      rows
+        .filter((w) => w.seen >= 1 && w.accuracy < 70)
+        .sort((a, b) => a.accuracy - b.accuracy || b.wrong - a.wrong)
+        .slice(0, 40),
+    [rows],
+  );
+
+  if (due.length === 0 && weak.length === 0) {
     return (
       <p className="text-sm text-muted">
-        No weak words yet — finish a few tests and misses will show up here.
+        No due or weak words yet — finish a few tests and misses will show up
+        here.
       </p>
     );
   }
 
   return (
+    <div className="space-y-6">
+      <WordStatList
+        title="Due for review"
+        hint="next_review is today or earlier. Spaced repetition brings these back."
+        words={due}
+      />
+      <WordStatList
+        title="Weak words"
+        hint="Accuracy under 70%. Revisit these in flashcards."
+        words={weak}
+      />
+    </div>
+  );
+}
+
+function WordStatList({
+  title,
+  hint,
+  words,
+}: {
+  title: string;
+  hint: string;
+  words: Array<ReturnType<typeof normalizeWordStat> & { word: string }>;
+}) {
+  if (words.length === 0) return null;
+  return (
     <div className="space-y-2">
-      <p className="text-sm text-muted">
-        Accuracy under 70% (from your drills). Revisit these in flashcards.
-      </p>
-      {weak.map((w) => {
+      <div>
+        <h2 className="text-sm font-semibold">{title}</h2>
+        <p className="text-sm text-muted">{hint}</p>
+      </div>
+      {words.map((w) => {
         const full = satVocabData.words.find(
           (x) => x.word.toLowerCase() === w.word,
         );
         return (
-          <Card key={w.word}>
+          <Card key={`${title}-${w.word}`}>
             <CardContent className="flex items-start justify-between gap-3 p-3">
               <div>
                 <p className="font-medium">
@@ -553,10 +601,16 @@ function WeakWordsTab() {
                   {full?.word ?? w.word}
                 </p>
                 <p className="text-xs text-muted">{full?.definition}</p>
-                <p className="text-xs text-muted-2">{full?.turkish}</p>
+                <p className="text-xs text-muted-2">
+                  conf {w.confidence}/5 · {w.lapse_count} lapse
+                  {w.next_review ? ` · next ${w.next_review}` : ""}
+                  {w.last_chosen && w.last_expected && w.last_chosen !== w.last_expected
+                    ? ` · picked “${w.last_chosen}” (expected “${w.last_expected}”)`
+                    : ""}
+                </p>
               </div>
               <Badge variant="warning">
-                {Math.round(w.rate * 100)}% · {w.wrong} miss
+                {w.accuracy}% · {w.wrong} miss
               </Badge>
             </CardContent>
           </Card>
