@@ -21,14 +21,20 @@ function normalize(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+export type DrillPick = SatDrillType | "gpt";
+
 export function DrillPicker({
   onPick,
   onCancel,
+  gptReady,
+  gptBlurb,
 }: {
-  onPick: (drill: SatDrillType) => void;
+  onPick: (drill: DrillPick) => void;
   onCancel: () => void;
+  gptReady?: boolean;
+  gptBlurb?: string;
 }) {
-  const options: { id: SatDrillType; title: string; blurb: string }[] = [
+  const options: { id: DrillPick; title: string; blurb: string }[] = [
     {
       id: "matching",
       title: "Matching",
@@ -49,6 +55,13 @@ export function DrillPicker({
       title: "Multiple choice",
       blurb: "Pick the correct English meaning.",
     },
+    {
+      id: "gpt",
+      title: "Sent from GPT",
+      blurb: gptReady
+        ? (gptBlurb ?? "Custom GPT wrote this quiz. Tap to start.")
+        : "Ask Custom GPT for a session test, then come back here.",
+    },
   ];
 
   return (
@@ -60,7 +73,12 @@ export function DrillPicker({
             key={o.id}
             type="button"
             onClick={() => onPick(o.id)}
-            className="rounded-xl border border-border bg-surface p-4 text-left transition-colors hover:bg-surface-2 touch-manipulation"
+            className={cn(
+              "rounded-xl border bg-surface p-4 text-left transition-colors hover:bg-surface-2 touch-manipulation",
+              o.id === "gpt" && gptReady
+                ? "border-primary/50"
+                : "border-border",
+            )}
           >
             <p className="font-medium">{o.title}</p>
             <p className="mt-1 text-xs text-muted">{o.blurb}</p>

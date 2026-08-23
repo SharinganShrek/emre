@@ -69,6 +69,7 @@ export function mergeProgress(
     word_stats: { ...partial.word_stats },
     activity_dates: completed,
     completed_dates: completed,
+    pending_gpt_tests: { ...(partial.pending_gpt_tests ?? {}) },
   };
 }
 

@@ -44,6 +44,8 @@ type SatVocabContextValue = {
   markTested: (planId: string, drill: SatDrillType, score: number) => void;
   recordWordResult: (word: string, correct: boolean) => void;
   markRestDone: (planId: string) => void;
+  consumeGptTest: (planId: string) => void;
+  refresh: () => Promise<void>;
 };
 
 const SatVocabContext = createContext<SatVocabContextValue | null>(null);
@@ -83,7 +85,9 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
   const [dirty, setDirty] = useState(false);
   const [source, setSource] = useState<"local" | "supabase">("local");
   const progressRef = useRef(progress);
+  const dirtyRef = useRef(false);
   progressRef.current = progress;
+  dirtyRef.current = dirty;
 
   useEffect(() => {
     let cancelled = false;
@@ -143,6 +147,24 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  const refresh = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const res = await fetch("/api/sat-vocab");
+      if (!res.ok) return;
+      const json = (await res.json()) as { data: SatVocabProgress };
+      const incoming = mergeProgress(json.data);
+      setProgressState((prev) => {
+        if (dirtyRef.current) {
+          return { ...prev, pending_gpt_tests: incoming.pending_gpt_tests };
+        }
+        return withCompleted(incoming);
+      });
+    } catch {
+      /* ignore background refresh */
+    }
+  }, []);
 
   const save = useCallback(async () => {
     setSaving(true);
@@ -254,6 +276,17 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
     [setProgress],
   );
 
+  const consumeGptTest = useCallback(
+    (planId: string) => {
+      setProgress((prev) => {
+        const next = { ...(prev.pending_gpt_tests ?? {}) };
+        delete next[planId];
+        return { ...prev, pending_gpt_tests: next };
+      });
+    },
+    [setProgress],
+  );
+
   const recordWordResult = useCallback(
     (word: string, correct: boolean) => {
       const key = word.toLowerCase();
@@ -297,6 +330,8 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
         markTested,
         recordWordResult,
         markRestDone,
+        consumeGptTest,
+        refresh,
       }}
     >
       {children}

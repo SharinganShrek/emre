@@ -423,6 +423,10 @@ paths:
         Non-destructive progress upsert. Learn sessions complete after
         learn+test; review after test; rest after rest. Each write stamps
         today's date for the day streak.
+
+        `send_test` queues a Custom GPT–authored quiz for a session. Emre
+        takes it in the app: SAT Vocab → Test session → Sent from GPT.
+        Format must be matching | type_word | type_definition | multiple_choice.
       security:
         - bearerAuth: []
       requestBody:
@@ -1015,7 +1019,7 @@ components:
       properties:
         action:
           type: string
-          enum: [learn, test, rest, word_results]
+          enum: [learn, test, rest, word_results, send_test]
         plan_id:
           type: string
           example: plan-001
@@ -1037,6 +1041,40 @@ components:
             properties:
               word: { type: string }
               correct: { type: boolean }
+        title:
+          type: string
+          description: Optional label for send_test
+        test:
+          $ref: "#/components/schemas/SatGptTest"
+
+    SatGptTest:
+      type: object
+      required: [format, items]
+      properties:
+        format:
+          type: string
+          enum: [matching, type_word, type_definition, multiple_choice]
+        items:
+          type: array
+          minItems: 3
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              word: { type: string }
+              prompt: { type: string }
+              choices:
+                type: array
+                items: { type: string }
+              answer:
+                oneOf:
+                  - type: string
+                  - type: integer
+              accepted:
+                type: array
+                items: { type: string }
+              definition: { type: string }
 
     CollegeCounselingWrite:
       type: object

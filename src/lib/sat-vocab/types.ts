@@ -72,6 +72,34 @@ export type SatDrillType =
   | "type_definition"
   | "multiple_choice";
 
+export type SatGptMcItem = {
+  word: string;
+  prompt: string;
+  choices: string[];
+  /** Correct choice text (normalized on ingest). */
+  answer: string;
+};
+
+export type SatGptTypeItem = {
+  word: string;
+  prompt: string;
+  accepted: string[];
+};
+
+export type SatGptMatchPair = {
+  word: string;
+  definition: string;
+};
+
+export type SatGptQueuedTest = {
+  id: string;
+  plan_id: string;
+  format: SatDrillType;
+  title?: string;
+  created_at: string;
+  items: SatGptMcItem[] | SatGptTypeItem[] | SatGptMatchPair[];
+};
+
 export type SatWordStat = {
   seen: number;
   correct: number;
@@ -87,6 +115,8 @@ export type SatVocabProgress = {
   activity_dates: string[];
   /** Alias of activity_dates (calendar dots). */
   completed_dates: string[];
+  /** One queued Custom GPT test per plan session. */
+  pending_gpt_tests?: Record<string, SatGptQueuedTest>;
 };
 
 export function emptySatProgress(planStart = "2026-07-31"): SatVocabProgress {
@@ -96,6 +126,7 @@ export function emptySatProgress(planStart = "2026-07-31"): SatVocabProgress {
     word_stats: {},
     activity_dates: [],
     completed_dates: [],
+    pending_gpt_tests: {},
   };
 }
 

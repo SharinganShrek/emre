@@ -19,12 +19,14 @@ import {
   type SatDrillType,
   type SatPlanDay,
   type SatSessionProgress,
+  type SatGptQueuedTest,
   type SatVocabProgress,
   type SatWord,
 } from "@/lib/sat-vocab/types";
 import { AiPermissionError } from "@/lib/ai/permissions";
 import { stampActivityDate } from "@/lib/sat-vocab/streak";
-import { todayISO } from "@/lib/utils";
+import { todayISO, uid } from "@/lib/utils";
+import type { SatVocabProgressWrite } from "@/lib/validation";
 
 export type SatWordCard = {
   no: number;
@@ -262,6 +264,63 @@ export function applyWordResults(
   };
 }
 
+export function applySendTest(
+  progress: SatVocabProgress,
+  body: Extract<SatVocabProgressWrite, { action: "send_test" }>,
+): SatVocabProgress {
+  const test = body.test;
+  let items: SatGptQueuedTest["items"];
+  if (test.format === "multiple_choice") {
+    items = test.items.map((item) => {
+      const answer =
+        typeof item.answer === "number"
+          ? (item.choices[item.answer] ?? item.choices[0] ?? "")
+          : item.answer;
+      if (!item.choices.includes(answer)) {
+        throw new AiPermissionError(
+          `Choice answer for "${item.word}" must match one of the choices.`,
+          422,
+        );
+      }
+      return {
+        word: item.word,
+        prompt: item.prompt,
+        choices: item.choices,
+        answer,
+      };
+    });
+  } else {
+    items = test.items;
+  }
+
+  const queued: SatGptQueuedTest = {
+    id: uid("gpttest"),
+    plan_id: body.plan_id,
+    format: test.format,
+    title: body.title,
+    created_at: new Date().toISOString(),
+    items,
+  };
+
+  return {
+    ...progress,
+    pending_gpt_tests: {
+      ...(progress.pending_gpt_tests ?? {}),
+      [body.plan_id]: queued,
+    },
+  };
+}
+
+export function pendingGptTestSummaries(progress: SatVocabProgress) {
+  return Object.values(progress.pending_gpt_tests ?? {}).map((t) => ({
+    plan_id: t.plan_id,
+    format: t.format,
+    title: t.title ?? null,
+    item_count: t.items.length,
+    created_at: t.created_at,
+  }));
+}
+
 function withSession(
   progress: SatVocabProgress,
   planId: string,
@@ -289,11 +348,12 @@ export function sessionPayload(
   return {
     ...planDayWithProgress(day, progress),
     word_cards: cards,
+    pending_gpt_test: progress.pending_gpt_tests?.[day.id] ?? null,
     how_to_run:
       day.kind === "learn"
-        ? "Teach each word with flashcards (EN definition + TR + morphology). Then quiz (matching / type-the-word / multiple choice)."
+        ? "Teach each word with flashcards (EN definition + TR + morphology). Then either send_test for an in-app quiz, or quiz in chat."
         : day.kind === "review"
-          ? "Quiz this week's learned words. Mark the review tested when done."
+          ? "Quiz this week's learned words (send_test or in-chat). Mark the review tested when done."
           : "Rest / catch-up day. Mark rest done; no new words.",
   };
 }

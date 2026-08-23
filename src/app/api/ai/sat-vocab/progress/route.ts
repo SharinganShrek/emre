@@ -7,10 +7,12 @@ import { aiOk, aiCatch, aiError } from "@/lib/ai/response";
 import {
   applyLearn,
   applyRest,
+  applySendTest,
   applyTest,
   applyWordResults,
   loadSatProgress,
   persistSatProgress,
+  pendingGptTestSummaries,
   progressSummary,
   findPlanDay,
   nextOpenDay,
@@ -70,6 +72,7 @@ export async function GET(request: Request) {
           }
         : null,
       activity_dates: progress.activity_dates,
+      pending_gpt_tests: pendingGptTestSummaries(progress),
     });
   } catch (err) {
     return aiCatch(err);
@@ -102,6 +105,8 @@ export async function POST(request: Request) {
       progress = applyTest(progress, body.plan_id, body.drill, body.score);
     } else if (body.action === "rest") {
       progress = applyRest(progress, body.plan_id);
+    } else if (body.action === "send_test") {
+      progress = applySendTest(progress, body);
     } else {
       progress = applyWordResults(progress, body.results);
     }
@@ -122,6 +127,7 @@ export async function POST(request: Request) {
       summary: progressSummary(saved),
       activity_dates: saved.activity_dates,
       streak: computeSatStreak(saved.activity_dates ?? []),
+      pending_gpt_tests: pendingGptTestSummaries(saved),
     });
   } catch (err) {
     return aiCatch(err);

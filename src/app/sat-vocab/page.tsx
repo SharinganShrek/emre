@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   CheckCircle2,
@@ -20,6 +20,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Hydrated } from "@/components/hydrated";
 import { FlashcardSession } from "@/components/sat-vocab/flashcards";
 import { DrillPicker, DrillRunner } from "@/components/sat-vocab/drills";
+import { GptDrillRunner } from "@/components/sat-vocab/gpt-drill";
 import {
   getWordsForPlanDay,
   nextOpenDay,
@@ -193,12 +194,31 @@ function StreakBanner({
 }
 
 function PlanTab() {
-  const { progress, markLearned, markTested, recordWordResult, markRestDone } =
-    useSatVocab();
+  const {
+    progress,
+    markLearned,
+    markTested,
+    recordWordResult,
+    markRestDone,
+    consumeGptTest,
+    refresh,
+  } = useSatVocab();
   const next = nextOpenDay(progress);
   const [active, setActive] = useState<SatPlanDay | null>(null);
-  const [mode, setMode] = useState<"flash" | "pick" | "drill" | null>(null);
+  const [mode, setMode] = useState<"flash" | "pick" | "drill" | "gpt" | null>(
+    null,
+  );
   const [drill, setDrill] = useState<SatDrillType | null>(null);
+  const gptTest = active
+    ? progress.pending_gpt_tests?.[active.id]
+    : undefined;
+
+  useEffect(() => {
+    if (mode !== "pick") return;
+    void refresh();
+    const id = window.setInterval(() => void refresh(), 8000);
+    return () => window.clearInterval(id);
+  }, [mode, refresh]);
 
   const words = useMemo(
     () => (active ? getWordsForPlanDay(active) : []),
@@ -316,13 +336,55 @@ function PlanTab() {
         )}
         {active && mode === "pick" && (
           <DrillPicker
+            gptReady={Boolean(gptTest)}
+            gptBlurb={
+              gptTest
+                ? `${gptTest.format.replaceAll("_", " ")} · ${gptTest.items.length} questions${gptTest.title ? ` · ${gptTest.title}` : ""}`
+                : undefined
+            }
             onCancel={() => {
               setActive(null);
               setMode(null);
             }}
             onPick={(d) => {
+              if (d === "gpt") {
+                if (!gptTest) {
+                  toast.message(
+                    "No GPT test yet — ask Custom GPT to send one for this session",
+                  );
+                  return;
+                }
+                setMode("gpt");
+                return;
+              }
               setDrill(d);
               setMode("drill");
+            }}
+          />
+        )}
+        {active && mode === "gpt" && gptTest && (
+          <GptDrillRunner
+            test={gptTest}
+            onWordResult={recordWordResult}
+            onCancel={() => {
+              setActive(null);
+              setMode(null);
+            }}
+            onFinish={(score) => {
+              markTested(active.id, gptTest.format, score);
+              consumeGptTest(active.id);
+              if (
+                active.kind === "learn" &&
+                !progress.sessions[active.id]?.learned
+              ) {
+                markLearned(active.id);
+              }
+              if (active.kind === "review") {
+                markLearned(active.id);
+              }
+              toast.success(`GPT test finished · score ${score}%`);
+              setActive(null);
+              setMode(null);
             }}
           />
         )}

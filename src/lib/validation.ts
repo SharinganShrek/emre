@@ -157,6 +157,68 @@ export const satVocabProgressWrite = z.discriminatedUnion("action", [
       .min(1)
       .max(40),
   }),
+  z.object({
+    action: z.literal("send_test"),
+    plan_id: satPlanId,
+    title: z.string().max(120).optional(),
+    test: z.discriminatedUnion("format", [
+      z.object({
+        format: z.literal("multiple_choice"),
+        items: z
+          .array(
+            z.object({
+              word: z.string().min(1).max(80),
+              prompt: z.string().min(1).max(800),
+              choices: z.array(z.string().min(1).max(300)).min(2).max(6),
+              answer: z.union([
+                z.string().min(1).max(300),
+                z.number().int().min(0).max(5),
+              ]),
+            }),
+          )
+          .min(3)
+          .max(20),
+      }),
+      z.object({
+        format: z.literal("type_word"),
+        items: z
+          .array(
+            z.object({
+              word: z.string().min(1).max(80),
+              prompt: z.string().min(1).max(800),
+              accepted: z.array(z.string().min(1).max(120)).min(1).max(12),
+            }),
+          )
+          .min(3)
+          .max(20),
+      }),
+      z.object({
+        format: z.literal("type_definition"),
+        items: z
+          .array(
+            z.object({
+              word: z.string().min(1).max(80),
+              prompt: z.string().min(1).max(800),
+              accepted: z.array(z.string().min(1).max(120)).min(1).max(12),
+            }),
+          )
+          .min(3)
+          .max(20),
+      }),
+      z.object({
+        format: z.literal("matching"),
+        items: z
+          .array(
+            z.object({
+              word: z.string().min(1).max(80),
+              definition: z.string().min(1).max(400),
+            }),
+          )
+          .min(4)
+          .max(20),
+      }),
+    ]),
+  }),
 ]);
 export type SatVocabProgressWrite = z.infer<typeof satVocabProgressWrite>;
 
