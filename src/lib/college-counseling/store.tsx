@@ -33,6 +33,7 @@ type CounselingContextValue = {
     key: K,
     value: CollegeCounselingData[K],
   ) => void;
+  refresh: () => Promise<void>;
 };
 
 const CounselingContext = createContext<CounselingContextValue | null>(null);
@@ -69,7 +70,9 @@ export function CounselingProvider({ children }: { children: ReactNode }) {
   const [dirty, setDirty] = useState(false);
   const [source, setSource] = useState<"local" | "supabase">("local");
   const dataRef = useRef(data);
+  const dirtyRef = useRef(false);
   dataRef.current = data;
+  dirtyRef.current = dirty;
 
   useEffect(() => {
     let cancelled = false;
@@ -140,6 +143,20 @@ export function CounselingProvider({ children }: { children: ReactNode }) {
     [setData],
   );
 
+  const refresh = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const res = await fetch("/api/college-counseling");
+      if (!res.ok) return;
+      const json = (await res.json()) as { data: CollegeCounselingData };
+      if (dirtyRef.current) return;
+      setDataState(json.data);
+      setSource("supabase");
+    } catch {
+      /* ignore background refresh */
+    }
+  }, []);
+
   const save = useCallback(async () => {
     setSaving(true);
     const payload = dataRef.current;
@@ -174,7 +191,17 @@ export function CounselingProvider({ children }: { children: ReactNode }) {
 
   return (
     <CounselingContext.Provider
-      value={{ data, loading, saving, dirty, source, setData, save, patch }}
+      value={{
+        data,
+        loading,
+        saving,
+        dirty,
+        source,
+        setData,
+        save,
+        patch,
+        refresh,
+      }}
     >
       {children}
     </CounselingContext.Provider>

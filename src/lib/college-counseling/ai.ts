@@ -6,7 +6,7 @@ import {
   saveCollegeCounseling,
 } from "@/lib/supabase/college-counseling-repository";
 import { collegeCounselingData as seedData } from "@/lib/college-counseling/data";
-import { mergeCollegeCounseling } from "@/lib/college-counseling/merge";
+import { overlayCollegeCounseling } from "@/lib/college-counseling/merge";
 import type {
   ActivityItem,
   CollegeCounselingData,
@@ -40,7 +40,10 @@ export function applyCounselingWrite(
   body: CollegeCounselingWrite,
 ): CollegeCounselingData {
   if (body.action === "replace") {
-    return mergeCollegeCounseling(body.data as Partial<CollegeCounselingData>);
+    return overlayCollegeCounseling(
+      current,
+      body.data as Partial<CollegeCounselingData>,
+    );
   }
 
   if (body.action === "add_activity") {

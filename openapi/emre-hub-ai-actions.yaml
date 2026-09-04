@@ -419,7 +419,7 @@ paths:
       operationId: updateSatVocabProgress
       tags: [SAT Vocab]
       summary: Record learn / test / rest / quiz results
-      description: Upsert learn, test, rest, word_results, or send_test. send_test queues an in-app GPT quiz. Prefer format mixed (context multiple_choice + type_word + type_definition in one test). Single-format tests still work.
+      description: Upsert learn, test, rest, word_results, or send_test. send_test queues an in-app GPT quiz. Prefer format mixed (context multiple_choice + type_word + type_definition in one test). Item count is 1–200. Single-format tests still work.
       security:
         - bearerAuth: []
       requestBody:
@@ -1079,8 +1079,8 @@ components:
           enum: [matching, type_word, type_definition, multiple_choice, mixed]
         items:
           type: array
-          minItems: 3
-          maxItems: 20
+          minItems: 1
+          maxItems: 200
           items:
             type: object
             additionalProperties: true

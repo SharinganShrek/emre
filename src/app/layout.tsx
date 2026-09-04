@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Emre - Personal OS",
   description:
-    "A personal life dashboard to track habits, goals, study, research, and more.",
+    "A personal life dashboard to track habits, goals, study, and more.",
   applicationName: "Emre",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

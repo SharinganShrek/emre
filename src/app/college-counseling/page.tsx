@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Copy,
   Download,
@@ -91,7 +91,16 @@ export default function CollegeCounselingPage() {
 
 function CollegeCounseling() {
   const [tab, setTab] = useState<Tab>("Overview");
-  const { data, loading, saving, dirty, source, save } = useCounseling();
+  const { data, loading, saving, dirty, source, save, refresh } =
+    useCounseling();
+
+  useEffect(() => {
+    const onFocus = () => {
+      void refresh();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refresh]);
 
   if (loading) {
     return (
@@ -105,14 +114,25 @@ function CollegeCounseling() {
         title="College Counseling"
         description="Application strategy + copyable counselor context pack. Activities/CV is read-only here — Custom GPT can add and edit via Actions."
         actions={
-          <Button
-            size="sm"
-            onClick={() => void save()}
-            disabled={saving || !dirty}
-          >
-            <Save />
-            {saving ? "Saving…" : dirty ? "Save changes" : "Saved"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void refresh()}
+              disabled={loading || dirty}
+            >
+              <RefreshCw />
+              Reload from server
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void save()}
+              disabled={saving || !dirty}
+            >
+              <Save />
+              {saving ? "Saving…" : dirty ? "Save changes" : "Saved"}
+            </Button>
+          </div>
         }
       />
 

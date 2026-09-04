@@ -80,7 +80,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         {source === "supabase" && userId && (
           <p className="mt-2 truncate px-2 text-[10px] text-muted-2">
-            Synced: hub + notes · study · research
+            Synced: hub + notes · study
           </p>
         )}
       </div>

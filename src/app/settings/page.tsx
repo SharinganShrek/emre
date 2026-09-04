@@ -157,7 +157,7 @@ function Settings() {
           <CardDescription>
             {source === "local"
               ? "All data is stored in this browser (localStorage)."
-              : "Habits, tasks, journal, movies, and goals sync to Supabase. Study, research, notes, and milestones remain local until a later migration."}
+              : "Habits, tasks, journal, movies, goals, study, notes, and college counseling sync to Supabase."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">

@@ -175,15 +175,15 @@ export const satVocabProgressWrite = z.discriminatedUnion("action", [
     test: z.discriminatedUnion("format", [
       z.object({
         format: z.literal("multiple_choice"),
-        items: z.array(satMcItem).min(3).max(20),
+        items: z.array(satMcItem).min(1).max(200),
       }),
       z.object({
         format: z.literal("type_word"),
-        items: z.array(satTypeItem).min(3).max(20),
+        items: z.array(satTypeItem).min(1).max(200),
       }),
       z.object({
         format: z.literal("type_definition"),
-        items: z.array(satTypeItem).min(3).max(20),
+        items: z.array(satTypeItem).min(1).max(200),
       }),
       z.object({
         format: z.literal("matching"),
@@ -194,15 +194,15 @@ export const satVocabProgressWrite = z.discriminatedUnion("action", [
               definition: z.string().min(1).max(400),
             }),
           )
-          .min(4)
-          .max(20),
+          .min(2)
+          .max(200),
       }),
       z.object({
         format: z.literal("mixed"),
         items: z
           .array(satMixedItem)
-          .min(3)
-          .max(20)
+          .min(1)
+          .max(200)
           .refine(
             (items) => new Set(items.map((item) => item.kind)).size >= 2,
             {
@@ -226,8 +226,8 @@ export const activityItemInput = z.object({
   role: z.string().max(200).default(""),
   organization: z.string().max(200).default(""),
   grade_levels: z.string().max(80).default(""),
-  hours_per_week: z.number().min(0).max(168).default(0),
-  weeks_per_year: z.number().min(0).max(52).default(0),
+  hours_per_week: z.coerce.number().min(0).max(168).default(0),
+  weeks_per_year: z.coerce.number().min(0).max(52).default(0),
   common_app_description: z.string().max(4000).default(""),
   expanded_description: z.string().max(20000).default(""),
   impact_metrics: z.string().max(4000).default(""),

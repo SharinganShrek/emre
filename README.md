@@ -21,8 +21,6 @@ Dark-first, responsive, and component-driven.
 - **Goals** — long-term goals with progress bars, milestones, and deadlines.
 - **Study Hub** — study sessions, practice-test score tracking with a trend
   chart, and an editable "weak topics & vocabulary" area.
-- **Research Hub** — projects, papers, experiments, and notes (includes the
-  sample project *Lung CT Segmentation Research*).
 - **Fitness** — gym sessions with per-session exercises and consistency stats.
 - **Movies & Anime** — watched list with status, 0–10 rating, and reviews.
 - **Books** — reading list with status, rating, and reviews.
