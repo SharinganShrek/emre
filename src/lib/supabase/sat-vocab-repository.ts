@@ -5,6 +5,7 @@ import {
 } from "@/lib/sat-vocab/types";
 import { mergeProgress, recomputeCompletedDates } from "@/lib/sat-vocab";
 import { satVocabCatalog } from "@/lib/sat-vocab/catalog";
+import { STREAK_BACKFILL_REV } from "@/lib/sat-vocab/streak";
 
 export async function fetchSatVocabProgress(
   supabase: SupabaseClient,
@@ -19,10 +20,12 @@ export async function fetchSatVocabProgress(
   if (existing.error) throw existing.error;
 
   if (existing.data?.payload && typeof existing.data.payload === "object") {
-    const merged = mergeProgress(
-      existing.data.payload as Partial<SatVocabProgress>,
-    );
+    const raw = existing.data.payload as Partial<SatVocabProgress>;
+    const merged = mergeProgress(raw);
     merged.completed_dates = recomputeCompletedDates(merged);
+    if ((raw.streak_backfill_rev ?? 0) < STREAK_BACKFILL_REV) {
+      await saveSatVocabProgress(supabase, userId, merged);
+    }
     return merged;
   }
 
@@ -40,10 +43,12 @@ export async function fetchSatVocabProgress(
         .maybeSingle();
       if (retry.error) throw retry.error;
       if (retry.data?.payload && typeof retry.data.payload === "object") {
-        const merged = mergeProgress(
-          retry.data.payload as Partial<SatVocabProgress>,
-        );
+        const raw = retry.data.payload as Partial<SatVocabProgress>;
+        const merged = mergeProgress(raw);
         merged.completed_dates = recomputeCompletedDates(merged);
+        if ((raw.streak_backfill_rev ?? 0) < STREAK_BACKFILL_REV) {
+          await saveSatVocabProgress(supabase, userId, merged);
+        }
         return merged;
       }
     }

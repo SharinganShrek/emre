@@ -23,7 +23,11 @@ import type {
 } from "@/lib/sat-vocab/types";
 import { appendQuizLog, applySrsResult } from "@/lib/sat-vocab/srs";
 import { todayISO } from "@/lib/utils";
-import { stampActivityDate } from "@/lib/sat-vocab/streak";
+import {
+  STREAK_BACKFILL_REV,
+  stampActivityDate,
+  unstampActivityDate,
+} from "@/lib/sat-vocab/streak";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { toast } from "@/lib/toast";
 
@@ -51,6 +55,7 @@ type SatVocabContextValue = {
   ) => void;
   markRestDone: (planId: string) => void;
   consumeGptTest: (planId: string) => void;
+  toggleActivityDate: (iso: string) => void;
   refresh: () => Promise<void>;
 };
 
@@ -101,8 +106,20 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
     async function boot() {
       if (!isSupabaseConfigured()) {
         if (!cancelled) {
+          let rawRev = STREAK_BACKFILL_REV;
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+              rawRev =
+                (JSON.parse(raw) as Partial<SatVocabProgress>)
+                  .streak_backfill_rev ?? 0;
+            }
+          } catch {
+            /* ignore */
+          }
           setProgressState(withCompleted(loadLocal()));
           setSource("local");
+          if (rawRev < STREAK_BACKFILL_REV) setDirty(true);
           setLoading(false);
         }
         return;
@@ -120,8 +137,12 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
         if (!res.ok) throw new Error(await res.text());
         const json = (await res.json()) as { data: SatVocabProgress };
         if (!cancelled) {
-          setProgressState(withCompleted(mergeProgress(json.data)));
+          const incoming = mergeProgress(json.data);
+          setProgressState(withCompleted(incoming));
           setSource("supabase");
+          if ((json.data.streak_backfill_rev ?? 0) < STREAK_BACKFILL_REV) {
+            setDirty(true);
+          }
         }
       } catch {
         if (!cancelled) {
@@ -282,6 +303,22 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
     [setProgress],
   );
 
+  const toggleActivityDate = useCallback(
+    (iso: string) => {
+      if (iso > todayISO()) return;
+      setProgress((prev) => {
+        const studied = (prev.activity_dates ?? []).includes(iso);
+        return {
+          ...prev,
+          activity_dates: studied
+            ? unstampActivityDate(prev.activity_dates, iso)
+            : stampActivityDate(prev.activity_dates, iso),
+        };
+      });
+    },
+    [setProgress],
+  );
+
   const consumeGptTest = useCallback(
     (planId: string) => {
       setProgress((prev) => {
@@ -332,6 +369,7 @@ export function SatVocabProvider({ children }: { children: ReactNode }) {
         recordWordResult,
         markRestDone,
         consumeGptTest,
+        toggleActivityDate,
         refresh,
       }}
     >

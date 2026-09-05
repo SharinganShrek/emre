@@ -159,6 +159,8 @@ export type SatVocabProgress = {
   pending_gpt_tests?: Record<string, SatGptQueuedTest>;
   /** Latest in-app quiz answers (chosen vs expected), newest last. */
   recent_quiz_log?: SatQuizLogItem[];
+  /** One-time last-7-day streak backfill. */
+  streak_backfill_rev?: number;
 };
 
 export function emptySatProgress(planStart = "2026-07-31"): SatVocabProgress {

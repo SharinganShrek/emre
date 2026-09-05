@@ -8,15 +8,21 @@ import {
   SETTINGS_KEY,
   TIMER_KEY,
   TODOS_KEY,
+  addDaysISO,
   durationMinutesFromMs,
   encodeYptNotes,
   endOfLocalDay,
   loadJson,
+  mergeContiguousSlots,
   mergeSettings,
   mergeTimer,
+  parseYptNotes,
   saveJson,
+  sessionBounds,
   sessionMs,
   subjectById,
+  subtractTimeHoles,
+  untimedBlocksForDate,
   type TodosByDate,
   type YptSettings,
   type YptTimerState,
@@ -42,7 +48,7 @@ export function useYptStudy() {
   timerRef.current = timer;
   settingsRef.current = settings;
 
-  const ticking = timer.running || timer.restStartedAt != null;
+  const ticking = timer.running;
 
   useEffect(() => {
     if (!ticking) return;
@@ -124,10 +130,6 @@ export function useYptStudy() {
     timer.running && timer.startedAt != null
       ? Math.max(0, now - timer.startedAt)
       : 0;
-  const restLiveMs =
-    !timer.running && timer.restStartedAt != null
-      ? Math.max(0, now - timer.restStartedAt)
-      : 0;
 
   const today = toISODate(new Date(now));
   const todaySavedMs = useMemo(
@@ -138,7 +140,6 @@ export function useYptStudy() {
     [data.studySessions, today],
   );
   const todayMs = todaySavedMs + liveMs;
-  const restMs = timer.restMs + restLiveMs;
 
   const activeSubject =
     subjectById(settings.subjects, timer.subjectId) ?? settings.subjects[0];
@@ -153,8 +154,8 @@ export function useYptStudy() {
       running: false,
       subjectId: id,
       startedAt: null,
-      restStartedAt: t,
-      restMs: current.restMs,
+      restStartedAt: null,
+      restMs: 0,
     });
     setNow(t);
     void commitSlices(from, t, nameOf(id));
@@ -180,10 +181,7 @@ export function useYptStudy() {
         subjectId: nextId,
         startedAt: t,
         restStartedAt: null,
-        restMs:
-          current.restStartedAt != null
-            ? current.restMs + (t - current.restStartedAt)
-            : current.restMs,
+        restMs: 0,
       });
       setNow(t);
 
@@ -249,6 +247,95 @@ export function useYptStudy() {
     }));
   }, []);
 
+  const carveSlots = useCallback(
+    async (date: string, holes: { start: Date; end: Date }[]) => {
+      if (holes.length === 0) return;
+      const nextDay = addDaysISO(date, 1);
+      const relevant = data.studySessions.filter(
+        (s) => s.session_date === date || s.session_date === nextDay,
+      );
+      const untimed = relevant.filter(
+        (s) => s.session_date === date && !parseYptNotes(s.notes),
+      );
+      const untimedPlaced = untimedBlocksForDate(untimed, date);
+      const toRewrite: { id: string; remain: { start: Date; end: Date }[]; subject: string }[] = [];
+
+      for (const session of relevant) {
+        const bounds = sessionBounds(session);
+        if (bounds) {
+          if (!holes.some((h) => h.end > bounds.start && h.start < bounds.end)) {
+            continue;
+          }
+          toRewrite.push({
+            id: session.id,
+            subject: session.subject,
+            remain: subtractTimeHoles(bounds.start, bounds.end, holes),
+          });
+        }
+      }
+
+      untimed.forEach((session, i) => {
+        const block = untimedPlaced[i];
+        if (!block) return;
+        if (holes.some((h) => h.end > block.start && h.start < block.end)) {
+          toRewrite.push({ id: session.id, subject: session.subject, remain: [] });
+        }
+      });
+
+      const seen = new Set<string>();
+      for (const row of toRewrite) {
+        if (seen.has(row.id)) continue;
+        seen.add(row.id);
+        await remove("studySessions", row.id);
+        for (const piece of row.remain) {
+          await commitRange(piece.start.getTime(), piece.end.getTime(), row.subject);
+        }
+      }
+    },
+    [commitRange, data.studySessions, remove],
+  );
+
+  const fillPlannerSlots = useCallback(
+    async (
+      date: string,
+      slots: { start: Date; end: Date }[],
+      subjectName: string,
+    ) => {
+      if (slots.length === 0) return;
+      try {
+        await carveSlots(date, slots);
+        for (const range of mergeContiguousSlots(slots)) {
+          await commitSlices(
+            range.start.getTime(),
+            range.end.getTime(),
+            subjectName,
+          );
+        }
+        toast.success(`Logged ${slots.length * 10} min of ${subjectName}`);
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Could not add study blocks",
+        );
+      }
+    },
+    [carveSlots, commitSlices],
+  );
+
+  const clearPlannerSlots = useCallback(
+    async (date: string, slots: { start: Date; end: Date }[]) => {
+      if (slots.length === 0) return;
+      try {
+        await carveSlots(date, slots);
+        toast.success(`Cleared ${slots.length * 10} min`);
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Could not clear study blocks",
+        );
+      }
+    },
+    [carveSlots],
+  );
+
   return {
     settings,
     setSettings,
@@ -258,7 +345,6 @@ export function useYptStudy() {
     today,
     todayMs,
     liveMs,
-    restMs,
     now,
     play,
     pause,
@@ -271,6 +357,8 @@ export function useYptStudy() {
     removeTodo,
     sessions: data.studySessions,
     removeSession: (id: string) => remove("studySessions", id),
+    fillPlannerSlots,
+    clearPlannerSlots,
   };
 }
 

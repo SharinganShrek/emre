@@ -8,6 +8,7 @@ import type {
   SatWord,
 } from "./types";
 import { emptySatProgress, isSessionComplete } from "./types";
+import { applyStreakBackfill } from "./streak";
 import { todayISO } from "@/lib/utils";
 
 export { satVocabCatalog } from "./catalog";
@@ -69,7 +70,7 @@ export function mergeProgress(
   for (const [key, stat] of Object.entries(partial.word_stats ?? {})) {
     word_stats[key] = normalizeWordStat(stat);
   }
-  return {
+  const merged = {
     plan_start: partial.plan_start || base.plan_start,
     sessions: { ...partial.sessions },
     word_stats,
@@ -77,7 +78,9 @@ export function mergeProgress(
     completed_dates: completed,
     pending_gpt_tests: { ...(partial.pending_gpt_tests ?? {}) },
     recent_quiz_log: [...(partial.recent_quiz_log ?? [])].slice(-40),
+    streak_backfill_rev: partial.streak_backfill_rev ?? 0,
   };
+  return applyStreakBackfill(merged);
 }
 
 /** Keep completed_dates in sync with days actually studied. */

@@ -51,11 +51,6 @@ export function TimerTab({ study }: { study: YptStudy }) {
         <p className="mt-1 font-mono text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl">
           {formatHMS(study.todayMs)}
         </p>
-        {!study.running && study.restMs > 0 ? (
-          <p className="mt-2 text-xs text-muted-2">
-            Rest {formatHMS(study.restMs)}
-          </p>
-        ) : null}
       </GoalRing>
 
       <button

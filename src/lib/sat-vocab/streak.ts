@@ -63,26 +63,22 @@ export function computeSatStreak(
   const studied = new Set(activityDates);
   const studiedToday = studied.has(today);
 
-  const weekStart = startOfISOWeek(today);
-  const weekDays = WEEKDAY_LABELS.map((label, i) => {
-    const date = addDaysISO(weekStart, i);
+  const { current, shieldedDates } = walkStreak(studied, today);
+
+  const weekDays = lastNDates(7, today).map((date) => {
+    const weekday = (parseISODateLocal(date).getDay() + 6) % 7;
     return {
       date,
-      label,
+      label: WEEKDAY_LABELS[weekday] ?? "",
       studied: studied.has(date),
-      shielded: false,
+      shielded: shieldedDates.has(date),
       is_today: date === today,
     };
   });
 
-  const { current, shieldedDates } = walkStreak(studied, today);
-
-  for (const row of weekDays) {
-    if (shieldedDates.has(row.date)) row.shielded = true;
-  }
-
-  const shieldUsedThisWeek = weekDays.some(
-    (d) => d.shielded && d.date <= today,
+  const weekStart = startOfISOWeek(today);
+  const shieldUsedThisWeek = [...shieldedDates].some(
+    (d) => d >= weekStart && d <= today,
   );
 
   return {
@@ -135,4 +131,34 @@ export function stampActivityDate(
   const set = new Set(dates ?? []);
   set.add(iso);
   return [...set].sort();
+}
+
+export function unstampActivityDate(
+  dates: string[] | undefined,
+  iso: string,
+): string[] {
+  return [...new Set(dates ?? [])].filter((d) => d !== iso).sort();
+}
+
+export function lastNDates(n: number, today: string = todayISO()): string[] {
+  return Array.from({ length: n }, (_, i) => addDaysISO(today, -(n - 1 - i)));
+}
+
+export const STREAK_BACKFILL_REV = 1;
+
+export function applyStreakBackfill<
+  T extends { activity_dates?: string[]; completed_dates?: string[]; streak_backfill_rev?: number },
+>(progress: T, today: string = todayISO()): T {
+  if ((progress.streak_backfill_rev ?? 0) >= STREAK_BACKFILL_REV) {
+    return progress;
+  }
+  const dates = new Set(progress.activity_dates ?? []);
+  for (const day of lastNDates(7, today)) dates.add(day);
+  const activity_dates = [...dates].sort();
+  return {
+    ...progress,
+    activity_dates,
+    completed_dates: activity_dates,
+    streak_backfill_rev: STREAK_BACKFILL_REV,
+  };
 }

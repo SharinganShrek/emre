@@ -78,6 +78,23 @@ export const DEFAULT_TIMER: YptTimerState = {
 
 /** Planner shows 05:00 → 01:50 next day (hours 5–25), YPT-style. */
 export const PLANNER_HOURS = Array.from({ length: 21 }, (_, i) => 5 + i);
+export const PLANNER_SLOTS_PER_HOUR = 6;
+export const PLANNER_SLOT_COUNT =
+  PLANNER_HOURS.length * PLANNER_SLOTS_PER_HOUR;
+
+export function plannerSlotIndex(hourIndex: number, slot: number): number {
+  return hourIndex * PLANNER_SLOTS_PER_HOUR + slot;
+}
+
+export function plannerBoundsFromIndex(
+  dayISO: string,
+  index: number,
+): { start: Date; end: Date } {
+  const clamped = Math.max(0, Math.min(PLANNER_SLOT_COUNT - 1, index));
+  const hourIndex = Math.floor(clamped / PLANNER_SLOTS_PER_HOUR);
+  const slot = clamped % PLANNER_SLOTS_PER_HOUR;
+  return plannerSlotBounds(dayISO, PLANNER_HOURS[hourIndex] ?? 5, slot);
+}
 
 export function loadJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -111,7 +128,12 @@ export function mergeSettings(raw: Partial<YptSettings> | null): YptSettings {
 }
 
 export function mergeTimer(raw: Partial<YptTimerState> | null): YptTimerState {
-  return { ...DEFAULT_TIMER, ...raw };
+  return {
+    ...DEFAULT_TIMER,
+    ...raw,
+    restStartedAt: null,
+    restMs: 0,
+  };
 }
 
 export function formatHMS(ms: number): string {
@@ -385,6 +407,53 @@ export function monthGrid(cursor: Date): { iso: string; inMonth: boolean }[][] {
 
 export function durationMinutesFromMs(ms: number): number {
   return Math.max(1, Math.round(ms / 60_000));
+}
+
+export function slotKey(start: Date): number {
+  return start.getTime();
+}
+
+export function mergeContiguousSlots(
+  slots: { start: Date; end: Date }[],
+): { start: Date; end: Date }[] {
+  const sorted = [...slots].sort(
+    (a, b) => a.start.getTime() - b.start.getTime(),
+  );
+  const ranges: { start: Date; end: Date }[] = [];
+  for (const slot of sorted) {
+    const last = ranges[ranges.length - 1];
+    if (last && last.end.getTime() === slot.start.getTime()) {
+      last.end = slot.end;
+    } else {
+      ranges.push({ start: new Date(slot.start), end: new Date(slot.end) });
+    }
+  }
+  return ranges;
+}
+
+export function subtractTimeHoles(
+  start: Date,
+  end: Date,
+  holes: { start: Date; end: Date }[],
+): { start: Date; end: Date }[] {
+  let pieces = [{ start, end }];
+  for (const hole of holes) {
+    const next: { start: Date; end: Date }[] = [];
+    for (const piece of pieces) {
+      if (hole.end <= piece.start || hole.start >= piece.end) {
+        next.push(piece);
+        continue;
+      }
+      if (piece.start < hole.start) {
+        next.push({ start: piece.start, end: hole.start });
+      }
+      if (piece.end > hole.end) {
+        next.push({ start: hole.end, end: piece.end });
+      }
+    }
+    pieces = next;
+  }
+  return pieces.filter((piece) => piece.end.getTime() - piece.start.getTime() >= 10_000);
 }
 
 export function sessionMs(session: StudySession): number {

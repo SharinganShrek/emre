@@ -128,6 +128,7 @@ function StreakBanner({
 }: {
   streak: ReturnType<typeof computeSatStreak>;
 }) {
+  const { toggleActivityDate } = useSatVocab();
   return (
     <Card className="border-primary/25 bg-primary/5">
       <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -155,15 +156,23 @@ function StreakBanner({
                 </>
               )}
             </p>
+            <p className="mt-1 text-[11px] text-muted-2">
+              One in-app test a day keeps the streak. Tap a day to mark or
+              unmark.
+            </p>
           </div>
         </div>
         <div className="flex gap-1.5">
           {streak.week_days.map((d) => (
             <div key={d.date} className="flex flex-col items-center gap-1">
               <span className="text-[10px] text-muted-2">{d.label}</span>
-              <span
+              <button
+                type="button"
+                aria-pressed={d.studied}
+                aria-label={`${d.date}${d.studied ? " studied" : " not studied"}`}
+                onClick={() => toggleActivityDate(d.date)}
                 className={cn(
-                  "flex size-8 items-center justify-center rounded-full border text-[10px]",
+                  "flex size-8 items-center justify-center rounded-full border text-[10px] touch-manipulation",
                   d.studied && "border-primary bg-primary text-primary-foreground",
                   d.shielded &&
                     !d.studied &&
@@ -179,14 +188,14 @@ function StreakBanner({
                 )}
                 title={
                   d.studied
-                    ? `${d.date} studied`
+                    ? `${d.date} studied — tap to unmark`
                     : d.shielded
-                      ? `${d.date} shielded`
-                      : d.date
+                      ? `${d.date} shielded — tap to mark studied`
+                      : `${d.date} — tap to mark studied`
                 }
               >
                 {d.studied ? "✓" : d.shielded ? "🛡" : d.is_today ? "·" : ""}
-              </span>
+              </button>
             </div>
           ))}
         </div>
