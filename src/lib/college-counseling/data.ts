@@ -25,12 +25,14 @@ export const collegeCounselingData: CollegeCounselingData = {
       {
         name: "AP Statistics",
         status: "Taken",
-        target: "Expected 5",
+        score: 5,
+        target: "Score 5",
       },
       {
         name: "AP Computer Science A",
         status: "Taken",
-        target: "Expected 5",
+        score: 5,
+        target: "Score 5",
       },
       {
         name: "SAT (composite)",

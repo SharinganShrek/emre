@@ -22,6 +22,8 @@ export interface AcademicRecord {
 export interface TestPlanItem {
   name: string;
   status: string;
+  /** Actual score when taken (e.g. AP 5, SAT 1540). */
+  score?: string | number | null;
   target?: string;
   notes?: string;
 }

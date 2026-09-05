@@ -13,7 +13,15 @@ export function buildCounselorContextPack(
     .join("\n");
 
   const testingLines = profile.testing
-    .map((t) => `- ${t.name}: ${t.status}${t.target ? ` — ${t.target}` : ""}`)
+    .map((t) => {
+      const result =
+        t.score != null && t.score !== ""
+          ? `score ${t.score}`
+          : t.target
+            ? t.target
+            : "";
+      return `- ${t.name}: ${t.status}${result ? ` — ${result}` : ""}`;
+    })
     .join("\n");
 
   const topActivities = [...activities]

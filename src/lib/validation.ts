@@ -238,10 +238,70 @@ export const activityItemInput = z.object({
   status: activityStatus.default("draft"),
 });
 
+export const collegeTestItem = z.object({
+  name: z.string().min(1).max(120),
+  status: z.string().max(80).optional(),
+  score: z.union([z.string().max(40), z.number(), z.null()]).optional(),
+  target: z.string().max(120).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const collegeProfilePatch = z
+  .object({
+    full_name: z.string().max(200).optional(),
+    school: z.string().max(200).optional(),
+    country: z.string().max(80).optional(),
+    current_grade: z.string().max(80).optional(),
+    graduation_year: z.coerce.number().int().min(2020).max(2040).optional(),
+    citizenship: z.array(z.string().max(80)).optional(),
+    intended_fields: z.array(z.string().max(120)).optional(),
+    positioning_idea: z.string().max(4000).optional(),
+    us_strategy: z.string().max(4000).optional(),
+    europe_strategy: z.string().max(4000).optional(),
+    academic_records: z.array(z.record(z.string(), z.unknown())).optional(),
+    testing: z.array(collegeTestItem).optional(),
+    constraints: z.array(z.string().max(400)).optional(),
+    preferences: z.array(z.string().max(400)).optional(),
+    positioning: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
+const counselingSection = z.enum([
+  "profile",
+  "overview",
+  "activities",
+  "research",
+  "schools",
+  "timeline",
+  "essays",
+  "financial_aid",
+  "recommendations",
+  "weekly_checkins",
+  "research_narrative",
+  "brag_sheet_notes",
+]);
+
 export const collegeCounselingWrite = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("replace"),
     data: z.record(z.string(), z.unknown()),
+  }),
+  z.object({
+    action: z.literal("patch"),
+    data: z.record(z.string(), z.unknown()),
+  }),
+  z.object({
+    action: z.literal("update_profile"),
+    patch: collegeProfilePatch,
+  }),
+  z.object({
+    action: z.literal("update_testing"),
+    testing: z.array(collegeTestItem).min(1).max(40),
+  }),
+  z.object({
+    action: z.literal("update_section"),
+    section: counselingSection,
+    data: z.unknown(),
   }),
   z.object({
     action: z.literal("add_activity"),

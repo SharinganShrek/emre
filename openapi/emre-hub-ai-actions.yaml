@@ -602,12 +602,8 @@ paths:
     post:
       operationId: updateCollegeCounseling
       tags: [College Counseling]
-      summary: Replace document, add activity, or update activity
-      description: |
-        Full write access. No DELETE of the document.
-        - `add_activity` — append a new activity (optional `id`, otherwise generated)
-        - `update_activity` — patch fields of an existing activity by `id`
-        - `replace` — merge a partial/full document over the current payload
+      summary: Write any college counseling field
+      description: Full write access. No DELETE. Use update_testing for AP/SAT scores, update_profile, update_section, add_activity, update_activity, or replace/patch to merge onto the current document.
       security:
         - bearerAuth: []
       requestBody:
@@ -1109,18 +1105,98 @@ components:
       properties:
         action:
           type: string
-          enum: [replace, add_activity, update_activity]
+          enum:
+            [
+              replace,
+              patch,
+              update_profile,
+              update_testing,
+              update_section,
+              add_activity,
+              update_activity,
+            ]
         data:
           type: object
           additionalProperties: true
-          description: Partial or full counseling document (action=replace)
+          description: Partial document (replace/patch) or section payload (update_section)
+        section:
+          type: string
+          enum:
+            [
+              profile,
+              overview,
+              activities,
+              research,
+              schools,
+              timeline,
+              essays,
+              financial_aid,
+              recommendations,
+              weekly_checkins,
+              research_narrative,
+              brag_sheet_notes,
+            ]
+        profile:
+          $ref: "#/components/schemas/CollegeProfilePatch"
+        testing:
+          type: array
+          description: Upsert testing rows by name (action=update_testing)
+          items:
+            $ref: "#/components/schemas/CollegeTestItem"
         activity:
           $ref: "#/components/schemas/CollegeActivity"
         id:
           type: string
           description: Existing activity id (action=update_activity)
         patch:
-          $ref: "#/components/schemas/CollegeActivityPatch"
+          description: Activity fields or profile fields depending on action
+          additionalProperties: true
+          type: object
+
+    CollegeTestItem:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: AP Statistics
+        status:
+          type: string
+          example: Taken
+        score:
+          description: Actual score when taken
+          oneOf:
+            - type: string
+            - type: number
+            - type: "null"
+          example: 5
+        target:
+          type: string
+          example: Score 5
+        notes: { type: string }
+
+    CollegeProfilePatch:
+      type: object
+      additionalProperties: true
+      properties:
+        full_name: { type: string }
+        school: { type: string }
+        country: { type: string }
+        current_grade: { type: string }
+        graduation_year: { type: integer }
+        citizenship:
+          type: array
+          items: { type: string }
+        intended_fields:
+          type: array
+          items: { type: string }
+        positioning_idea: { type: string }
+        us_strategy: { type: string }
+        europe_strategy: { type: string }
+        testing:
+          type: array
+          items:
+            $ref: "#/components/schemas/CollegeTestItem"
 
     CollegeActivity:
       type: object

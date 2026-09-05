@@ -6,10 +6,14 @@ import {
   saveCollegeCounseling,
 } from "@/lib/supabase/college-counseling-repository";
 import { collegeCounselingData as seedData } from "@/lib/college-counseling/data";
-import { overlayCollegeCounseling } from "@/lib/college-counseling/merge";
+import {
+  mergeTestingByName,
+  overlayCollegeCounseling,
+} from "@/lib/college-counseling/merge";
 import type {
   ActivityItem,
   CollegeCounselingData,
+  TestPlanItem,
 } from "@/lib/college-counseling/types";
 import type { CollegeCounselingWrite } from "@/lib/validation";
 import { uid } from "@/lib/utils";
@@ -39,11 +43,52 @@ export function applyCounselingWrite(
   current: CollegeCounselingData,
   body: CollegeCounselingWrite,
 ): CollegeCounselingData {
-  if (body.action === "replace") {
+  if (body.action === "replace" || body.action === "patch") {
     return overlayCollegeCounseling(
       current,
       body.data as Partial<CollegeCounselingData>,
     );
+  }
+
+  if (body.action === "update_profile") {
+    const patch = body.patch as Partial<CollegeCounselingData["profile"]>;
+    const testing = patch.testing
+      ? mergeTestingByName(current.profile.testing, patch.testing)
+      : current.profile.testing;
+    return overlayCollegeCounseling(current, {
+      profile: { ...current.profile, ...patch, testing },
+    });
+  }
+
+  if (body.action === "update_testing") {
+    const incoming = body.testing.map((item) => ({
+      name: item.name,
+      status: item.status ?? "",
+      score: item.score,
+      target: item.target,
+      notes: item.notes,
+    })) as TestPlanItem[];
+    return overlayCollegeCounseling(current, {
+      profile: {
+        ...current.profile,
+        testing: mergeTestingByName(current.profile.testing, incoming),
+      },
+    });
+  }
+
+  if (body.action === "update_section") {
+    if (body.section === "profile") {
+      const patch =
+        body.data && typeof body.data === "object"
+          ? (body.data as Partial<CollegeCounselingData["profile"]>)
+          : {};
+      return overlayCollegeCounseling(current, {
+        profile: { ...current.profile, ...patch },
+      });
+    }
+    return overlayCollegeCounseling(current, {
+      [body.section]: body.data,
+    } as Partial<CollegeCounselingData>);
   }
 
   if (body.action === "add_activity") {

@@ -368,9 +368,11 @@ function ProfileTab() {
                 <span className="text-sm font-medium">{t.name}</span>
                 <Badge variant="default">{t.status}</Badge>
               </div>
-              {t.target && (
+              {t.score != null && t.score !== "" ? (
+                <p className="mt-1 text-xs text-muted">Score {t.score}</p>
+              ) : t.target ? (
                 <p className="mt-1 text-xs text-muted">{t.target}</p>
-              )}
+              ) : null}
             </li>
           ))}
         </ul>

@@ -1,4 +1,8 @@
-import type { ActivityItem, CollegeCounselingData } from "./types";
+import type {
+  ActivityItem,
+  CollegeCounselingData,
+  TestPlanItem,
+} from "./types";
 import { collegeCounselingData as seedData } from "./data";
 
 /** Bump when seed activity copy should replace matching saved ids once. */
@@ -20,7 +24,13 @@ export function mergeCollegeCounseling(
     ...seedData,
     ...saved,
     activities_seed_rev: Math.max(savedRev, ACTIVITIES_SEED_REV),
-    profile: { ...seedData.profile, ...(saved.profile ?? {}) },
+    profile: {
+      ...seedData.profile,
+      ...(saved.profile ?? {}),
+      testing: normalizeTesting(
+        saved.profile?.testing ?? seedData.profile.testing,
+      ),
+    },
     overview: { ...seedData.overview, ...(saved.overview ?? {}) },
     financial_aid: {
       ...seedData.financial_aid,
@@ -63,7 +73,9 @@ export function overlayCollegeCounseling(
       },
       academic_records:
         next.profile?.academic_records ?? current.profile.academic_records,
-      testing: next.profile?.testing ?? current.profile.testing,
+      testing: normalizeTesting(
+        next.profile?.testing ?? current.profile.testing,
+      ),
       citizenship: next.profile?.citizenship ?? current.profile.citizenship,
       intended_fields:
         next.profile?.intended_fields ?? current.profile.intended_fields,
@@ -92,6 +104,38 @@ export function overlayCollegeCounseling(
       next.research_narrative ?? current.research_narrative,
     brag_sheet_notes: next.brag_sheet_notes ?? current.brag_sheet_notes,
   };
+}
+
+export function mergeTestingByName(
+  current: TestPlanItem[],
+  incoming: TestPlanItem[],
+): TestPlanItem[] {
+  const map = new Map(
+    current.map((item) => [item.name.trim().toLowerCase(), item]),
+  );
+  for (const item of incoming) {
+    const key = item.name.trim().toLowerCase();
+    const prev = map.get(key);
+    map.set(key, {
+      name: item.name || prev?.name || key,
+      status: item.status || prev?.status || "",
+      score: item.score !== undefined ? item.score : (prev?.score ?? null),
+      target: item.target !== undefined ? item.target : prev?.target,
+      notes: item.notes !== undefined ? item.notes : prev?.notes,
+    });
+  }
+  return normalizeTesting([...map.values()]);
+}
+
+function normalizeTesting(items: TestPlanItem[] | undefined): TestPlanItem[] {
+  return (items ?? []).map((item) => {
+    const expectedPending =
+      item.status.toLowerCase() === "taken" &&
+      (item.target ?? "").toLowerCase().includes("expected 5") &&
+      (item.score == null || item.score === "");
+    if (!expectedPending) return item;
+    return { ...item, score: 5, target: "Score 5" };
+  });
 }
 
 function mergeActivitiesFromSeed(

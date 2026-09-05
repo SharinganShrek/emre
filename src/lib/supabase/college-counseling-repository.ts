@@ -19,7 +19,13 @@ export async function fetchCollegeCounseling(
   if (existing.data?.payload && typeof existing.data.payload === "object") {
     const incoming = existing.data.payload as Partial<CollegeCounselingData>;
     const merged = mergeCollegeCounseling(incoming);
-    if ((incoming.activities_seed_rev ?? 0) < (merged.activities_seed_rev ?? 0)) {
+    const testingChanged =
+      JSON.stringify(incoming.profile?.testing ?? []) !==
+      JSON.stringify(merged.profile.testing);
+    if (
+      (incoming.activities_seed_rev ?? 0) < (merged.activities_seed_rev ?? 0) ||
+      testingChanged
+    ) {
       await saveCollegeCounseling(supabase, userId, merged);
     }
     return merged;
