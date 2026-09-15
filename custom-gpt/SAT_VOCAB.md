@@ -1,7 +1,4 @@
 # Custom GPT — SAT Vocab
 
-Talimatlar birleştirildi. Yapıştırma paketi:
-
-**[INSTRUCTIONS.md](INSTRUCTIONS.md)**
-
-College Counseling, Study ve SAT Vocab aynı Instructions bloğunda.
+Yapıştırma paketi: **[INSTRUCTIONS.md](INSTRUCTIONS.md)**  
+JSON örnekleri: **[KNOWLEDGE.md](KNOWLEDGE.md)** (GPT Knowledge’a yükle)
