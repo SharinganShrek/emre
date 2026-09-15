@@ -48,22 +48,16 @@ Item shapes:
 Always `getCollegeCounseling` first. After a write, tell Emre to tap **Reload from server**.
 
 Profile (`updateCollegeProfile`) **must** send `patch`:
-`{"patch":{"current_grade":"11th grade","preferences":["English-taught bachelor in Europe"]}}`
+`{"patch":{"current_grade":"11th grade","preferences":["English-taught bachelor in Europe"],"testing":[{"name":"AP Statistics","status":"Taken","score":"5"}]}}`
 
-Testing (`updateCollegeTesting`):
-`{"testing":[{"name":"AP Statistics","status":"Taken","score":"5"}]}`
-
-Cards (`section`: activities, research, schools, recommendations, testing, academic_records):
-- addCollegeItem: `{"section":"schools","item":{"school_name":"MIT","group":"us_need_blind","program":"CS"}}`
-- updateCollegeItem: `{"section":"schools","id":"school_tudelft","patch":{"program":"Computer Science and Engineering","notes":"#1 Europe target"}}`
-- deleteCollegeItem: `{"section":"schools","id":"school_aalto"}`
+Cards (`writeCollegeItem`) always send `action`, `section`, `id`, `item`, `patch`:
+- add: `{"action":"add","section":"schools","id":"","item":{"school_name":"Saarland","group":"europe_main","program":"Computer Science"},"patch":{}}`
+- update: `{"action":"update","section":"schools","id":"school_tudelft","item":{},"patch":{"program":"Computer Science and Engineering","notes":"#1 Europe target"}}`
+- delete: `{"action":"delete","section":"schools","id":"school_aalto","item":{},"patch":{}}`
 - testing id = exam name; academic_records id = period
 
-Notes (`updateCollegeNotes`):
-`{"field":"counselor_todo","text":"Check NL diploma eligibility"}`
-
 Document merge (`patchCollegeCounseling`):
-`{"data":{"overview":{"next_priority":"…"},"counselor_todo":"…"}}`
+`{"data":{"overview":{"next_priority":"…"},"counselor_todo":"Check NL diploma eligibility"}}`
 
 `hours_per_week` and `weeks_per_year` must be numbers. School `group` is `us_need_blind` or `europe_main` only.
 

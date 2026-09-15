@@ -352,6 +352,33 @@ export const collegeWriteNotesBody = z.object({
   field: z.enum(["counselor_todo", "brag_sheet_notes", "research_narrative"]),
   text: z.string().max(20000),
 });
+export const collegeWriteItemBody = z
+  .object({
+    action: z.enum(["add", "update", "delete"]),
+    section: counselingItemSection,
+    id: z.string().max(80).default(""),
+    item: z.record(z.string(), z.unknown()).default({}),
+    patch: z.record(z.string(), z.unknown()).default({}),
+  })
+  .superRefine((val, ctx) => {
+    if (val.action === "add" && Object.keys(val.item).length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["item"],
+        message: "item is required when action is add",
+      });
+    }
+    if (
+      (val.action === "update" || val.action === "delete") &&
+      !val.id.trim()
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["id"],
+        message: "id is required when action is update or delete",
+      });
+    }
+  });
 export const collegeWriteAddItemBody = z.object({
   section: counselingItemSection,
   item: z.record(z.string(), z.unknown()),

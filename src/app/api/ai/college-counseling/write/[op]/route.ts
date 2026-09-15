@@ -6,6 +6,7 @@ import {
   collegeWriteAddItemBody,
   collegeWriteDeleteItemBody,
   collegeWriteDocumentBody,
+  collegeWriteItemBody,
   collegeWriteNotesBody,
   collegeWriteProfileBody,
   collegeWriteTestingBody,
@@ -21,6 +22,7 @@ const OPS = [
   "testing",
   "document",
   "notes",
+  "item",
   "add-item",
   "update-item",
   "delete-item",
@@ -54,6 +56,25 @@ function bodyForOp(op: Op, json: unknown): CollegeCounselingWrite {
         action: "update_section",
         section: body.field,
         data: body.text,
+      };
+    }
+    case "item": {
+      const body = collegeWriteItemBody.parse(json);
+      if (body.action === "add") {
+        return { action: "add_item", section: body.section, item: body.item };
+      }
+      if (body.action === "update") {
+        return {
+          action: "update_item",
+          section: body.section,
+          id: body.id,
+          patch: body.patch,
+        };
+      }
+      return {
+        action: "delete_item",
+        section: body.section,
+        id: body.id,
       };
     }
     case "add-item": {
