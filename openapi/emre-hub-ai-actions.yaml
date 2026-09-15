@@ -603,7 +603,7 @@ paths:
       operationId: updateCollegeCounseling
       tags: [College Counseling]
       summary: Write any college counseling field
-      description: Full write access. No DELETE. Use update_testing for AP/SAT scores, update_profile, update_section, add_activity, update_activity, or replace/patch to merge onto the current document.
+      description: Edit, add, or delete any counseling card. Use add_item/update_item/delete_item for activities, research, schools, timeline, essays, recs, check-ins, testing, academic records. No HTTP DELETE. update_testing upserts scores.
       security:
         - bearerAuth: []
       requestBody:
@@ -1114,6 +1114,9 @@ components:
               update_section,
               add_activity,
               update_activity,
+              add_item,
+              update_item,
+              delete_item,
             ]
         data:
           type: object
@@ -1135,7 +1138,14 @@ components:
               weekly_checkins,
               research_narrative,
               brag_sheet_notes,
+              counselor_todo,
+              testing,
+              academic_records,
             ]
+        item:
+          type: object
+          additionalProperties: true
+          description: New card fields for add_item
         profile:
           $ref: "#/components/schemas/CollegeProfilePatch"
         testing:
@@ -1147,9 +1157,9 @@ components:
           $ref: "#/components/schemas/CollegeActivity"
         id:
           type: string
-          description: Existing activity id (action=update_activity)
+          description: Existing card id (or exam name / GPA period for testing and academic_records)
         patch:
-          description: Activity fields or profile fields depending on action
+          description: Partial fields for update_item, update_activity, or update_profile
           additionalProperties: true
           type: object
 

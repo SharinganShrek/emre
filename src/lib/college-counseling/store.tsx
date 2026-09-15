@@ -44,7 +44,16 @@ function loadLocal(): CollegeCounselingData {
     if (!raw) return structuredClone(seedData);
     const parsed = JSON.parse(raw) as CollegeCounselingData;
     const merged = mergeCollegeCounseling(parsed);
-    if ((parsed.activities_seed_rev ?? 0) < (merged.activities_seed_rev ?? 0)) {
+    const droppedNeedAware = Array.isArray(parsed.schools)
+      ? parsed.schools.some(
+          (s) => (s as { group?: string }).group === "us_need_aware",
+        )
+      : false;
+    if (
+      (parsed.activities_seed_rev ?? 0) < (merged.activities_seed_rev ?? 0) ||
+      droppedNeedAware ||
+      parsed.counselor_todo == null
+    ) {
       saveLocal(merged);
     }
     return merged;

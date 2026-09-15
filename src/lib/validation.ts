@@ -266,6 +266,18 @@ export const collegeProfilePatch = z
   })
   .passthrough();
 
+const counselingItemSection = z.enum([
+  "activities",
+  "research",
+  "schools",
+  "timeline",
+  "essays",
+  "recommendations",
+  "weekly_checkins",
+  "testing",
+  "academic_records",
+]);
+
 const counselingSection = z.enum([
   "profile",
   "overview",
@@ -279,6 +291,7 @@ const counselingSection = z.enum([
   "weekly_checkins",
   "research_narrative",
   "brag_sheet_notes",
+  "counselor_todo",
 ]);
 
 export const collegeCounselingWrite = z.discriminatedUnion("action", [
@@ -311,6 +324,22 @@ export const collegeCounselingWrite = z.discriminatedUnion("action", [
     action: z.literal("update_activity"),
     id: z.string().min(1).max(80),
     patch: activityItemInput.partial(),
+  }),
+  z.object({
+    action: z.literal("add_item"),
+    section: counselingItemSection,
+    item: z.record(z.string(), z.unknown()),
+  }),
+  z.object({
+    action: z.literal("update_item"),
+    section: counselingItemSection,
+    id: z.string().min(1).max(80),
+    patch: z.record(z.string(), z.unknown()),
+  }),
+  z.object({
+    action: z.literal("delete_item"),
+    section: counselingItemSection,
+    id: z.string().min(1).max(80),
   }),
 ]);
 export type CollegeCounselingWrite = z.infer<typeof collegeCounselingWrite>;

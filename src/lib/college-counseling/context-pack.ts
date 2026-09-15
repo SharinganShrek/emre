@@ -5,7 +5,7 @@ import { collegeCounselingData } from "./data";
 export function buildCounselorContextPack(
   data: CollegeCounselingData = collegeCounselingData,
 ): string {
-  const { profile, overview, activities, research, schools, timeline, essays, financial_aid, recommendations, weekly_checkins } =
+  const { profile, overview, activities, research, schools, timeline, essays, financial_aid, recommendations, weekly_checkins, counselor_todo } =
     data;
 
   const gpaLines = profile.academic_records
@@ -144,8 +144,6 @@ ${data.research_narrative}
 ## School list summary
 ${schoolSummary("us_need_blind", "US Need-Blind / Full-Need (verify annually)")}
 
-${schoolSummary("us_need_aware", "US Need-Aware but Worth Considering")}
-
 ${schoolSummary("europe_main", "Europe Main Plan")}
 
 ## Financial aid constraints
@@ -169,6 +167,9 @@ ${recLines}
 
 ## Recent weekly check-ins
 ${checkins}
+
+## Counselor to-do
+${counselor_todo?.trim() ? counselor_todo : "_Empty_"}
 
 ## Open questions for counselor
 ${weekly_checkins

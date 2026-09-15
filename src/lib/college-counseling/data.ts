@@ -70,7 +70,7 @@ export const collegeCounselingData: CollegeCounselingData = {
 
   overview: {
     next_priority: "SAT foundation + CV cleanup + school list v1",
-    applications_tracked: 28,
+    applications_tracked: 18,
     essays_drafted: 0,
     financial_aid_status: "Planning / checklist started",
     counselor_readiness_score: 62,
@@ -455,38 +455,6 @@ export const collegeCounselingData: CollegeCounselingData = {
       requirements: ["Testing plan", "Essays", "Recommendations", "Aid forms"],
     })),
 
-    // US Need-Aware
-    ...[
-      ["Stanford", "CS / AI"],
-      ["Columbia", "CS"],
-      ["Penn", "SEAS CS"],
-      ["Duke", "CS"],
-      ["UChicago", "CS"],
-      ["Northwestern", "CS"],
-      ["Vanderbilt", "CS"],
-      ["Rice", "CS"],
-      ["Williams", "CS"],
-      ["Swarthmore", "CS"],
-      ["Pomona", "CS"],
-    ].map(([school, program], i) => ({
-      id: `us_na_${i}`,
-      school_name: school,
-      country: "USA",
-      program,
-      application_system: "Common App / school portal",
-      deadline: "TBD",
-      financial_aid_type: "Need-aware (international)",
-      financial_viability: "risky" as const,
-      academic_fit: "high" as const,
-      narrative_fit: "high" as const,
-      reach_severity: "extreme" as const,
-      strategic_value: (i < 4 ? "medium" : "low") as "medium" | "low",
-      status: "researching" as const,
-      notes: "Worth considering selectively; aid risk is real.",
-      group: "us_need_aware" as const,
-      requirements: ["Essays", "Recommendations", "Aid realism check"],
-    })),
-
     // Europe main
     ...[
       ["TU Delft", "Netherlands", "CSE", "Studielink / TU Delft"],
@@ -831,4 +799,6 @@ export const collegeCounselingData: CollegeCounselingData = {
       status: "draft",
     },
   ],
+
+  counselor_todo: "",
 };

@@ -104,7 +104,7 @@ export interface SchoolOption {
   strategic_value: StrategicValue;
   status: DraftStatus | "researching" | "applying" | "submitted";
   notes: string;
-  group: "us_need_blind" | "us_need_aware" | "europe_main";
+  group: "us_need_blind" | "europe_main";
   requirements: string[];
 }
 
@@ -207,4 +207,6 @@ export interface CollegeCounselingData {
   recommendations: RecommendationItem[];
   brag_sheet_notes: string;
   weekly_checkins: WeeklyCheckIn[];
+  /** Freeform counselor to-do notes (Custom GPT + UI). */
+  counselor_todo: string;
 }

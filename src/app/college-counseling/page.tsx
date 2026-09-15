@@ -49,6 +49,7 @@ const TABS = [
   "Financial Aid",
   "Recommendations",
   "Weekly Check-ins",
+  "Counselor To-Do",
   "AI Context Pack",
 ] as const;
 
@@ -112,7 +113,7 @@ function CollegeCounseling() {
     <div className="space-y-6">
       <PageHeader
         title="College Counseling"
-        description="Application strategy + copyable counselor context pack. Activities/CV is read-only here — Custom GPT can add and edit via Actions."
+        description="Application strategy + copyable counselor context pack. Custom GPT can add, edit, and delete cards on every tab."
         actions={
           <div className="flex gap-2">
             <Button
@@ -164,6 +165,7 @@ function CollegeCounseling() {
       {tab === "Financial Aid" && <FinancialAidTab />}
       {tab === "Recommendations" && <RecommendationsTab />}
       {tab === "Weekly Check-ins" && <CheckinsTab />}
+      {tab === "Counselor To-Do" && <CounselorTodoTab />}
       {tab === "AI Context Pack" && <ContextPackTab />}
 
       <p className="text-xs text-muted-2">
@@ -189,8 +191,7 @@ function OverviewTab() {
         />
         <CollegeStatCard
           label="Intended field"
-          value="CS / Applied AI"
-          hint={profile.intended_fields.join(" · ")}
+          value={profile.intended_fields.join(" / ") || "—"}
         />
         <CollegeStatCard label="SAT target" value={overview.sat_target} />
         <CollegeStatCard label="GPA average" value={overview.gpa_average} />
@@ -680,10 +681,6 @@ function SchoolsTab() {
       key: "us_need_blind",
       title: "US Need-Blind / Full-Need (verify annually)",
     },
-    {
-      key: "us_need_aware",
-      title: "US Need-Aware but Worth Considering",
-    },
     { key: "europe_main", title: "Europe Main Plan" },
   ];
 
@@ -779,10 +776,18 @@ function SchoolsTab() {
 
 function TimelineTab() {
   const { data, setData } = useCounseling();
+  const periods = [
+    ...PERIODS.filter((period) =>
+      data.timeline.some((t) => t.period === period),
+    ),
+    ...[...new Set(data.timeline.map((t) => t.period))].filter(
+      (period) => !(PERIODS as readonly string[]).includes(period),
+    ),
+  ];
 
   return (
     <div className="space-y-6">
-      {PERIODS.map((period) => {
+      {periods.map((period) => {
         const items = data.timeline.filter((t) => t.period === period);
         if (items.length === 0) return null;
         return (
@@ -854,10 +859,24 @@ function TimelineTab() {
 function EssaysTab() {
   const { data, setData } = useCounseling();
   const essays = data.essays;
+  const extraTypes = [
+    ...new Set(
+      essays
+        .map((e) => e.essay_type)
+        .filter((type) => !ESSAY_SECTIONS.some((s) => s.type === type)),
+    ),
+  ];
+  const sections = [
+    ...ESSAY_SECTIONS,
+    ...extraTypes.map((type) => ({
+      type,
+      label: type.replaceAll("_", " "),
+    })),
+  ];
 
   return (
     <div className="space-y-6">
-      {ESSAY_SECTIONS.map((section) => {
+      {sections.map((section) => {
         const items = essays.filter((e) => e.essay_type === section.type);
         return (
           <section key={section.type} className="space-y-3">
@@ -1255,6 +1274,20 @@ function CheckinsTab() {
         ))}
       </div>
     </div>
+  );
+}
+
+function CounselorTodoTab() {
+  const { data, patch } = useCounseling();
+  return (
+    <CounselingSectionCard title="Counselor To-Do">
+      <Textarea
+        value={data.counselor_todo ?? ""}
+        onChange={(e) => patch("counselor_todo", e.target.value)}
+        placeholder="Counselor notes and to-dos"
+        className="min-h-[28rem]"
+      />
+    </CounselingSectionCard>
   );
 }
 

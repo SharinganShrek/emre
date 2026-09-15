@@ -4,6 +4,7 @@ import type {
   TestPlanItem,
 } from "./types";
 import { collegeCounselingData as seedData } from "./data";
+import { withoutNeedAwareSchools } from "./items";
 
 /** Bump when seed activity copy should replace matching saved ids once. */
 export const ACTIVITIES_SEED_REV = 3;
@@ -38,7 +39,9 @@ export function mergeCollegeCounseling(
     },
     activities,
     research: Array.isArray(saved.research) ? saved.research : seedData.research,
-    schools: Array.isArray(saved.schools) ? saved.schools : seedData.schools,
+    schools: withoutNeedAwareSchools(
+      Array.isArray(saved.schools) ? saved.schools : seedData.schools,
+    ),
     timeline: Array.isArray(saved.timeline) ? saved.timeline : seedData.timeline,
     essays: Array.isArray(saved.essays) ? saved.essays : seedData.essays,
     recommendations: Array.isArray(saved.recommendations)
@@ -50,6 +53,7 @@ export function mergeCollegeCounseling(
     research_narrative:
       saved.research_narrative ?? seedData.research_narrative,
     brag_sheet_notes: saved.brag_sheet_notes ?? seedData.brag_sheet_notes,
+    counselor_todo: saved.counselor_todo ?? "",
   };
 }
 
@@ -91,7 +95,9 @@ export function overlayCollegeCounseling(
       ? next.activities
       : current.activities,
     research: Array.isArray(next.research) ? next.research : current.research,
-    schools: Array.isArray(next.schools) ? next.schools : current.schools,
+    schools: withoutNeedAwareSchools(
+      Array.isArray(next.schools) ? next.schools : current.schools,
+    ),
     timeline: Array.isArray(next.timeline) ? next.timeline : current.timeline,
     essays: Array.isArray(next.essays) ? next.essays : current.essays,
     recommendations: Array.isArray(next.recommendations)
@@ -103,6 +109,10 @@ export function overlayCollegeCounseling(
     research_narrative:
       next.research_narrative ?? current.research_narrative,
     brag_sheet_notes: next.brag_sheet_notes ?? current.brag_sheet_notes,
+    counselor_todo:
+      next.counselor_todo !== undefined
+        ? String(next.counselor_todo)
+        : current.counselor_todo ?? "",
   };
 }
 

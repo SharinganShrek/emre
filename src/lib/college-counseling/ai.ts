@@ -11,12 +11,16 @@ import {
   overlayCollegeCounseling,
 } from "@/lib/college-counseling/merge";
 import type {
-  ActivityItem,
   CollegeCounselingData,
   TestPlanItem,
 } from "@/lib/college-counseling/types";
 import type { CollegeCounselingWrite } from "@/lib/validation";
-import { uid } from "@/lib/utils";
+import {
+  addCounselingItem,
+  deleteCounselingItem,
+  updateCounselingItem,
+  type CounselingItemSection,
+} from "./items";
 
 export async function loadCounseling(
   ctx: AiContext,
@@ -87,44 +91,45 @@ export function applyCounselingWrite(
       });
     }
     return overlayCollegeCounseling(current, {
-      [body.section]: body.data,
+      [body.section]:
+        body.section === "counselor_todo" ||
+        body.section === "research_narrative" ||
+        body.section === "brag_sheet_notes"
+          ? typeof body.data === "string"
+            ? body.data
+            : String(body.data ?? "")
+          : body.data,
     } as Partial<CollegeCounselingData>);
   }
 
-  if (body.action === "add_activity") {
-    const raw = body.activity;
-    const activity: ActivityItem = {
-      id: raw.id ?? uid("act"),
-      title: raw.title,
-      category: raw.category,
-      role: raw.role,
-      organization: raw.organization,
-      grade_levels: raw.grade_levels,
-      hours_per_week: raw.hours_per_week,
-      weeks_per_year: raw.weeks_per_year,
-      common_app_description: raw.common_app_description,
-      expanded_description: raw.expanded_description,
-      impact_metrics: raw.impact_metrics,
-      evidence_link: raw.evidence_link ?? null,
-      priority: raw.priority,
-      framing_notes: raw.framing_notes,
-      risk_notes: raw.risk_notes,
-      status: raw.status,
-    };
-    if (current.activities.some((a) => a.id === activity.id)) {
-      throw new AiPermissionError(
-        `Activity id "${activity.id}" already exists.`,
-        409,
-      );
-    }
-    return { ...current, activities: [activity, ...current.activities] };
+  if (body.action === "add_item") {
+    return addCounselingItem(
+      current,
+      body.section as CounselingItemSection,
+      body.item,
+    );
   }
 
-  const index = current.activities.findIndex((a) => a.id === body.id);
-  if (index < 0) {
-    throw new AiPermissionError(`Activity "${body.id}" not found.`, 404);
+  if (body.action === "update_item") {
+    return updateCounselingItem(
+      current,
+      body.section as CounselingItemSection,
+      body.id,
+      body.patch,
+    );
   }
-  const next = [...current.activities];
-  next[index] = { ...next[index], ...body.patch };
-  return { ...current, activities: next };
+
+  if (body.action === "delete_item") {
+    return deleteCounselingItem(
+      current,
+      body.section as CounselingItemSection,
+      body.id,
+    );
+  }
+
+  if (body.action === "add_activity") {
+    return addCounselingItem(current, "activities", body.activity);
+  }
+
+  return updateCounselingItem(current, "activities", body.id, body.patch);
 }

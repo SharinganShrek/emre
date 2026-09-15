@@ -22,9 +22,17 @@ export async function fetchCollegeCounseling(
     const testingChanged =
       JSON.stringify(incoming.profile?.testing ?? []) !==
       JSON.stringify(merged.profile.testing);
+    const schoolsDropped =
+      (Array.isArray(incoming.schools)
+        ? incoming.schools.filter(
+            (s) => (s as { group?: string }).group === "us_need_aware",
+          ).length
+        : 0) > 0;
     if (
       (incoming.activities_seed_rev ?? 0) < (merged.activities_seed_rev ?? 0) ||
-      testingChanged
+      testingChanged ||
+      schoolsDropped ||
+      incoming.counselor_todo == null
     ) {
       await saveCollegeCounseling(supabase, userId, merged);
     }
