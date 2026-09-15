@@ -599,11 +599,13 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/Error"
+
+  /api/ai/college-counseling/write/profile:
     post:
-      operationId: updateCollegeCounseling
+      operationId: updateCollegeProfile
       tags: [College Counseling]
-      summary: Write any college counseling field
-      description: Edit, add, or delete any counseling card. Use add_item/update_item/delete_item for activities, research, schools, recs, testing, academic records. No HTTP DELETE. update_testing upserts scores.
+      summary: Update college profile fields
+      description: Requires patch object. Use for grade, preferences, positioning, strategies. GET counseling first.
       security:
         - bearerAuth: []
       requestBody:
@@ -611,39 +613,149 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CollegeCounselingWrite"
-            examples:
-              updateProfile:
-                summary: Update profile (requires patch)
-                value:
-                  action: update_profile
-                  patch:
-                    current_grade: 11th grade
-                    positioning_idea: CS-first applicant
-              deleteSchool:
-                summary: Delete a school card
-                value:
-                  action: delete_item
-                  section: schools
-                  id: school_aalto
-              updateSchool:
-                summary: Edit a school card
-                value:
-                  action: update_item
-                  section: schools
-                  id: school_mit
-                  patch:
-                    program: Computer Science
-              addSchool:
-                summary: Add a school card
-                value:
-                  action: add_item
-                  section: schools
-                  item:
-                    id: school_epfl
-                    school_name: EPFL
-                    group: europe_main
-                    program: Computer Science
+              $ref: "#/components/schemas/CollegeWriteProfileBody"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/college-counseling/write/testing:
+    post:
+      operationId: updateCollegeTesting
+      tags: [College Counseling]
+      summary: Upsert testing or AP scores
+      description: Requires testing array. Matches by exam name. Does not delete other exams.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollegeWriteTestingBody"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/college-counseling/write/document:
+    post:
+      operationId: patchCollegeCounseling
+      tags: [College Counseling]
+      summary: Patch counseling document sections
+      description: Requires data object merged onto the current document. Use for overview or counselor notes objects.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollegeWriteDocumentBody"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/college-counseling/write/notes:
+    post:
+      operationId: updateCollegeNotes
+      tags: [College Counseling]
+      summary: Update counselor notes text
+      description: Requires field and text. field is counselor_todo, brag_sheet_notes, or research_narrative.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollegeWriteNotesBody"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/college-counseling/write/add-item:
+    post:
+      operationId: addCollegeItem
+      tags: [College Counseling]
+      summary: Add a counseling card
+      description: Requires section and item. section is schools, research, activities, recommendations, testing, or academic_records.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollegeWriteAddItemBody"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/college-counseling/write/update-item:
+    post:
+      operationId: updateCollegeItem
+      tags: [College Counseling]
+      summary: Update a counseling card
+      description: Requires section, id, and patch. For testing, id is the exam name. For academic_records, id is the period.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollegeWriteUpdateItemBody"
       responses:
         "200":
           description: Updated document
@@ -655,7 +767,93 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/Error"
-        "409":
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/college-counseling/write/delete-item:
+    post:
+      operationId: deleteCollegeItem
+      tags: [College Counseling]
+      summary: Delete a counseling card
+      description: Requires section and id. No HTTP DELETE. For testing, id is the exam name.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollegeWriteDeleteItemBody"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/college-counseling/write/add-activity:
+    post:
+      operationId: addCollegeActivity
+      tags: [College Counseling]
+      summary: Add an activity card
+      description: Requires activity object with title. hours_per_week and weeks_per_year must be numbers.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollegeWriteAddActivityBody"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/college-counseling/write/update-activity:
+    post:
+      operationId: updateCollegeActivity
+      tags: [College Counseling]
+      summary: Update an activity card
+      description: Requires id and patch. hours_per_week and weeks_per_year must be numbers.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollegeWriteUpdateActivityBody"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
           $ref: "#/components/responses/Error"
         "422":
           $ref: "#/components/responses/ValidationError"
@@ -1135,18 +1333,98 @@ components:
                 items: { type: string }
               definition: { type: string }
 
-    CollegeCounselingWrite:
-      oneOf:
-        - $ref: "#/components/schemas/CollegeWriteReplace"
-        - $ref: "#/components/schemas/CollegeWritePatchDoc"
-        - $ref: "#/components/schemas/CollegeWriteUpdateProfile"
-        - $ref: "#/components/schemas/CollegeWriteUpdateTesting"
-        - $ref: "#/components/schemas/CollegeWriteUpdateSection"
-        - $ref: "#/components/schemas/CollegeWriteAddActivity"
-        - $ref: "#/components/schemas/CollegeWriteUpdateActivity"
-        - $ref: "#/components/schemas/CollegeWriteAddItem"
-        - $ref: "#/components/schemas/CollegeWriteUpdateItem"
-        - $ref: "#/components/schemas/CollegeWriteDeleteItem"
+    CollegeWriteProfileBody:
+      type: object
+      required: [patch]
+      properties:
+        patch:
+          $ref: "#/components/schemas/CollegeProfilePatch"
+
+    CollegeWriteTestingBody:
+      type: object
+      required: [testing]
+      properties:
+        testing:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CollegeTestItem"
+
+    CollegeWriteDocumentBody:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          properties:
+            overview:
+              type: object
+              properties:
+                next_priority: { type: string }
+                strategic_diagnosis: { type: string }
+                current_positioning: { type: string }
+                counselor_readiness_score: { type: integer }
+            counselor_todo: { type: string }
+            research_narrative: { type: string }
+            brag_sheet_notes: { type: string }
+            profile:
+              $ref: "#/components/schemas/CollegeProfilePatch"
+
+    CollegeWriteNotesBody:
+      type: object
+      required: [field, text]
+      properties:
+        field:
+          type: string
+          enum: [counselor_todo, brag_sheet_notes, research_narrative]
+        text:
+          type: string
+
+    CollegeWriteAddItemBody:
+      type: object
+      required: [section, item]
+      properties:
+        section:
+          $ref: "#/components/schemas/CollegeCounselingItemSection"
+        item:
+          $ref: "#/components/schemas/CollegeCardItem"
+
+    CollegeWriteUpdateItemBody:
+      type: object
+      required: [section, id, patch]
+      properties:
+        section:
+          $ref: "#/components/schemas/CollegeCounselingItemSection"
+        id:
+          type: string
+        patch:
+          $ref: "#/components/schemas/CollegeCardItem"
+
+    CollegeWriteDeleteItemBody:
+      type: object
+      required: [section, id]
+      properties:
+        section:
+          $ref: "#/components/schemas/CollegeCounselingItemSection"
+        id:
+          type: string
+          description: Card id, or exam name when section is testing
+
+    CollegeWriteAddActivityBody:
+      type: object
+      required: [activity]
+      properties:
+        activity:
+          $ref: "#/components/schemas/CollegeActivity"
+
+    CollegeWriteUpdateActivityBody:
+      type: object
+      required: [id, patch]
+      properties:
+        id:
+          type: string
+        patch:
+          $ref: "#/components/schemas/CollegeActivityPatch"
 
     CollegeCounselingItemSection:
       type: string
@@ -1158,143 +1436,51 @@ components:
         - testing
         - academic_records
 
-    CollegeCounselingDocSection:
-      type: string
-      enum:
-        - profile
-        - overview
-        - activities
-        - research
-        - schools
-        - financial_aid
-        - recommendations
-        - research_narrative
-        - brag_sheet_notes
-        - counselor_todo
-
-    CollegeWriteReplace:
+    CollegeCardItem:
       type: object
-      required: [action, data]
       properties:
-        action:
-          type: string
-          enum: [replace]
-        data:
-          type: object
-          additionalProperties: true
-
-    CollegeWritePatchDoc:
-      type: object
-      required: [action, data]
-      properties:
-        action:
-          type: string
-          enum: [patch]
-        data:
-          type: object
-          additionalProperties: true
-
-    CollegeWriteUpdateProfile:
-      type: object
-      required: [action, patch]
-      properties:
-        action:
-          type: string
-          enum: [update_profile]
-        patch:
-          $ref: "#/components/schemas/CollegeProfilePatch"
-
-    CollegeWriteUpdateTesting:
-      type: object
-      required: [action, testing]
-      properties:
-        action:
-          type: string
-          enum: [update_testing]
-        testing:
+        id: { type: string }
+        school_name: { type: string }
+        country: { type: string }
+        program: { type: string }
+        application_system: { type: string }
+        deadline: { type: string }
+        financial_aid_type: { type: string }
+        financial_viability: { type: string, enum: [strong, risky, poor] }
+        academic_fit: { type: string, enum: [high, medium, low] }
+        narrative_fit: { type: string, enum: [high, medium, low] }
+        reach_severity: { type: string, enum: [extreme, high, moderate] }
+        strategic_value: { type: string, enum: [high, medium, low] }
+        status: { type: string }
+        notes: { type: string }
+        group: { type: string, enum: [us_need_blind, europe_main] }
+        requirements:
           type: array
-          minItems: 1
-          items:
-            $ref: "#/components/schemas/CollegeTestItem"
-
-    CollegeWriteUpdateSection:
-      type: object
-      required: [action, section, data]
-      properties:
-        action:
-          type: string
-          enum: [update_section]
-        section:
-          $ref: "#/components/schemas/CollegeCounselingDocSection"
-        data:
-          description: Object for most sections; string for counselor_todo / brag_sheet_notes
-          oneOf:
-            - type: string
-            - type: object
-              additionalProperties: true
-
-    CollegeWriteAddActivity:
-      type: object
-      required: [action, activity]
-      properties:
-        action:
-          type: string
-          enum: [add_activity]
-        activity:
-          $ref: "#/components/schemas/CollegeActivity"
-
-    CollegeWriteUpdateActivity:
-      type: object
-      required: [action, id, patch]
-      properties:
-        action:
-          type: string
-          enum: [update_activity]
-        id:
-          type: string
-        patch:
-          $ref: "#/components/schemas/CollegeActivityPatch"
-
-    CollegeWriteAddItem:
-      type: object
-      required: [action, section, item]
-      properties:
-        action:
-          type: string
-          enum: [add_item]
-        section:
-          $ref: "#/components/schemas/CollegeCounselingItemSection"
-        item:
-          type: object
-          additionalProperties: true
-
-    CollegeWriteUpdateItem:
-      type: object
-      required: [action, section, id, patch]
-      properties:
-        action:
-          type: string
-          enum: [update_item]
-        section:
-          $ref: "#/components/schemas/CollegeCounselingItemSection"
-        id:
-          type: string
-        patch:
-          type: object
-          additionalProperties: true
-
-    CollegeWriteDeleteItem:
-      type: object
-      required: [action, section, id]
-      properties:
-        action:
-          type: string
-          enum: [delete_item]
-        section:
-          $ref: "#/components/schemas/CollegeCounselingItemSection"
-        id:
-          type: string
-          description: Card id, or exam name when section is testing
+          items: { type: string }
+        title: { type: string }
+        field: { type: string }
+        mentor_institution: { type: string }
+        dates: { type: string }
+        methods: { type: string }
+        dataset_material: { type: string }
+        output: { type: string }
+        publication_status: { type: string }
+        my_role: { type: string }
+        what_this_proves: { type: string }
+        next_step: { type: string }
+        link: { type: string }
+        category: { type: string }
+        name: { type: string }
+        subject_role: { type: string }
+        relationship_strength: { type: string, enum: [high, medium, low] }
+        what_they_can_say: { type: string }
+        evidence_to_send: { type: string }
+        brag_sheet_status: { type: string }
+        request_status: { type: string }
+        period: { type: string }
+        gpa: { type: number }
+        score: { type: string }
+        target: { type: string }
 
     CollegeTestItem:
       type: object
@@ -1317,7 +1503,6 @@ components:
 
     CollegeProfilePatch:
       type: object
-      additionalProperties: true
       properties:
         full_name: { type: string }
         school: { type: string }
@@ -1333,6 +1518,19 @@ components:
         positioning_idea: { type: string }
         us_strategy: { type: string }
         europe_strategy: { type: string }
+        constraints:
+          type: array
+          items: { type: string }
+        preferences:
+          type: array
+          items: { type: string }
+        positioning:
+          type: object
+          properties:
+            one_line: { type: string }
+            common_app_bio: { type: string }
+            research_heavy: { type: string }
+            europe_technical: { type: string }
         testing:
           type: array
           items:

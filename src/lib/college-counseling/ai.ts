@@ -1,5 +1,11 @@
 import type { AiContext } from "@/lib/ai/permissions";
-import { AiPermissionError } from "@/lib/ai/permissions";
+import {
+  AiPermissionError,
+  assertPermission,
+  authorizeAiRequest,
+} from "@/lib/ai/permissions";
+import { logAiAction } from "@/lib/ai/audit";
+import { aiOk } from "@/lib/ai/response";
 import { isHubSyncConfigured } from "@/lib/access";
 import {
   fetchCollegeCounseling,
@@ -132,4 +138,32 @@ export function applyCounselingWrite(
   }
 
   return updateCounselingItem(current, "activities", body.id, body.patch);
+}
+
+/** Shared write path for Custom GPT Actions (split OpenAPI operations). */
+export async function runCounselingWrite(
+  request: Request,
+  body: CollegeCounselingWrite,
+) {
+  const ctx = authorizeAiRequest(request);
+  assertPermission("college_counseling", "write");
+
+  const current = await loadCounseling(ctx);
+  const next = applyCounselingWrite(current, body);
+  const saved = await persistCounseling(ctx, next);
+
+  await logAiAction({
+    ctx,
+    route: "/api/ai/college-counseling",
+    action: "write",
+    resource: "college_counseling",
+    summary: `College counseling ${body.action}`,
+    metadata: { action: body.action },
+  });
+
+  return aiOk({
+    action: body.action,
+    activities_count: saved.activities.length,
+    data: saved,
+  });
 }

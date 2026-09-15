@@ -31,7 +31,7 @@ Writes: learn; test; rest; word_results; send_test. Learn day needs both learn a
 
 College Counseling
 Full write, including add/delete cards. getCollegeCounseling first. Never invent stored text. getCollegeCounselingContextPack for a counselor brief. After writes, tell Emre to Reload from server. Activities/CV is UI read-only; you edit. counselor_todo is one freeform field. School groups: us_need_blind or europe_main only.
-Writes: update_testing upserts by exam name (does not delete). add_item / update_item / delete_item with section = activities|research|schools|timeline|essays|recommendations|weekly_checkins|testing|academic_records (testing id = exam name). update_profile requires patch. update_section for strings like counselor_todo. add_activity / update_activity still work. patch/replace merge onto the CURRENT document. hours_per_week and weeks_per_year are numbers.
+Writes: updateCollegeProfile (requires patch). updateCollegeTesting upserts by exam name. addCollegeItem / updateCollegeItem / deleteCollegeItem with section = activities|research|schools|recommendations|testing|academic_records (testing id = exam name). updateCollegeNotes for counselor_todo. addCollegeActivity / updateCollegeActivity still work. patchCollegeCounseling merges data onto the CURRENT document. hours_per_week and weeks_per_year are numbers.
 
 Study
 getStudyStats, getStudySessions. Log with saveStudySession {subject, duration_minutes, session_date, notes?}. Include id to edit. Prefer Study page subject names.

@@ -43,28 +43,27 @@ Item shapes:
 
 1–200 items. Mixed needs ≥2 kinds. Use only words from that session. Rephrase catalog text when you can.
 
-## College Counseling (`updateCollegeCounseling`)
+## College Counseling writes
 
 Always `getCollegeCounseling` first. After a write, tell Emre to tap **Reload from server**.
 
-`update_profile` **must** send `patch` (not `data`):
-`{"action":"update_profile","patch":{"current_grade":"11th grade"}}`
+Profile (`updateCollegeProfile`) **must** send `patch`:
+`{"patch":{"current_grade":"11th grade","preferences":["English-taught bachelor in Europe"]}}`
 
-Testing upsert (does not delete):
-`{"action":"update_testing","testing":[{"name":"AP Statistics","status":"Taken","score":5}]}`
+Testing (`updateCollegeTesting`):
+`{"testing":[{"name":"AP Statistics","status":"Taken","score":"5"}]}`
 
-Add / edit / delete cards (`section`: activities, research, schools, recommendations, testing, academic_records):
-- `{"action":"add_item","section":"schools","item":{"school_name":"MIT","group":"us_need_blind","program":"CS"}}`
-- `{"action":"update_item","section":"research","id":"res_lung","patch":{"next_step":"…" }}`
-- `{"action":"delete_item","section":"activities","id":"act_council"}`
+Cards (`section`: activities, research, schools, recommendations, testing, academic_records):
+- addCollegeItem: `{"section":"schools","item":{"school_name":"MIT","group":"us_need_blind","program":"CS"}}`
+- updateCollegeItem: `{"section":"schools","id":"school_tudelft","patch":{"program":"Computer Science and Engineering","notes":"#1 Europe target"}}`
+- deleteCollegeItem: `{"section":"schools","id":"school_aalto"}`
 - testing id = exam name; academic_records id = period
-- `add_activity` / `update_activity` still work
 
-Section string fields:
-`{"action":"update_section","section":"counselor_todo","data":"Follow up on rec letters"}`
+Notes (`updateCollegeNotes`):
+`{"field":"counselor_todo","text":"Check NL diploma eligibility"}`
 
-Partial merge onto the **current** document:
-`{"action":"patch","data":{"overview":{"next_priority":"…"},"counselor_todo":"…"}}`
+Document merge (`patchCollegeCounseling`):
+`{"data":{"overview":{"next_priority":"…"},"counselor_todo":"…"}}`
 
 `hours_per_week` and `weeks_per_year` must be numbers. School `group` is `us_need_blind` or `europe_main` only.
 

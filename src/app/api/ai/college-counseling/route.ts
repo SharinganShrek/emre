@@ -6,9 +6,8 @@ import { logAiAction } from "@/lib/ai/audit";
 import { aiOk, aiCatch } from "@/lib/ai/response";
 import { collegeCounselingWrite } from "@/lib/validation";
 import {
-  applyCounselingWrite,
   loadCounseling,
-  persistCounseling,
+  runCounselingWrite,
 } from "@/lib/college-counseling/ai";
 
 export const runtime = "nodejs";
@@ -46,28 +45,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const ctx = authorizeAiRequest(request);
-    assertPermission("college_counseling", "write");
-
     const body = collegeCounselingWrite.parse(await request.json());
-    const current = await loadCounseling(ctx);
-    const next = applyCounselingWrite(current, body);
-    const saved = await persistCounseling(ctx, next);
-
-    await logAiAction({
-      ctx,
-      route: "/api/ai/college-counseling",
-      action: "write",
-      resource: "college_counseling",
-      summary: `College counseling ${body.action}`,
-      metadata: { action: body.action },
-    });
-
-    return aiOk({
-      action: body.action,
-      activities_count: saved.activities.length,
-      data: saved,
-    });
+    return runCounselingWrite(request, body);
   } catch (err) {
     return aiCatch(err);
   }

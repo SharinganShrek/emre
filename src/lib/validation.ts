@@ -274,6 +274,7 @@ const counselingItemSection = z.enum([
   "testing",
   "academic_records",
 ]);
+export type CounselingItemSectionInput = z.infer<typeof counselingItemSection>;
 
 const counselingSection = z.enum([
   "profile",
@@ -337,6 +338,40 @@ export const collegeCounselingWrite = z.discriminatedUnion("action", [
   }),
 ]);
 export type CollegeCounselingWrite = z.infer<typeof collegeCounselingWrite>;
+
+export const collegeWriteProfileBody = z.object({
+  patch: collegeProfilePatch,
+});
+export const collegeWriteTestingBody = z.object({
+  testing: z.array(collegeTestItem).min(1).max(40),
+});
+export const collegeWriteDocumentBody = z.object({
+  data: z.record(z.string(), z.unknown()),
+});
+export const collegeWriteNotesBody = z.object({
+  field: z.enum(["counselor_todo", "brag_sheet_notes", "research_narrative"]),
+  text: z.string().max(20000),
+});
+export const collegeWriteAddItemBody = z.object({
+  section: counselingItemSection,
+  item: z.record(z.string(), z.unknown()),
+});
+export const collegeWriteUpdateItemBody = z.object({
+  section: counselingItemSection,
+  id: z.string().min(1).max(80),
+  patch: z.record(z.string(), z.unknown()),
+});
+export const collegeWriteDeleteItemBody = z.object({
+  section: counselingItemSection,
+  id: z.string().min(1).max(80),
+});
+export const collegeWriteAddActivityBody = z.object({
+  activity: activityItemInput,
+});
+export const collegeWriteUpdateActivityBody = z.object({
+  id: z.string().min(1).max(80),
+  patch: activityItemInput.partial(),
+});
 
 export const studySessionQuery = z.object({
   from: isoDate.optional(),
