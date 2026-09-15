@@ -18,7 +18,7 @@ export interface Profile extends BaseRow {
   bio?: string | null;
 }
 
-export type HabitFrequency = "daily" | "weekly";
+export type HabitFrequency = "daily" | "weekly" | "custom";
 export type HabitStatus = "active" | "archived";
 
 export interface Habit extends BaseRow {
@@ -28,6 +28,8 @@ export interface Habit extends BaseRow {
   icon?: string | null;
   color: string;
   frequency: HabitFrequency;
+  /** When frequency is custom: weekdays Mon=0 … Sun=6. */
+  schedule_days?: number[] | null;
   target_per_day: number;
   status: HabitStatus;
   sort_order: number;

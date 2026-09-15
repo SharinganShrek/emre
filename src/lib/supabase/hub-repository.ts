@@ -83,7 +83,23 @@ function mapProfile(row: Record<string, unknown>): Profile {
 }
 
 function mapHabit(row: Record<string, unknown>): Habit {
-  return row as unknown as Habit;
+  const habit = row as unknown as Habit;
+  const frequency =
+    habit.frequency === "weekly" ||
+    habit.frequency === "custom" ||
+    habit.frequency === "daily"
+      ? habit.frequency
+      : "daily";
+  return {
+    ...habit,
+    frequency,
+    schedule_days:
+      frequency === "custom"
+        ? (Array.isArray(row.schedule_days)
+            ? row.schedule_days.map((d) => Number(d)).filter((d) => d >= 0 && d <= 6)
+            : null)
+        : null,
+  };
 }
 
 function mapHabitLog(row: Record<string, unknown>): HabitLog {

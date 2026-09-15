@@ -859,7 +859,11 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         color: { type: string }
-        frequency: { type: string, enum: [daily, weekly] }
+        frequency: { type: string, enum: [daily, weekly, custom] }
+        schedule_days:
+          type: array
+          items: { type: integer, minimum: 0, maximum: 6 }
+          description: Required when frequency is custom (Mon=0 … Sun=6).
         target_per_day: { type: integer }
         status: { type: string, enum: [active, archived] }
         completed_today: { type: boolean }

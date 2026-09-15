@@ -20,9 +20,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Hydrated } from "@/components/hydrated";
 import { useHub } from "@/lib/store";
 import { toast, withToast } from "@/lib/toast";
+import {
+  formatHabitFrequency,
+  HABIT_WEEKDAY_OPTIONS,
+  habitFrequencyForSave,
+  isHabitDueOn,
+  normalizeScheduleDays,
+  type WeekdayMon0,
+} from "@/lib/habit-schedule";
 import { habitHasCompletedLogs, habitStreak, isHabitDone } from "@/lib/selectors";
 import { cn, toISODate } from "@/lib/utils";
-import type { Habit } from "@/lib/types";
+import type { Habit, HabitFrequency } from "@/lib/types";
 
 const COLORS = [
   "#7c9cff", "#8b5cf6", "#34d399", "#fbbf24",
@@ -60,14 +68,22 @@ function Habits() {
   async function saveHabit(values: {
     name: string;
     color: string;
-    frequency: "daily" | "weekly";
+    frequency: HabitFrequency;
+    schedule_days: WeekdayMon0[];
     target_per_day: number;
   }) {
     setSaving(true);
+    const schedule = habitFrequencyForSave(values.frequency, values.schedule_days);
+    const payload = {
+      name: values.name,
+      color: values.color,
+      target_per_day: values.target_per_day,
+      ...schedule,
+    };
     const ok = await withToast(
       async () => {
         if (editing) {
-          await update("habits", editing.id, values);
+          await update("habits", editing.id, payload);
         } else {
           await add("habits", {
             user_id: data.profile.user_id,
@@ -75,10 +91,10 @@ function Habits() {
             description: null,
             icon: null,
             color: values.color,
-            frequency: values.frequency,
             target_per_day: values.target_per_day,
             status: "active",
             sort_order: data.habits.length,
+            ...schedule,
           });
         }
       },
@@ -209,10 +225,15 @@ function HabitRow({
     const d = new Date();
     d.setDate(d.getDate() - (20 - i));
     const iso = toISODate(d);
-    return { iso, done: isHabitDone(data, habit.id, iso) };
+    return {
+      iso,
+      done: isHabitDone(data, habit.id, iso),
+      due: isHabitDueOn(habit, iso),
+    };
   });
 
   async function onToggleDay(iso: string) {
+    if (!isHabitDueOn(habit, iso)) return;
     setBusyDay(iso);
     try {
       await toggleHabit(habit.id, iso);
@@ -233,8 +254,8 @@ function HabitRow({
           />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{habit.name}</p>
-            <p className="text-xs text-muted-2 capitalize">
-              {habit.frequency} · target {habit.target_per_day}
+            <p className="text-xs text-muted-2">
+              {formatHabitFrequency(habit)} · hedef {habit.target_per_day}
             </p>
           </div>
         </div>
@@ -243,12 +264,15 @@ function HabitRow({
           {days.map((d) => (
             <button
               key={d.iso}
-              title={d.iso}
-              disabled={busyDay === d.iso}
+              type="button"
+              title={d.due ? d.iso : `${d.iso} — planlı değil`}
+              disabled={!d.due || busyDay === d.iso}
               onClick={() => void onToggleDay(d.iso)}
               className={cn(
-                "size-4 rounded-[4px] transition-transform hover:scale-110 disabled:opacity-50",
-                !d.done && "bg-surface-2",
+                "size-4 rounded-[4px] transition-transform disabled:cursor-default disabled:opacity-40",
+                d.due && "hover:scale-110 disabled:opacity-50",
+                !d.done && d.due && "bg-surface-2",
+                !d.due && "bg-transparent ring-1 ring-border/40",
               )}
               style={d.done ? { backgroundColor: habit.color } : undefined}
             />
@@ -319,13 +343,15 @@ function HabitDialog({
   onSave: (values: {
     name: string;
     color: string;
-    frequency: "daily" | "weekly";
+    frequency: HabitFrequency;
+    schedule_days: WeekdayMon0[];
     target_per_day: number;
   }) => void | Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(COLORS[0]);
-  const [frequency, setFrequency] = useState<"daily" | "weekly">("daily");
+  const [frequency, setFrequency] = useState<HabitFrequency>("daily");
+  const [scheduleDays, setScheduleDays] = useState<WeekdayMon0[]>([0, 2, 4]);
   const [target, setTarget] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
@@ -334,9 +360,20 @@ function HabitDialog({
     setName(habit?.name ?? "");
     setColor(habit?.color ?? COLORS[0]);
     setFrequency(habit?.frequency ?? "daily");
+    setScheduleDays(
+      normalizeScheduleDays(habit?.schedule_days) ?? [0, 2, 4],
+    );
     setTarget(habit?.target_per_day ?? 1);
     setError(null);
   }, [open, habit]);
+
+  function toggleScheduleDay(day: WeekdayMon0) {
+    setScheduleDays((prev) =>
+      prev.includes(day)
+        ? prev.filter((d) => d !== day)
+        : [...prev, day].sort((a, b) => a - b),
+    );
+  }
 
   return (
     <Dialog
@@ -381,11 +418,12 @@ function HabitDialog({
               value={frequency}
               disabled={saving}
               onChange={(e) =>
-                setFrequency(e.target.value as "daily" | "weekly")
+                setFrequency(e.target.value as HabitFrequency)
               }
             >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
+              <option value="daily">Günlük</option>
+              <option value="weekly">Haftalık</option>
+              <option value="custom">Özel</option>
             </Select>
           </div>
           <div>
@@ -399,6 +437,35 @@ function HabitDialog({
             />
           </div>
         </div>
+        {frequency === "custom" && (
+          <div>
+            <Label>Günler</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {HABIT_WEEKDAY_OPTIONS.map(({ value, label }) => {
+                const selected = scheduleDays.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => toggleScheduleDay(value)}
+                    className={cn(
+                      "min-w-[2.75rem] rounded-lg border px-2.5 py-1.5 text-sm font-medium transition-colors",
+                      selected
+                        ? "border-accent bg-accent/15 text-foreground"
+                        : "border-border bg-surface-2 text-muted hover:text-foreground",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-muted-2">
+              Örn. spor için Pzt, Çar, Cum seç.
+            </p>
+          </div>
+        )}
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
@@ -408,10 +475,14 @@ function HabitDialog({
             disabled={saving}
             onClick={() => {
               if (!name.trim()) return setError("Name is required.");
+              if (frequency === "custom" && scheduleDays.length === 0) {
+                return setError("Özel sıklık için en az bir gün seç.");
+              }
               void onSave({
                 name: name.trim(),
                 color,
                 frequency,
+                schedule_days: scheduleDays,
                 target_per_day: target,
               });
             }}

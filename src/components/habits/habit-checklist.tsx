@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useHub } from "@/lib/store";
 import { toast } from "@/lib/toast";
-import { activeHabits, habitStreak, isHabitDone } from "@/lib/selectors";
+import { activeHabitsDueOn, habitStreak, isHabitDone } from "@/lib/selectors";
 import { cn, todayISO } from "@/lib/utils";
 
 export function HabitChecklist({
@@ -18,13 +18,15 @@ export function HabitChecklist({
 }) {
   const { data, toggleHabit } = useHub();
   const day = date ?? todayISO();
-  const habits = activeHabits(data);
+  const habits = activeHabitsDueOn(data, day);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   if (habits.length === 0) {
     return (
       <p className="py-4 text-sm text-muted">
-        No active habits yet. Add some on the Habits page.
+        {data.habits.some((h) => h.status === "active")
+          ? "Bugün için planlanmış alışkanlık yok."
+          : "No active habits yet. Add some on the Habits page."}
       </p>
     );
   }

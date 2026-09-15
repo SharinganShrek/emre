@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
     const { data: habits, error } = await ctx.admin
       .from("habits")
-      .select("id,name,color,frequency,target_per_day,status")
+      .select("id,name,color,frequency,schedule_days,target_per_day,status")
       .eq("user_id", ctx.userId)
       .eq("status", "active")
       .order("sort_order", { ascending: true });

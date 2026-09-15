@@ -1,3 +1,4 @@
+import { isHabitDueOn } from "./habit-schedule";
 import type { HubData } from "./types";
 import { pct, toISODate, todayISO } from "./utils";
 
@@ -24,9 +25,13 @@ export function activeHabits(data: HubData) {
     .sort((a, b) => a.sort_order - b.sort_order);
 }
 
-/** Completion for a given date across all active habits. */
+export function activeHabitsDueOn(data: HubData, date: string) {
+  return activeHabits(data).filter((h) => isHabitDueOn(h, date));
+}
+
+/** Completion for a given date across habits scheduled that day. */
 export function completionForDate(data: HubData, date: string) {
-  const habits = activeHabits(data);
+  const habits = activeHabitsDueOn(data, date);
   const done = habits.filter((h) => isHabitDone(data, h.id, date)).length;
   return { done, total: habits.length, pct: pct(done, habits.length) };
 }
@@ -35,17 +40,33 @@ export function todayCompletion(data: HubData) {
   return completionForDate(data, todayISO());
 }
 
-/** Current consecutive-day streak for a habit (today has a grace day). */
+/** Streak over scheduled days (today has a grace day when due today). */
 export function habitStreak(data: HubData, habitId: string): number {
+  const habit = data.habits.find((h) => h.id === habitId);
+  if (!habit) return 0;
+
   const done = new Set(
     data.habitLogs
       .filter((l) => l.habit_id === habitId && l.completed)
       .map((l) => l.log_date),
   );
   const cursor = new Date();
-  if (!done.has(todayISO())) cursor.setDate(cursor.getDate() - 1);
+  const today = todayISO();
+  const dueToday = isHabitDueOn(habit, today);
+  if (dueToday && !done.has(today)) {
+    cursor.setDate(cursor.getDate() - 1);
+  } else if (!dueToday) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
   let streak = 0;
-  while (done.has(toISODate(cursor))) {
+  for (let guard = 0; guard < 4000; guard++) {
+    const iso = toISODate(cursor);
+    if (!isHabitDueOn(habit, iso)) {
+      cursor.setDate(cursor.getDate() - 1);
+      continue;
+    }
+    if (!done.has(iso)) break;
     streak++;
     cursor.setDate(cursor.getDate() - 1);
   }
@@ -149,7 +170,6 @@ export function byWeek<T>(
 
 /** Habit completion percentage per week over the last `weeks` weeks. */
 export function habitCompletionByWeek(data: HubData, weeks = 6) {
-  const habits = activeHabits(data);
   const now = new Date();
   const result: { label: string; value: number }[] = [];
   for (let i = weeks - 1; i >= 0; i--) {
@@ -163,7 +183,7 @@ export function habitCompletionByWeek(data: HubData, weeks = 6) {
       d.setDate(d.getDate() + day);
       const iso = toISODate(d);
       if (iso > todayISO()) continue;
-      for (const h of habits) {
+      for (const h of activeHabitsDueOn(data, iso)) {
         total++;
         if (isHabitDone(data, h.id, iso)) done++;
       }
