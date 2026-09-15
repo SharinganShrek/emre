@@ -1136,64 +1136,165 @@ components:
               definition: { type: string }
 
     CollegeCounselingWrite:
+      oneOf:
+        - $ref: "#/components/schemas/CollegeWriteReplace"
+        - $ref: "#/components/schemas/CollegeWritePatchDoc"
+        - $ref: "#/components/schemas/CollegeWriteUpdateProfile"
+        - $ref: "#/components/schemas/CollegeWriteUpdateTesting"
+        - $ref: "#/components/schemas/CollegeWriteUpdateSection"
+        - $ref: "#/components/schemas/CollegeWriteAddActivity"
+        - $ref: "#/components/schemas/CollegeWriteUpdateActivity"
+        - $ref: "#/components/schemas/CollegeWriteAddItem"
+        - $ref: "#/components/schemas/CollegeWriteUpdateItem"
+        - $ref: "#/components/schemas/CollegeWriteDeleteItem"
+
+    CollegeCounselingItemSection:
+      type: string
+      enum:
+        - activities
+        - research
+        - schools
+        - recommendations
+        - testing
+        - academic_records
+
+    CollegeCounselingDocSection:
+      type: string
+      enum:
+        - profile
+        - overview
+        - activities
+        - research
+        - schools
+        - financial_aid
+        - recommendations
+        - research_narrative
+        - brag_sheet_notes
+        - counselor_todo
+
+    CollegeWriteReplace:
       type: object
-      required: [action]
+      required: [action, data]
       properties:
         action:
           type: string
-          enum:
-            [
-              replace,
-              patch,
-              update_profile,
-              update_testing,
-              update_section,
-              add_activity,
-              update_activity,
-              add_item,
-              update_item,
-              delete_item,
-            ]
+          enum: [replace]
         data:
           type: object
           additionalProperties: true
-          description: Partial document (replace/patch) or section payload (update_section)
-        section:
+
+    CollegeWritePatchDoc:
+      type: object
+      required: [action, data]
+      properties:
+        action:
           type: string
-          description: update_section uses document sections; add_item/update_item/delete_item use card sections
-          enum:
-            [
-              profile,
-              overview,
-              activities,
-              research,
-              schools,
-              financial_aid,
-              recommendations,
-              research_narrative,
-              brag_sheet_notes,
-              counselor_todo,
-              testing,
-              academic_records,
-            ]
-        patch:
+          enum: [patch]
+        data:
           type: object
           additionalProperties: true
-          description: update_profile, update_activity, or update_item fields
+
+    CollegeWriteUpdateProfile:
+      type: object
+      required: [action, patch]
+      properties:
+        action:
+          type: string
+          enum: [update_profile]
+        patch:
+          $ref: "#/components/schemas/CollegeProfilePatch"
+
+    CollegeWriteUpdateTesting:
+      type: object
+      required: [action, testing]
+      properties:
+        action:
+          type: string
+          enum: [update_testing]
         testing:
           type: array
-          description: Upsert testing rows by name (action=update_testing)
+          minItems: 1
           items:
             $ref: "#/components/schemas/CollegeTestItem"
+
+    CollegeWriteUpdateSection:
+      type: object
+      required: [action, section, data]
+      properties:
+        action:
+          type: string
+          enum: [update_section]
+        section:
+          $ref: "#/components/schemas/CollegeCounselingDocSection"
+        data:
+          description: Object for most sections; string for counselor_todo / brag_sheet_notes
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+
+    CollegeWriteAddActivity:
+      type: object
+      required: [action, activity]
+      properties:
+        action:
+          type: string
+          enum: [add_activity]
         activity:
           $ref: "#/components/schemas/CollegeActivity"
+
+    CollegeWriteUpdateActivity:
+      type: object
+      required: [action, id, patch]
+      properties:
+        action:
+          type: string
+          enum: [update_activity]
+        id:
+          type: string
+        patch:
+          $ref: "#/components/schemas/CollegeActivityPatch"
+
+    CollegeWriteAddItem:
+      type: object
+      required: [action, section, item]
+      properties:
+        action:
+          type: string
+          enum: [add_item]
+        section:
+          $ref: "#/components/schemas/CollegeCounselingItemSection"
         item:
           type: object
           additionalProperties: true
-          description: New card fields for add_item
+
+    CollegeWriteUpdateItem:
+      type: object
+      required: [action, section, id, patch]
+      properties:
+        action:
+          type: string
+          enum: [update_item]
+        section:
+          $ref: "#/components/schemas/CollegeCounselingItemSection"
         id:
           type: string
-          description: Existing card id, or exam name when section is testing
+        patch:
+          type: object
+          additionalProperties: true
+
+    CollegeWriteDeleteItem:
+      type: object
+      required: [action, section, id]
+      properties:
+        action:
+          type: string
+          enum: [delete_item]
+        section:
+          $ref: "#/components/schemas/CollegeCounselingItemSection"
+        id:
+          type: string
+          description: Card id, or exam name when section is testing
 
     CollegeTestItem:
       type: object

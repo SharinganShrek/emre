@@ -53,7 +53,7 @@ Always `getCollegeCounseling` first. After a write, tell Emre to tap **Reload fr
 Testing upsert (does not delete):
 `{"action":"update_testing","testing":[{"name":"AP Statistics","status":"Taken","score":5}]}`
 
-Add / edit / delete cards (`section`: activities, research, schools, timeline, essays, recommendations, weekly_checkins, testing, academic_records):
+Add / edit / delete cards (`section`: activities, research, schools, recommendations, testing, academic_records):
 - `{"action":"add_item","section":"schools","item":{"school_name":"MIT","group":"us_need_blind","program":"CS"}}`
 - `{"action":"update_item","section":"research","id":"res_lung","patch":{"next_step":"…" }}`
 - `{"action":"delete_item","section":"activities","id":"act_council"}`
