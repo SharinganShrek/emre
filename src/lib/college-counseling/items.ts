@@ -59,19 +59,7 @@ function draftStatus(value: unknown): "draft" | "needs_revision" | "ready" {
   return value === "needs_revision" || value === "ready" ? value : "draft";
 }
 
-export function normalizeSchoolGroup(
-  value: unknown,
-): SchoolOption["group"] {
-  return value === "europe_main" ? "europe_main" : "us_need_blind";
-}
-
-export function withoutNeedAwareSchools(
-  schools: { group: string }[] | undefined,
-): SchoolOption[] {
-  return ((schools ?? []) as SchoolOption[]).filter(
-    (s) => s.group !== ("us_need_aware" as string),
-  );
-}
+import { normalizeSchoolGroup } from "./schools";
 
 function activityFrom(raw: unknown, fallbackId?: string): ActivityItem {
   const r = asLoose(raw);

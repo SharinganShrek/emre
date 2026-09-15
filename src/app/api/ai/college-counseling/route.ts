@@ -41,7 +41,8 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/ai/college-counseling
- * replace | add_activity | update_activity
+ * patch | update_profile | update_testing | update_section |
+ * add_item | update_item | delete_item | add_activity | update_activity
  */
 export async function POST(request: Request) {
   try {

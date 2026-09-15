@@ -4,7 +4,7 @@ import type {
   TestPlanItem,
 } from "./types";
 import { collegeCounselingData as seedData } from "./data";
-import { withoutNeedAwareSchools } from "./items";
+import { withoutNeedAwareSchools } from "./schools";
 
 /** Bump when seed activity copy should replace matching saved ids once. */
 export const ACTIVITIES_SEED_REV = 3;
