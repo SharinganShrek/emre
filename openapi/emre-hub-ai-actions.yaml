@@ -583,7 +583,7 @@ paths:
       summary: Full college counseling document
       description: |
         Returns the persisted counseling JSON (profile, activities, research,
-        school list, timeline, essays, aid, recommendations, check-ins).
+        school list, aid, recommendations).
         Activities are the source of truth for the Activities / CV tab
         (UI is read-only; edits go through these Actions).
       security:
@@ -603,7 +603,7 @@ paths:
       operationId: updateCollegeCounseling
       tags: [College Counseling]
       summary: Write any college counseling field
-      description: Edit, add, or delete any counseling card. Use add_item/update_item/delete_item for activities, research, schools, timeline, essays, recs, check-ins, testing, academic records. No HTTP DELETE. update_testing upserts scores.
+      description: Edit, add, or delete any counseling card. Use add_item/update_item/delete_item for activities, research, schools, recs, testing, academic records. No HTTP DELETE. update_testing upserts scores.
       security:
         - bearerAuth: []
       requestBody:
@@ -1150,10 +1150,7 @@ components:
         - activities
         - research
         - schools
-        - timeline
-        - essays
         - recommendations
-        - weekly_checkins
         - testing
         - academic_records
 
@@ -1165,11 +1162,8 @@ components:
         - activities
         - research
         - schools
-        - timeline
-        - essays
         - financial_aid
         - recommendations
-        - weekly_checkins
         - research_narrative
         - brag_sheet_notes
         - counselor_todo

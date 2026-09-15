@@ -6,7 +6,6 @@ import {
   Download,
   RefreshCw,
   School,
-  CheckSquare,
   AlertTriangle,
   Save,
 } from "lucide-react";
@@ -32,10 +31,8 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type {
   ActivityItem,
-  EssayType,
   FinancialAidChecklist,
   SchoolOption,
-  TimelineStatus,
 } from "@/lib/college-counseling/types";
 
 const TABS = [
@@ -44,41 +41,13 @@ const TABS = [
   "Activities / CV",
   "Research Portfolio",
   "School List",
-  "Timeline",
-  "Essays",
   "Financial Aid",
   "Recommendations",
-  "Weekly Check-ins",
   "Counselor To-Do",
   "AI Context Pack",
 ] as const;
 
 type Tab = (typeof TABS)[number];
-
-const PERIODS = [
-  "Summer 2026",
-  "Grade 11 Fall",
-  "Grade 11 Spring",
-  "Summer 2027",
-  "Grade 12 Fall",
-  "Grade 12 Spring",
-] as const;
-
-const ESSAY_SECTIONS: { type: EssayType; label: string }[] = [
-  { type: "personal_statement", label: "Personal statement ideas" },
-  { type: "why_major", label: "Why major notes" },
-  { type: "why_school", label: "Why school notes" },
-  { type: "intellectual_curiosity", label: "Intellectual curiosity stories" },
-  { type: "leadership_community", label: "Leadership / community stories" },
-  { type: "challenge_failure", label: "Challenge / failure stories" },
-];
-
-const TIMELINE_STATUSES: TimelineStatus[] = [
-  "not_started",
-  "in_progress",
-  "done",
-  "blocked",
-];
 
 export default function CollegeCounselingPage() {
   return (
@@ -160,11 +129,8 @@ function CollegeCounseling() {
       {tab === "Activities / CV" && <ActivitiesTab />}
       {tab === "Research Portfolio" && <ResearchTab />}
       {tab === "School List" && <SchoolsTab />}
-      {tab === "Timeline" && <TimelineTab />}
-      {tab === "Essays" && <EssaysTab />}
       {tab === "Financial Aid" && <FinancialAidTab />}
       {tab === "Recommendations" && <RecommendationsTab />}
-      {tab === "Weekly Check-ins" && <CheckinsTab />}
       {tab === "Counselor To-Do" && <CounselorTodoTab />}
       {tab === "AI Context Pack" && <ContextPackTab />}
 
@@ -199,10 +165,6 @@ function OverviewTab() {
         <CollegeStatCard
           label="Applications tracked"
           value={overview.applications_tracked}
-        />
-        <CollegeStatCard
-          label="Essays drafted"
-          value={overview.essays_drafted}
         />
         <CollegeStatCard
           label="Financial aid status"
@@ -774,182 +736,6 @@ function SchoolsTab() {
   );
 }
 
-function TimelineTab() {
-  const { data, setData } = useCounseling();
-  const periods = [
-    ...PERIODS.filter((period) =>
-      data.timeline.some((t) => t.period === period),
-    ),
-    ...[...new Set(data.timeline.map((t) => t.period))].filter(
-      (period) => !(PERIODS as readonly string[]).includes(period),
-    ),
-  ];
-
-  return (
-    <div className="space-y-6">
-      {periods.map((period) => {
-        const items = data.timeline.filter((t) => t.period === period);
-        if (items.length === 0) return null;
-        return (
-          <section key={period}>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-2">
-              {period}
-            </h2>
-            <div className="space-y-2">
-              {items.map((t) => (
-                <Card key={t.id}>
-                  <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <p className="text-sm font-medium">{t.title}</p>
-                      <p className="text-xs text-muted">
-                        {t.category} · {t.deadline}
-                      </p>
-                      <Textarea
-                        value={t.notes}
-                        onChange={(e) =>
-                          setData((prev) => ({
-                            ...prev,
-                            timeline: prev.timeline.map((row) =>
-                              row.id === t.id
-                                ? { ...row, notes: e.target.value }
-                                : row,
-                            ),
-                          }))
-                        }
-                        rows={2}
-                      />
-                    </div>
-                    <div className="flex shrink-0 flex-col gap-2">
-                      <PriorityBadge priority={t.priority} />
-                      <Select
-                        value={t.status}
-                        onChange={(e) =>
-                          setData((prev) => ({
-                            ...prev,
-                            timeline: prev.timeline.map((row) =>
-                              row.id === t.id
-                                ? {
-                                    ...row,
-                                    status: e.target.value as TimelineStatus,
-                                  }
-                                : row,
-                            ),
-                          }))
-                        }
-                        className="w-auto min-w-[140px]"
-                      >
-                        {TIMELINE_STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {s.replaceAll("_", " ")}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        );
-      })}
-    </div>
-  );
-}
-
-function EssaysTab() {
-  const { data, setData } = useCounseling();
-  const essays = data.essays;
-  const extraTypes = [
-    ...new Set(
-      essays
-        .map((e) => e.essay_type)
-        .filter((type) => !ESSAY_SECTIONS.some((s) => s.type === type)),
-    ),
-  ];
-  const sections = [
-    ...ESSAY_SECTIONS,
-    ...extraTypes.map((type) => ({
-      type,
-      label: type.replaceAll("_", " "),
-    })),
-  ];
-
-  return (
-    <div className="space-y-6">
-      {sections.map((section) => {
-        const items = essays.filter((e) => e.essay_type === section.type);
-        return (
-          <section key={section.type} className="space-y-3">
-            <h2 className="text-sm font-semibold">{section.label}</h2>
-            {items.length === 0 ? (
-              <p className="text-sm text-muted-2">No ideas tagged yet.</p>
-            ) : (
-              <div className="grid gap-3 lg:grid-cols-2">
-                {items.map((e) => (
-                  <Card key={e.id}>
-                    <CardHeader className="flex-row items-start justify-between gap-2">
-                      <CardTitle className="text-base">{e.title}</CardTitle>
-                      <Select
-                        value={e.status}
-                        onChange={(ev) =>
-                          setData((prev) => ({
-                            ...prev,
-                            essays: prev.essays.map((row) =>
-                              row.id === e.id
-                                ? {
-                                    ...row,
-                                    status: ev.target
-                                      .value as (typeof e)["status"],
-                                  }
-                                : row,
-                            ),
-                          }))
-                        }
-                        className="w-auto"
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="needs_revision">Needs revision</option>
-                        <option value="ready">Ready</option>
-                      </Select>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      <p>
-                        <span className="text-xs text-muted-2">Story: </span>
-                        {e.core_story}
-                      </p>
-                      <p>
-                        <span className="text-xs text-muted-2">Shows: </span>
-                        {e.what_it_shows}
-                      </p>
-                      <div>
-                        <Label>Draft notes</Label>
-                        <Textarea
-                          value={e.draft_notes}
-                          onChange={(ev) =>
-                            setData((prev) => ({
-                              ...prev,
-                              essays: prev.essays.map((row) =>
-                                row.id === e.id
-                                  ? { ...row, draft_notes: ev.target.value }
-                                  : row,
-                              ),
-                            }))
-                          }
-                          rows={3}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </section>
-        );
-      })}
-    </div>
-  );
-}
-
 function FinancialAidTab() {
   const { data, setData } = useCounseling();
   const f = data.financial_aid;
@@ -1149,130 +935,6 @@ function RecommendationsTab() {
           Persisted with Save (Supabase or local storage).
         </p>
       </CounselingSectionCard>
-    </div>
-  );
-}
-
-function CheckinsTab() {
-  const { data, setData } = useCounseling();
-  const [form, setForm] = useState({
-    week_date: new Date().toISOString().slice(0, 10),
-    what_i_did: "",
-    what_i_missed: "",
-    biggest_progress: "",
-    biggest_concern: "",
-    new_achievement: "",
-    new_deadline: "",
-    question_for_counselor: "",
-    next_week_priorities: "",
-  });
-
-  function saveDraft() {
-    setData((prev) => ({
-      ...prev,
-      weekly_checkins: [
-        {
-          id: crypto.randomUUID(),
-          ...form,
-          status: "draft",
-        },
-        ...prev.weekly_checkins,
-      ],
-    }));
-    toast.success("Check-in added — click Save changes to persist");
-    setForm((f) => ({
-      ...f,
-      what_i_did: "",
-      what_i_missed: "",
-      biggest_progress: "",
-      biggest_concern: "",
-      new_achievement: "",
-      new_deadline: "",
-      question_for_counselor: "",
-      next_week_priorities: "",
-    }));
-  }
-
-  return (
-    <div className="space-y-6">
-      <CounselingSectionCard title="New weekly check-in">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <Label>Week date</Label>
-            <Input
-              type="date"
-              value={form.week_date}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, week_date: e.target.value }))
-              }
-            />
-          </div>
-          {(
-            [
-              ["what_i_did", "What I did"],
-              ["what_i_missed", "What I missed"],
-              ["biggest_progress", "Biggest progress"],
-              ["biggest_concern", "Biggest concern"],
-              ["new_achievement", "New achievement"],
-              ["new_deadline", "New deadline"],
-              ["question_for_counselor", "Question for counselor"],
-              ["next_week_priorities", "Next week priorities"],
-            ] as const
-          ).map(([key, label]) => (
-            <div key={key} className="sm:col-span-2">
-              <Label>{label}</Label>
-              <Textarea
-                value={form[key]}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, [key]: e.target.value }))
-                }
-                rows={2}
-              />
-            </div>
-          ))}
-        </div>
-        <Button size="sm" onClick={saveDraft}>
-          <CheckSquare /> Add draft
-        </Button>
-      </CounselingSectionCard>
-
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold">Recent check-ins</h2>
-        {data.weekly_checkins.map((w) => (
-          <Card key={w.id}>
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle className="text-base">Week of {w.week_date}</CardTitle>
-              <StatusBadge status={w.status} />
-            </CardHeader>
-            <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-              <p>
-                <span className="text-xs text-muted-2">Did: </span>
-                {w.what_i_did}
-              </p>
-              <p>
-                <span className="text-xs text-muted-2">Missed: </span>
-                {w.what_i_missed}
-              </p>
-              <p>
-                <span className="text-xs text-muted-2">Progress: </span>
-                {w.biggest_progress}
-              </p>
-              <p>
-                <span className="text-xs text-muted-2">Concern: </span>
-                {w.biggest_concern}
-              </p>
-              <p className="sm:col-span-2">
-                <span className="text-xs text-muted-2">Question: </span>
-                {w.question_for_counselor}
-              </p>
-              <p className="sm:col-span-2">
-                <span className="text-xs text-muted-2">Next: </span>
-                {w.next_week_priorities}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

@@ -17,8 +17,15 @@ export async function fetchCollegeCounseling(
   if (existing.error) throw existing.error;
 
   if (existing.data?.payload && typeof existing.data.payload === "object") {
-    const incoming = existing.data.payload as Partial<CollegeCounselingData>;
+    const incoming = existing.data.payload as Partial<CollegeCounselingData> &
+      Record<string, unknown>;
     const merged = mergeCollegeCounseling(incoming);
+    const hasLegacySections =
+      incoming.timeline != null ||
+      incoming.essays != null ||
+      incoming.weekly_checkins != null ||
+      (incoming.overview as { essays_drafted?: number } | undefined)
+        ?.essays_drafted != null;
     const testingChanged =
       JSON.stringify(incoming.profile?.testing ?? []) !==
       JSON.stringify(merged.profile.testing);
@@ -32,7 +39,8 @@ export async function fetchCollegeCounseling(
       (incoming.activities_seed_rev ?? 0) < (merged.activities_seed_rev ?? 0) ||
       testingChanged ||
       schoolsDropped ||
-      incoming.counselor_todo == null
+      incoming.counselor_todo == null ||
+      hasLegacySections
     ) {
       await saveCollegeCounseling(supabase, userId, merged);
     }
@@ -54,10 +62,11 @@ export async function saveCollegeCounseling(
   userId: string,
   payload: CollegeCounselingData,
 ): Promise<void> {
+  const normalized = mergeCollegeCounseling(payload);
   const { error } = await supabase.from("college_counseling").upsert(
     {
       user_id: userId,
-      payload,
+      payload: normalized,
     },
     { onConflict: "user_id" },
   );

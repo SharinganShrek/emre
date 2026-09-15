@@ -4,23 +4,17 @@ import type {
   AcademicRecord,
   ActivityItem,
   CollegeCounselingData,
-  EssayIdea,
   RecommendationItem,
   ResearchProject,
   SchoolOption,
   TestPlanItem,
-  TimelineItem,
-  WeeklyCheckIn,
 } from "./types";
 
 export const COUNSELING_ITEM_SECTIONS = [
   "activities",
   "research",
   "schools",
-  "timeline",
-  "essays",
   "recommendations",
-  "weekly_checkins",
   "testing",
   "academic_records",
 ] as const;
@@ -154,51 +148,6 @@ function schoolFrom(raw: unknown, fallbackId?: string): SchoolOption {
   };
 }
 
-function timelineFrom(raw: unknown, fallbackId?: string): TimelineItem {
-  const r = asLoose(raw);
-  const status =
-    r.status === "in_progress" ||
-    r.status === "done" ||
-    r.status === "blocked" ||
-    r.status === "not_started"
-      ? r.status
-      : "not_started";
-  return {
-    id: str(r.id, fallbackId ?? uid("t")),
-    title: str(r.title, "Untitled task"),
-    category: str(r.category),
-    period: str(r.period, "Unscheduled"),
-    deadline: str(r.deadline),
-    priority: priority(r.priority),
-    status,
-    notes: str(r.notes),
-  };
-}
-
-function essayFrom(raw: unknown, fallbackId?: string): EssayIdea {
-  const r = asLoose(raw);
-  const essay_type =
-    r.essay_type === "why_major" ||
-    r.essay_type === "why_school" ||
-    r.essay_type === "intellectual_curiosity" ||
-    r.essay_type === "leadership_community" ||
-    r.essay_type === "challenge_failure" ||
-    r.essay_type === "personal_statement"
-      ? r.essay_type
-      : "personal_statement";
-  return {
-    id: str(r.id, fallbackId ?? uid("ess")),
-    title: str(r.title, "Untitled essay"),
-    essay_type,
-    core_story: str(r.core_story),
-    what_it_shows: str(r.what_it_shows),
-    risks: str(r.risks),
-    best_fit: str(r.best_fit),
-    status: draftStatus(r.status),
-    draft_notes: str(r.draft_notes),
-  };
-}
-
 function recFrom(raw: unknown, fallbackId?: string): RecommendationItem {
   const r = asLoose(raw);
   const request_status =
@@ -228,23 +177,6 @@ function recFrom(raw: unknown, fallbackId?: string): RecommendationItem {
     request_status,
     thank_you_status: r.thank_you_status === "sent" ? "sent" : "pending",
     notes: str(r.notes),
-  };
-}
-
-function checkinFrom(raw: unknown, fallbackId?: string): WeeklyCheckIn {
-  const r = asLoose(raw);
-  return {
-    id: str(r.id, fallbackId ?? uid("w")),
-    week_date: str(r.week_date).slice(0, 10),
-    what_i_did: str(r.what_i_did),
-    what_i_missed: str(r.what_i_missed),
-    biggest_progress: str(r.biggest_progress),
-    biggest_concern: str(r.biggest_concern),
-    new_achievement: str(r.new_achievement),
-    new_deadline: str(r.new_deadline),
-    question_for_counselor: str(r.question_for_counselor),
-    next_week_priorities: str(r.next_week_priorities),
-    status: r.status === "shared" ? "shared" : "draft",
   };
 }
 
@@ -333,20 +265,6 @@ export function addCounselingItem(
     }
     return { ...current, schools: [next, ...current.schools] };
   }
-  if (section === "timeline") {
-    const next = timelineFrom(item);
-    if (current.timeline.some((a) => a.id === next.id)) {
-      throw new AiPermissionError(`Timeline id "${next.id}" already exists.`, 409);
-    }
-    return { ...current, timeline: [next, ...current.timeline] };
-  }
-  if (section === "essays") {
-    const next = essayFrom(item);
-    if (current.essays.some((a) => a.id === next.id)) {
-      throw new AiPermissionError(`Essay id "${next.id}" already exists.`, 409);
-    }
-    return { ...current, essays: [next, ...current.essays] };
-  }
   if (section === "recommendations") {
     const next = recFrom(item);
     if (current.recommendations.some((a) => a.id === next.id)) {
@@ -357,11 +275,7 @@ export function addCounselingItem(
     }
     return { ...current, recommendations: [next, ...current.recommendations] };
   }
-  const next = checkinFrom(item);
-  if (current.weekly_checkins.some((a) => a.id === next.id)) {
-    throw new AiPermissionError(`Check-in id "${next.id}" already exists.`, 409);
-  }
-  return { ...current, weekly_checkins: [next, ...current.weekly_checkins] };
+  throw new AiPermissionError(`Unknown counseling section "${section}".`, 400);
 }
 
 export function updateCounselingItem(
@@ -417,28 +331,13 @@ export function updateCounselingItem(
     next[index] = schoolFrom({ ...next[index], ...extra }, id);
     return { ...current, schools: next };
   }
-  if (section === "timeline") {
-    const index = requireId(current.timeline, id, "Timeline item");
-    const next = [...current.timeline];
-    next[index] = timelineFrom({ ...next[index], ...extra }, id);
-    return { ...current, timeline: next };
-  }
-  if (section === "essays") {
-    const index = requireId(current.essays, id, "Essay");
-    const next = [...current.essays];
-    next[index] = essayFrom({ ...next[index], ...extra }, id);
-    return { ...current, essays: next };
-  }
   if (section === "recommendations") {
     const index = requireId(current.recommendations, id, "Recommendation");
     const next = [...current.recommendations];
     next[index] = recFrom({ ...next[index], ...extra }, id);
     return { ...current, recommendations: next };
   }
-  const index = requireId(current.weekly_checkins, id, "Check-in");
-  const next = [...current.weekly_checkins];
-  next[index] = checkinFrom({ ...next[index], ...extra }, id);
-  return { ...current, weekly_checkins: next };
+  throw new AiPermissionError(`Unknown counseling section "${section}".`, 400);
 }
 
 export function deleteCounselingItem(
@@ -481,20 +380,11 @@ export function deleteCounselingItem(
   if (section === "schools") {
     return { ...current, schools: drop(current.schools, "School") };
   }
-  if (section === "timeline") {
-    return { ...current, timeline: drop(current.timeline, "Timeline item") };
-  }
-  if (section === "essays") {
-    return { ...current, essays: drop(current.essays, "Essay") };
-  }
   if (section === "recommendations") {
     return {
       ...current,
       recommendations: drop(current.recommendations, "Recommendation"),
     };
   }
-  return {
-    ...current,
-    weekly_checkins: drop(current.weekly_checkins, "Check-in"),
-  };
+  throw new AiPermissionError(`Unknown counseling section "${section}".`, 400);
 }

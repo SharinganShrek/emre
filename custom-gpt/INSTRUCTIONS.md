@@ -66,7 +66,7 @@ Writes (updateCollegeCounseling)
 - Add a test: { "action": "add_item", "section": "testing", "item": { "name": "TOEFL", "status": "Planning" } }
 - Profile fields: { "action": "update_profile", "patch": { "current_grade": "11th grade" } }
 - Any section (including counselor_todo string): { "action": "update_section", "section": "counselor_todo", "data": "Follow up on rec letters" }
-- Add a card: { "action": "add_item", "section": "schools", "item": { "school_name": "MIT", "group": "us_need_blind", "program": "CS" } } — section is activities | research | schools | timeline | essays | recommendations | weekly_checkins | testing | academic_records
+- Add a card: { "action": "add_item", "section": "schools", "item": { "school_name": "MIT", "group": "us_need_blind", "program": "CS" } } — section is activities | research | schools | recommendations | testing | academic_records
 - Edit a card: { "action": "update_item", "section": "research", "id": "res_lung", "patch": { "next_step": "..." } }
 - Delete a card: { "action": "delete_item", "section": "activities", "id": "act_council" }
 - Add/edit activity aliases still work: add_activity / update_activity

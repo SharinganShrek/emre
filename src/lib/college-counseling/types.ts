@@ -5,7 +5,6 @@ export type DraftStatus = "draft" | "needs_revision" | "ready";
 export type ReachSeverity = "extreme" | "high" | "moderate";
 export type StrategicValue = "high" | "medium" | "low";
 export type FinancialViability = "strong" | "risky" | "poor";
-export type TimelineStatus = "not_started" | "in_progress" | "done" | "blocked";
 export type RequestStatus =
   | "not_asked"
   | "asked"
@@ -108,37 +107,6 @@ export interface SchoolOption {
   requirements: string[];
 }
 
-export interface TimelineItem {
-  id: string;
-  title: string;
-  category: string;
-  period: string;
-  deadline: string;
-  priority: Priority;
-  status: TimelineStatus;
-  notes: string;
-}
-
-export type EssayType =
-  | "personal_statement"
-  | "why_major"
-  | "why_school"
-  | "intellectual_curiosity"
-  | "leadership_community"
-  | "challenge_failure";
-
-export interface EssayIdea {
-  id: string;
-  title: string;
-  essay_type: EssayType;
-  core_story: string;
-  what_it_shows: string;
-  risks: string;
-  best_fit: string;
-  status: DraftStatus;
-  draft_notes: string;
-}
-
 export interface FinancialAidChecklist {
   css_profile_required: boolean;
   noncustodial_form_required: boolean;
@@ -166,24 +134,9 @@ export interface RecommendationItem {
   notes: string;
 }
 
-export interface WeeklyCheckIn {
-  id: string;
-  week_date: string;
-  what_i_did: string;
-  what_i_missed: string;
-  biggest_progress: string;
-  biggest_concern: string;
-  new_achievement: string;
-  new_deadline: string;
-  question_for_counselor: string;
-  next_week_priorities: string;
-  status: "draft" | "shared";
-}
-
 export interface OverviewStats {
   next_priority: string;
   applications_tracked: number;
-  essays_drafted: number;
   financial_aid_status: string;
   counselor_readiness_score: number;
   strategic_diagnosis: string;
@@ -201,12 +154,9 @@ export interface CollegeCounselingData {
   research: ResearchProject[];
   research_narrative: string;
   schools: SchoolOption[];
-  timeline: TimelineItem[];
-  essays: EssayIdea[];
   financial_aid: FinancialAidChecklist;
   recommendations: RecommendationItem[];
   brag_sheet_notes: string;
-  weekly_checkins: WeeklyCheckIn[];
   /** Freeform counselor to-do notes (Custom GPT + UI). */
   counselor_todo: string;
 }

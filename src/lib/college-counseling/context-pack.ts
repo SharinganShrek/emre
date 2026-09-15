@@ -5,8 +5,16 @@ import { collegeCounselingData } from "./data";
 export function buildCounselorContextPack(
   data: CollegeCounselingData = collegeCounselingData,
 ): string {
-  const { profile, overview, activities, research, schools, timeline, essays, financial_aid, recommendations, weekly_checkins, counselor_todo } =
-    data;
+  const {
+    profile,
+    overview,
+    activities,
+    research,
+    schools,
+    financial_aid,
+    recommendations,
+    counselor_todo,
+  } = data;
 
   const gpaLines = profile.academic_records
     .map((r) => `- ${r.period}: ${r.gpa}${r.notes ? ` (${r.notes})` : ""}`)
@@ -50,35 +58,12 @@ export function buildCounselorContextPack(
       .join("\n")}`;
   };
 
-  const openTimeline = timeline
-    .filter((t) => t.status !== "done")
-    .sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority))
-    .slice(0, 10)
-    .map((t) => `- [${t.period}] ${t.title} (${t.priority}, ${t.status}) — ${t.notes}`)
-    .join("\n");
-
-  const essayLines = essays
-    .map(
-      (e) =>
-        `- **${e.title}** (${e.essay_type}) — shows: ${e.what_it_shows}; risk: ${e.risks}; status: ${e.status}`,
-    )
-    .join("\n");
-
   const recLines = recommendations
     .map(
       (r) =>
         `- ${r.name} (${r.subject_role}) — request: ${r.request_status}; brag sheet: ${r.brag_sheet_status}; can speak to: ${r.what_they_can_say}`,
     )
     .join("\n");
-
-  const checkins = [...weekly_checkins]
-    .sort((a, b) => b.week_date.localeCompare(a.week_date))
-    .slice(0, 4)
-    .map(
-      (w) =>
-        `### Week of ${w.week_date}\n- Did: ${w.what_i_did}\n- Missed: ${w.what_i_missed}\n- Progress: ${w.biggest_progress}\n- Concern: ${w.biggest_concern}\n- Question: ${w.question_for_counselor}\n- Next: ${w.next_week_priorities}`,
-    )
-    .join("\n\n");
 
   const aidChecks = [
     ["CSS Profile required", financial_aid.css_profile_required],
@@ -156,28 +141,14 @@ ${financial_aid.notes}
 ### Next actions
 ${financial_aid.next_actions.map((a) => `- ${a}`).join("\n")}
 
-## Current timeline priorities
-${openTimeline}
-
-## Essay ideas
-${essayLines}
-
 ## Recommendation status
 ${recLines}
-
-## Recent weekly check-ins
-${checkins}
 
 ## Counselor to-do
 ${counselor_todo?.trim() ? counselor_todo : "_Empty_"}
 
-## Open questions for counselor
-${weekly_checkins
-  .map((w) => `- (${w.week_date}) ${w.question_for_counselor}`)
-  .join("\n")}
-
 ---
-Applications tracked: ${overview.applications_tracked} · Essays drafted: ${overview.essays_drafted} · Financial aid status: ${overview.financial_aid_status}
+Applications tracked: ${overview.applications_tracked} · Financial aid status: ${overview.financial_aid_status}
 `;
 }
 

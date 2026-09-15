@@ -9,10 +9,28 @@ import { withoutNeedAwareSchools } from "./schools";
 /** Bump when seed activity copy should replace matching saved ids once. */
 export const ACTIVITIES_SEED_REV = 3;
 
+const REMOVED_COUNSELING_KEYS = [
+  "timeline",
+  "essays",
+  "weekly_checkins",
+] as const;
+
+function omitRemovedCounselingKeys<T extends Record<string, unknown>>(
+  obj: T,
+): Omit<T, (typeof REMOVED_COUNSELING_KEYS)[number]> {
+  const next = { ...obj };
+  for (const key of REMOVED_COUNSELING_KEYS) {
+    delete next[key];
+  }
+  return next as Omit<T, (typeof REMOVED_COUNSELING_KEYS)[number]>;
+}
+
 export function mergeCollegeCounseling(
   partial: Partial<CollegeCounselingData> | null | undefined,
 ): CollegeCounselingData {
-  const saved = partial ?? {};
+  const saved = omitRemovedCounselingKeys(
+    (partial ?? {}) as Record<string, unknown>,
+  ) as Partial<CollegeCounselingData>;
   const savedRev = saved.activities_seed_rev ?? 0;
   const activities =
     savedRev < ACTIVITIES_SEED_REV
@@ -32,7 +50,10 @@ export function mergeCollegeCounseling(
         saved.profile?.testing ?? seedData.profile.testing,
       ),
     },
-    overview: { ...seedData.overview, ...(saved.overview ?? {}) },
+    overview: {
+      ...seedData.overview,
+      ...omitLegacyOverview(saved.overview),
+    },
     financial_aid: {
       ...seedData.financial_aid,
       ...(saved.financial_aid ?? {}),
@@ -42,14 +63,9 @@ export function mergeCollegeCounseling(
     schools: withoutNeedAwareSchools(
       Array.isArray(saved.schools) ? saved.schools : seedData.schools,
     ),
-    timeline: Array.isArray(saved.timeline) ? saved.timeline : seedData.timeline,
-    essays: Array.isArray(saved.essays) ? saved.essays : seedData.essays,
     recommendations: Array.isArray(saved.recommendations)
       ? saved.recommendations
       : seedData.recommendations,
-    weekly_checkins: Array.isArray(saved.weekly_checkins)
-      ? saved.weekly_checkins
-      : seedData.weekly_checkins,
     research_narrative:
       saved.research_narrative ?? seedData.research_narrative,
     brag_sheet_notes: saved.brag_sheet_notes ?? seedData.brag_sheet_notes,
@@ -62,7 +78,9 @@ export function overlayCollegeCounseling(
   current: CollegeCounselingData,
   patch: Partial<CollegeCounselingData> | null | undefined,
 ): CollegeCounselingData {
-  const next = patch ?? {};
+  const next = omitRemovedCounselingKeys(
+    (patch ?? {}) as Record<string, unknown>,
+  ) as Partial<CollegeCounselingData>;
   return {
     ...current,
     ...next,
@@ -86,7 +104,10 @@ export function overlayCollegeCounseling(
       constraints: next.profile?.constraints ?? current.profile.constraints,
       preferences: next.profile?.preferences ?? current.profile.preferences,
     },
-    overview: { ...current.overview, ...(next.overview ?? {}) },
+    overview: {
+      ...current.overview,
+      ...omitLegacyOverview(next.overview),
+    },
     financial_aid: {
       ...current.financial_aid,
       ...(next.financial_aid ?? {}),
@@ -98,14 +119,9 @@ export function overlayCollegeCounseling(
     schools: withoutNeedAwareSchools(
       Array.isArray(next.schools) ? next.schools : current.schools,
     ),
-    timeline: Array.isArray(next.timeline) ? next.timeline : current.timeline,
-    essays: Array.isArray(next.essays) ? next.essays : current.essays,
     recommendations: Array.isArray(next.recommendations)
       ? next.recommendations
       : current.recommendations,
-    weekly_checkins: Array.isArray(next.weekly_checkins)
-      ? next.weekly_checkins
-      : current.weekly_checkins,
     research_narrative:
       next.research_narrative ?? current.research_narrative,
     brag_sheet_notes: next.brag_sheet_notes ?? current.brag_sheet_notes,
@@ -146,6 +162,16 @@ function normalizeTesting(items: TestPlanItem[] | undefined): TestPlanItem[] {
     if (!expectedPending) return item;
     return { ...item, score: 5, target: "Score 5" };
   });
+}
+
+function omitLegacyOverview(
+  overview: Partial<CollegeCounselingData["overview"]> | undefined,
+): Partial<CollegeCounselingData["overview"]> {
+  if (!overview) return {};
+  const { essays_drafted: _removed, ...rest } = overview as Partial<
+    CollegeCounselingData["overview"]
+  > & { essays_drafted?: number };
+  return rest;
 }
 
 function mergeActivitiesFromSeed(
