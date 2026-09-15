@@ -11,6 +11,13 @@ export function isHabitDone(data: HubData, habitId: string, date: string) {
   return Boolean(habitLogFor(data, habitId, date)?.completed);
 }
 
+/** True only if the habit was actually marked done at least once. */
+export function habitHasCompletedLogs(data: HubData, habitId: string) {
+  return data.habitLogs.some(
+    (l) => l.habit_id === habitId && l.completed && l.count > 0,
+  );
+}
+
 export function activeHabits(data: HubData) {
   return data.habits
     .filter((h) => h.status === "active")

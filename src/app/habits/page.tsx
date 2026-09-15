@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Hydrated } from "@/components/hydrated";
 import { useHub } from "@/lib/store";
 import { toast, withToast } from "@/lib/toast";
-import { habitStreak, isHabitDone } from "@/lib/selectors";
+import { habitHasCompletedLogs, habitStreak, isHabitDone } from "@/lib/selectors";
 import { cn, toISODate } from "@/lib/utils";
 import type { Habit } from "@/lib/types";
 
@@ -120,7 +120,7 @@ function Habits() {
             <HabitRow
               key={habit.id}
               habit={habit}
-              hasLogs={data.habitLogs.some((l) => l.habit_id === habit.id)}
+              hasLogs={habitHasCompletedLogs(data, habit.id)}
               onEdit={() => openEdit(habit)}
             />
           ))}
@@ -155,7 +155,7 @@ function Habits() {
                 >
                   <ArchiveRestore /> Restore
                 </Button>
-                {!data.habitLogs.some((l) => l.habit_id === h.id) && (
+                {!habitHasCompletedLogs(data, h.id) && (
                   <Button
                     size="sm"
                     variant="ghost"
@@ -282,7 +282,9 @@ function HabitRow({
             <Button
               size="icon"
               variant="ghost"
+              className="text-muted hover:text-danger"
               aria-label="Delete habit"
+              title="Delete habit"
               onClick={() => {
                 if (
                   !confirm(`Delete “${habit.name}”? This cannot be undone.`)
