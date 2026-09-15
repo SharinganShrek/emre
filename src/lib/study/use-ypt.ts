@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHub } from "@/lib/store";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { toISODate, uid } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import {
@@ -12,6 +13,7 @@ import {
   durationMinutesFromMs,
   encodeYptNotes,
   endOfLocalDay,
+  isCustomSettings,
   loadJson,
   mergeContiguousSlots,
   mergeSettings,
@@ -42,6 +44,9 @@ export function useYptStudy() {
     loadJson(TODOS_KEY, {}),
   );
   const [now, setNow] = useState(() => Date.now());
+  const [syncReady, setSyncReady] = useState(!isSupabaseConfigured());
+  const [syncSource, setSyncSource] = useState<"local" | "supabase">("local");
+  const skipInitialSyncPut = useRef(true);
 
   const timerRef = useRef(timer);
   const settingsRef = useRef(settings);
@@ -49,6 +54,50 @@ export function useYptStudy() {
   settingsRef.current = settings;
 
   const ticking = timer.running;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function boot() {
+      if (!isSupabaseConfigured()) {
+        if (!cancelled) setSyncReady(true);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/study-settings", {
+          credentials: "same-origin",
+        });
+        if (res.status === 401 || res.status === 503) {
+          if (!cancelled) setSyncSource("local");
+          return;
+        }
+        if (!res.ok) throw new Error(await res.text());
+        const json = (await res.json()) as { data: YptSettings | null };
+        if (cancelled) return;
+        setSyncSource("supabase");
+        if (json.data) {
+          setSettingsState(mergeSettings(json.data));
+        } else if (isCustomSettings(settingsRef.current)) {
+          await fetch("/api/study-settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ data: settingsRef.current }),
+          });
+        }
+      } catch {
+        if (!cancelled) setSyncSource("local");
+      } finally {
+        if (!cancelled) setSyncReady(true);
+      }
+    }
+
+    void boot();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!ticking) return;
@@ -59,6 +108,30 @@ export function useYptStudy() {
   useEffect(() => {
     saveJson(SETTINGS_KEY, settings);
   }, [settings]);
+
+  useEffect(() => {
+    if (!syncReady || syncSource !== "supabase") return;
+    if (skipInitialSyncPut.current) {
+      skipInitialSyncPut.current = false;
+      return;
+    }
+    const t = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/study-settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ data: settingsRef.current }),
+          });
+          if (!res.ok) throw new Error("Save failed");
+        } catch {
+          toast.error("Could not sync study subjects");
+        }
+      })();
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [settings, syncReady, syncSource]);
 
   useEffect(() => {
     saveJson(TIMER_KEY, timer);

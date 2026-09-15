@@ -127,6 +127,13 @@ export function mergeSettings(raw: Partial<YptSettings> | null): YptSettings {
   };
 }
 
+export function isCustomSettings(settings: YptSettings): boolean {
+  return (
+    JSON.stringify(mergeSettings(settings)) !==
+    JSON.stringify(DEFAULT_SETTINGS)
+  );
+}
+
 export function mergeTimer(raw: Partial<YptTimerState> | null): YptTimerState {
   return {
     ...DEFAULT_TIMER,

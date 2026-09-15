@@ -205,37 +205,67 @@ function SettingsDialog({
           <Label>Subjects</Label>
           <ul className="space-y-2">
             {study.settings.subjects.map((subject) => (
-              <li key={subject.id} className="flex items-center gap-2">
-                <span
-                  className="size-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: subject.color }}
-                />
-                <Input
-                  value={subject.name}
-                  onChange={(e) =>
-                    study.setSettings((prev) => ({
-                      ...prev,
-                      subjects: prev.subjects.map((s) =>
-                        s.id === subject.id
-                          ? { ...s, name: e.target.value }
-                          : s,
-                      ),
-                    }))
-                  }
-                />
-                <button
-                  type="button"
-                  className="text-xs text-muted-2 hover:text-danger"
-                  disabled={study.settings.subjects.length <= 1}
-                  onClick={() =>
-                    study.setSettings((prev) => ({
-                      ...prev,
-                      subjects: prev.subjects.filter((s) => s.id !== subject.id),
-                    }))
-                  }
-                >
-                  Remove
-                </button>
+              <li key={subject.id} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={subject.name}
+                    onChange={(e) =>
+                      study.setSettings((prev) => ({
+                        ...prev,
+                        subjects: prev.subjects.map((s) =>
+                          s.id === subject.id
+                            ? { ...s, name: e.target.value }
+                            : s,
+                        ),
+                      }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="text-xs text-muted-2 hover:text-danger"
+                    disabled={study.settings.subjects.length <= 1}
+                    onClick={() =>
+                      study.setSettings((prev) => ({
+                        ...prev,
+                        subjects: prev.subjects.filter(
+                          (s) => s.id !== subject.id,
+                        ),
+                      }))
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(YPT_PALETTE.includes(
+                    subject.color as (typeof YPT_PALETTE)[number],
+                  )
+                    ? YPT_PALETTE
+                    : [subject.color, ...YPT_PALETTE]
+                  ).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      aria-label={`Set ${subject.name} color to ${c}`}
+                      aria-pressed={subject.color === c}
+                      onClick={() =>
+                        study.setSettings((prev) => ({
+                          ...prev,
+                          subjects: prev.subjects.map((s) =>
+                            s.id === subject.id ? { ...s, color: c } : s,
+                          ),
+                        }))
+                      }
+                      className={cn(
+                        "size-5 rounded-full border-2",
+                        subject.color === c
+                          ? "border-foreground"
+                          : "border-transparent",
+                      )}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
               </li>
             ))}
           </ul>

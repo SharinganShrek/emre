@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Flame, Pencil, Archive, ArchiveRestore, CheckCircle2 } from "lucide-react";
+import {
+  Plus,
+  Flame,
+  Pencil,
+  Archive,
+  ArchiveRestore,
+  CheckCircle2,
+  Trash2,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +38,7 @@ export default function HabitsPage() {
 }
 
 function Habits() {
-  const { data, add, update } = useHub();
+  const { data, add, update, remove } = useHub();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
   const [saving, setSaving] = useState(false);
@@ -109,7 +117,12 @@ function Habits() {
       ) : (
         <div className="grid gap-4">
           {active.map((habit) => (
-            <HabitRow key={habit.id} habit={habit} onEdit={() => openEdit(habit)} />
+            <HabitRow
+              key={habit.id}
+              habit={habit}
+              hasLogs={data.habitLogs.some((l) => l.habit_id === habit.id)}
+              onEdit={() => openEdit(habit)}
+            />
           ))}
         </div>
       )}
@@ -142,6 +155,26 @@ function Habits() {
                 >
                   <ArchiveRestore /> Restore
                 </Button>
+                {!data.habitLogs.some((l) => l.habit_id === h.id) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (
+                        !confirm(
+                          `Delete “${h.name}”? This cannot be undone.`,
+                        )
+                      ) {
+                        return;
+                      }
+                      void withToast(() => remove("habits", h.id), {
+                        success: "Habit deleted",
+                      });
+                    }}
+                  >
+                    <Trash2 /> Delete
+                  </Button>
+                )}
               </div>
             ))}
           </CardContent>
@@ -159,8 +192,16 @@ function Habits() {
   );
 }
 
-function HabitRow({ habit, onEdit }: { habit: Habit; onEdit: () => void }) {
-  const { data, update, toggleHabit } = useHub();
+function HabitRow({
+  habit,
+  hasLogs,
+  onEdit,
+}: {
+  habit: Habit;
+  hasLogs: boolean;
+  onEdit: () => void;
+}) {
+  const { data, update, remove, toggleHabit } = useHub();
   const [busyDay, setBusyDay] = useState<string | null>(null);
   const streak = habitStreak(data, habit.id);
 
@@ -223,19 +264,39 @@ function HabitRow({ habit, onEdit }: { habit: Habit; onEdit: () => void }) {
           <Button size="icon" variant="ghost" onClick={onEdit} aria-label="Edit habit">
             <Pencil />
           </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            aria-label="Archive habit"
-            onClick={() =>
-              void withToast(
-                () => update("habits", habit.id, { status: "archived" }),
-                { success: "Habit archived" },
-              )
-            }
-          >
-            <Archive />
-          </Button>
+          {hasLogs ? (
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Archive habit"
+              onClick={() =>
+                void withToast(
+                  () => update("habits", habit.id, { status: "archived" }),
+                  { success: "Habit archived" },
+                )
+              }
+            >
+              <Archive />
+            </Button>
+          ) : (
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Delete habit"
+              onClick={() => {
+                if (
+                  !confirm(`Delete “${habit.name}”? This cannot be undone.`)
+                ) {
+                  return;
+                }
+                void withToast(() => remove("habits", habit.id), {
+                  success: "Habit deleted",
+                });
+              }}
+            >
+              <Trash2 />
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
