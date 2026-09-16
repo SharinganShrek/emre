@@ -1,6 +1,5 @@
 import "server-only";
 import type { AiContext } from "./permissions";
-import { AiPermissionError } from "./permissions";
 
 interface AuditArgs {
   ctx: AiContext;
@@ -14,8 +13,8 @@ interface AuditArgs {
 /**
  * Record an AI action in `ai_audit_logs`.
  *
- * Write actions MUST succeed in logging (fail the request if audit insert fails).
- * Read actions are best-effort and never break the API response.
+ * Write and read actions are best-effort: a missing audit table must not
+ * roll back a counseling/habit write the user already asked to save.
  */
 export async function logAiAction({
   ctx,
@@ -42,9 +41,9 @@ export async function logAiAction({
       error,
     });
     if (action === "write") {
-      throw new AiPermissionError(
-        "Failed to audit AI write action. Request aborted.",
-        500,
+      console.error(
+        "[ai-audit] write succeeded but audit insert failed; returning 200",
+        { route, resource, error },
       );
     }
   }

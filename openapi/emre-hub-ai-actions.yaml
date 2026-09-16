@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.1
 info:
   title: Emre OS AI Actions
   version: 1.0.0
@@ -602,7 +602,10 @@ paths:
       operationId: updateCollegeProfile
       tags: [College Counseling]
       summary: Update college profile fields
-      description: Requires patch object. Grade, preferences, positioning, AP/testing rows. GET counseling first.
+      description: |
+        Requires a patch object. Send only fields you are changing.
+        Grade, preferences, positioning, AP/testing rows. GET counseling first.
+        Empty strings are ignored so unused fields cannot wipe stored text.
       security:
         - bearerAuth: []
       requestBody:
@@ -630,7 +633,14 @@ paths:
       operationId: writeCollegeItem
       tags: [College Counseling]
       summary: Add, update, or delete a counseling card
-      description: Requires action, section, id, item, and patch. add uses item (id can be empty). update/delete need id. delete uses empty item/patch. section includes schools and activities.
+      description: |
+        Add, rewrite, or delete one counseling box/card. Always send action,
+        section, id, item, and patch. Unused objects can be {}.
+        add: put fields in item, id="" and patch={}.
+        update: put ONLY changed fields in patch, item={}.
+        delete: id required, item={} and patch={}.
+        testing id = exam name. academic_records id = period (e.g. Grade 10).
+        Do not send empty placeholders. hours_per_week and weeks_per_year are numbers.
       security:
         - bearerAuth: []
       requestBody:
@@ -662,7 +672,10 @@ paths:
       operationId: patchCollegeCounseling
       tags: [College Counseling]
       summary: Patch counseling document sections
-      description: Requires data object merged onto the current document. Use for overview, counselor_todo, brag_sheet_notes, research_narrative.
+      description: |
+        Merge freeform fields onto the CURRENT document. Does not delete cards.
+        Use for overview, counselor_todo, brag_sheet_notes, research_narrative,
+        financial_aid. Card add/update/delete must use writeCollegeItem.
       security:
         - bearerAuth: []
       requestBody:
@@ -854,9 +867,8 @@ components:
         error:
           type: string
         details:
-          type: object
+          type: [object, "null"]
           additionalProperties: true
-          nullable: true
 
     IsoDate:
       type: string
@@ -911,7 +923,7 @@ components:
         log_date: { $ref: "#/components/schemas/IsoDate" }
         completed: { type: boolean }
         count: { type: integer }
-        note: { type: string, nullable: true }
+        note: { type: [string, "null"] }
 
     TaskInput:
       type: object
@@ -929,11 +941,14 @@ components:
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
-        notes: { type: string, nullable: true }
+        notes: { type: [string, "null"] }
         status: { $ref: "#/components/schemas/TaskStatus" }
         priority: { $ref: "#/components/schemas/TaskPriority" }
-        due_date: { $ref: "#/components/schemas/IsoDate", nullable: true }
-        project: { type: string, nullable: true }
+        due_date:
+          oneOf:
+            - $ref: "#/components/schemas/IsoDate"
+            - type: "null"
+        project: { type: [string, "null"] }
         created_at: { type: string, format: date-time }
 
     MovieInput:
@@ -954,9 +969,12 @@ components:
         title: { type: string }
         kind: { $ref: "#/components/schemas/MediaKind" }
         status: { $ref: "#/components/schemas/WatchStatus" }
-        rating: { type: number, nullable: true }
-        review: { type: string, nullable: true }
-        watched_date: { $ref: "#/components/schemas/IsoDate", nullable: true }
+        rating: { type: [number, "null"] }
+        review: { type: [string, "null"] }
+        watched_date:
+          oneOf:
+            - $ref: "#/components/schemas/IsoDate"
+            - type: "null"
 
     JournalInput:
       type: object
@@ -996,9 +1014,9 @@ components:
           items:
             $ref: "#/components/schemas/Task"
         journal_today:
-          allOf:
+          oneOf:
             - $ref: "#/components/schemas/JournalEntry"
-          nullable: true
+            - type: "null"
 
     Analytics30Days:
       type: object
@@ -1011,7 +1029,7 @@ components:
         habit_completion_pct: { type: integer }
         study_hours: { type: number }
         journal_entries: { type: integer }
-        avg_mood: { type: number, nullable: true }
+        avg_mood: { type: [number, "null"] }
         movies_watched: { type: integer }
         books_read: { type: integer }
 
@@ -1053,8 +1071,7 @@ components:
             shield_available: { type: boolean }
             shield_used_this_week: { type: boolean }
         next_open:
-          type: object
-          nullable: true
+          type: [object, "null"]
           properties:
             plan_id: { type: string }
             week: { type: integer }
@@ -1071,11 +1088,11 @@ components:
             properties:
               word: { type: string }
               accuracy: { type: integer }
-              next_review: { type: string, format: date, nullable: true }
+              next_review: { type: [string, "null"], format: date }
               confidence: { type: integer }
               lapse_count: { type: integer }
-              last_chosen: { type: string, nullable: true }
-              last_expected: { type: string, nullable: true }
+              last_chosen: { type: [string, "null"] }
+              last_expected: { type: [string, "null"] }
         recent_results:
           type: array
           description: Latest in-app answers (chosen vs expected), newest last
@@ -1084,8 +1101,8 @@ components:
             properties:
               word: { type: string }
               correct: { type: boolean }
-              chosen: { type: string, nullable: true }
-              expected: { type: string, nullable: true }
+              chosen: { type: [string, "null"] }
+              expected: { type: [string, "null"] }
               at: { type: string, format: date-time }
 
     SatVocabProgressWrite:
@@ -1163,6 +1180,7 @@ components:
 
     CollegeWriteProfileBody:
       type: object
+      additionalProperties: true
       required: [patch]
       properties:
         patch:
@@ -1170,13 +1188,17 @@ components:
 
     CollegeWriteDocumentBody:
       type: object
+      additionalProperties: true
       required: [data]
       properties:
         data:
           type: object
+          additionalProperties: true
+          description: Only sections to change. Empty strings are ignored.
           properties:
             overview:
               type: object
+              additionalProperties: true
               properties:
                 next_priority: { type: string }
                 strategic_diagnosis: { type: string }
@@ -1185,11 +1207,15 @@ components:
             counselor_todo: { type: string }
             research_narrative: { type: string }
             brag_sheet_notes: { type: string }
+            financial_aid:
+              type: object
+              additionalProperties: true
             profile:
               $ref: "#/components/schemas/CollegeProfilePatch"
 
     CollegeWriteItemBody:
       type: object
+      additionalProperties: true
       required: [action, section, id, item, patch]
       properties:
         action:
@@ -1199,11 +1225,15 @@ components:
           $ref: "#/components/schemas/CollegeCounselingItemSection"
         id:
           type: string
-          description: Required for update/delete. Empty string for add. Testing uses exam name.
+          description: Required for update/delete. Empty string for add. Testing uses exam name. Academic records uses period.
         item:
-          $ref: "#/components/schemas/CollegeCardItem"
+          type: object
+          additionalProperties: true
+          description: Card fields for add. Use {} on update/delete. Omit unused keys.
         patch:
-          $ref: "#/components/schemas/CollegeCardItem"
+          type: object
+          additionalProperties: true
+          description: Only fields to change on update. Use {} on add/delete.
 
     CollegeCounselingItemSection:
       type: string
@@ -1215,66 +1245,9 @@ components:
         - testing
         - academic_records
 
-    CollegeCardItem:
-      type: object
-      properties:
-        id: { type: string }
-        school_name: { type: string }
-        country: { type: string }
-        program: { type: string }
-        application_system: { type: string }
-        deadline: { type: string }
-        financial_aid_type: { type: string }
-        financial_viability: { type: string, enum: [strong, risky, poor] }
-        academic_fit: { type: string, enum: [high, medium, low] }
-        narrative_fit: { type: string, enum: [high, medium, low] }
-        reach_severity: { type: string, enum: [extreme, high, moderate] }
-        strategic_value: { type: string, enum: [high, medium, low] }
-        status: { type: string }
-        notes: { type: string }
-        group: { type: string, enum: [us_need_blind, europe_main] }
-        requirements:
-          type: array
-          items: { type: string }
-        title: { type: string }
-        field: { type: string }
-        mentor_institution: { type: string }
-        dates: { type: string }
-        methods: { type: string }
-        dataset_material: { type: string }
-        output: { type: string }
-        publication_status: { type: string }
-        my_role: { type: string }
-        what_this_proves: { type: string }
-        next_step: { type: string }
-        link: { type: string }
-        category: { type: string }
-        name: { type: string }
-        subject_role: { type: string }
-        relationship_strength: { type: string, enum: [high, medium, low] }
-        what_they_can_say: { type: string }
-        evidence_to_send: { type: string }
-        brag_sheet_status: { type: string }
-        request_status: { type: string }
-        period: { type: string }
-        gpa: { type: number }
-        score: { type: string }
-        target: { type: string }
-        role: { type: string }
-        organization: { type: string }
-        grade_levels: { type: string }
-        hours_per_week: { type: number }
-        weeks_per_year: { type: number }
-        common_app_description: { type: string }
-        expanded_description: { type: string }
-        impact_metrics: { type: string }
-        evidence_link: { type: string }
-        priority: { type: string, enum: [high, medium, low] }
-        framing_notes: { type: string }
-        risk_notes: { type: string }
-
     CollegeTestItem:
       type: object
+      additionalProperties: true
       required: [name]
       properties:
         name:
@@ -1285,7 +1258,7 @@ components:
           example: Taken
         score:
           description: Actual score when taken
-          type: string
+          type: [string, number]
           example: "5"
         target:
           type: string
@@ -1294,6 +1267,7 @@ components:
 
     CollegeProfilePatch:
       type: object
+      additionalProperties: true
       properties:
         full_name: { type: string }
         school: { type: string }
@@ -1317,6 +1291,7 @@ components:
           items: { type: string }
         positioning:
           type: object
+          additionalProperties: true
           properties:
             one_line: { type: string }
             common_app_bio: { type: string }
@@ -1336,5 +1311,5 @@ components:
         subject: { type: string }
         duration_minutes: { type: integer, minimum: 1 }
         session_date: { $ref: "#/components/schemas/IsoDate" }
-        notes: { type: string, nullable: true }
+        notes: { type: [string, "null"] }
 

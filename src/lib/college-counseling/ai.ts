@@ -12,21 +12,11 @@ import {
   saveCollegeCounseling,
 } from "@/lib/supabase/college-counseling-repository";
 import { collegeCounselingData as seedData } from "@/lib/college-counseling/data";
-import {
-  mergeTestingByName,
-  overlayCollegeCounseling,
-} from "@/lib/college-counseling/merge";
-import type {
-  CollegeCounselingData,
-  TestPlanItem,
-} from "@/lib/college-counseling/types";
+import type { CollegeCounselingData } from "@/lib/college-counseling/types";
 import type { CollegeCounselingWrite } from "@/lib/validation";
-import {
-  addCounselingItem,
-  deleteCounselingItem,
-  updateCounselingItem,
-  type CounselingItemSection,
-} from "./items";
+import { applyCounselingWrite } from "./apply";
+
+export { applyCounselingWrite } from "./apply";
 
 export async function loadCounseling(
   ctx: AiContext,
@@ -49,95 +39,39 @@ export async function persistCounseling(
   return data;
 }
 
-export function applyCounselingWrite(
-  current: CollegeCounselingData,
-  body: CollegeCounselingWrite,
-): CollegeCounselingData {
-  if (body.action === "replace" || body.action === "patch") {
-    return overlayCollegeCounseling(
-      current,
-      body.data as Partial<CollegeCounselingData>,
-    );
-  }
-
-  if (body.action === "update_profile") {
-    const patch = body.patch as Partial<CollegeCounselingData["profile"]>;
-    const testing = patch.testing
-      ? mergeTestingByName(current.profile.testing, patch.testing)
-      : current.profile.testing;
-    return overlayCollegeCounseling(current, {
-      profile: { ...current.profile, ...patch, testing },
-    });
-  }
-
-  if (body.action === "update_testing") {
-    const incoming = body.testing.map((item) => ({
-      name: item.name,
-      status: item.status ?? "",
-      score: item.score,
-      target: item.target,
-      notes: item.notes,
-    })) as TestPlanItem[];
-    return overlayCollegeCounseling(current, {
-      profile: {
-        ...current.profile,
-        testing: mergeTestingByName(current.profile.testing, incoming),
-      },
-    });
-  }
-
-  if (body.action === "update_section") {
-    if (body.section === "profile") {
-      const patch =
-        body.data && typeof body.data === "object"
-          ? (body.data as Partial<CollegeCounselingData["profile"]>)
-          : {};
-      return overlayCollegeCounseling(current, {
-        profile: { ...current.profile, ...patch },
-      });
+function writeMeta(body: CollegeCounselingWrite, saved: CollegeCounselingData) {
+  const section =
+    "section" in body
+      ? body.section
+      : body.action === "add_activity" || body.action === "update_activity"
+        ? "activities"
+        : undefined;
+  let id = "id" in body ? body.id : undefined;
+  if (body.action === "add_item" && !id) {
+    if (body.section === "activities") id = saved.activities[0]?.id;
+    else if (body.section === "research") id = saved.research[0]?.id;
+    else if (body.section === "schools") id = saved.schools[0]?.id;
+    else if (body.section === "recommendations") {
+      id = saved.recommendations[0]?.id;
+    } else if (body.section === "testing") {
+      id = saved.profile.testing[0]?.name;
+    } else if (body.section === "academic_records") {
+      id = saved.profile.academic_records.at(-1)?.period;
     }
-    return overlayCollegeCounseling(current, {
-      [body.section]:
-        body.section === "counselor_todo" ||
-        body.section === "research_narrative" ||
-        body.section === "brag_sheet_notes"
-          ? typeof body.data === "string"
-            ? body.data
-            : String(body.data ?? "")
-          : body.data,
-    } as Partial<CollegeCounselingData>);
   }
-
-  if (body.action === "add_item") {
-    return addCounselingItem(
-      current,
-      body.section as CounselingItemSection,
-      body.item,
-    );
-  }
-
-  if (body.action === "update_item") {
-    return updateCounselingItem(
-      current,
-      body.section as CounselingItemSection,
-      body.id,
-      body.patch,
-    );
-  }
-
-  if (body.action === "delete_item") {
-    return deleteCounselingItem(
-      current,
-      body.section as CounselingItemSection,
-      body.id,
-    );
-  }
-
-  if (body.action === "add_activity") {
-    return addCounselingItem(current, "activities", body.activity);
-  }
-
-  return updateCounselingItem(current, "activities", body.id, body.patch);
+  return {
+    action: body.action,
+    section,
+    id,
+    counts: {
+      activities: saved.activities.length,
+      research: saved.research.length,
+      schools: saved.schools.length,
+      recommendations: saved.recommendations.length,
+      testing: saved.profile.testing.length,
+    },
+    message: "Saved. In the app tap Reload from server to see it.",
+  };
 }
 
 /** Shared write path for Custom GPT Actions (split OpenAPI operations). */
@@ -162,8 +96,7 @@ export async function runCounselingWrite(
   });
 
   return aiOk({
-    action: body.action,
-    activities_count: saved.activities.length,
+    ...writeMeta(body, saved),
     data: saved,
   });
 }

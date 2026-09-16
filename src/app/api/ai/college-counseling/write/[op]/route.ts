@@ -1,5 +1,7 @@
+import { AiPermissionError } from "@/lib/ai/permissions";
 import { aiCatch, aiError } from "@/lib/ai/response";
 import { runCounselingWrite } from "@/lib/college-counseling/ai";
+import { normalizeCollegeItemWrite, foldEnvelope } from "@/lib/college-counseling/write-normalize";
 import type { CollegeCounselingWrite } from "@/lib/validation";
 import {
   collegeWriteAddActivityBody,
@@ -9,6 +11,7 @@ import {
   collegeWriteItemBody,
   collegeWriteNotesBody,
   collegeWriteProfileBody,
+  collegeProfilePatch,
   collegeWriteTestingBody,
   collegeWriteUpdateActivityBody,
   collegeWriteUpdateItemBody,
@@ -39,16 +42,24 @@ function isOp(value: string): value is Op {
 function bodyForOp(op: Op, json: unknown): CollegeCounselingWrite {
   switch (op) {
     case "profile": {
-      const body = collegeWriteProfileBody.parse(json);
-      return { action: "update_profile", patch: body.patch };
+      collegeWriteProfileBody.parse(json);
+      const patch = collegeProfilePatch.parse(foldEnvelope(json, "patch"));
+      if (Object.keys(patch).length === 0) {
+        throw new AiPermissionError("patch is required", 422);
+      }
+      return { action: "update_profile", patch };
     }
     case "testing": {
       const body = collegeWriteTestingBody.parse(json);
       return { action: "update_testing", testing: body.testing };
     }
     case "document": {
-      const body = collegeWriteDocumentBody.parse(json);
-      return { action: "patch", data: body.data };
+      collegeWriteDocumentBody.parse(json);
+      const data = foldEnvelope(json, "data");
+      if (Object.keys(data).length === 0) {
+        throw new AiPermissionError("data is required", 422);
+      }
+      return { action: "patch", data };
     }
     case "notes": {
       const body = collegeWriteNotesBody.parse(json);
@@ -59,23 +70,15 @@ function bodyForOp(op: Op, json: unknown): CollegeCounselingWrite {
       };
     }
     case "item": {
-      const body = collegeWriteItemBody.parse(json);
-      if (body.action === "add") {
-        return { action: "add_item", section: body.section, item: body.item };
+      collegeWriteItemBody.parse(json);
+      try {
+        return normalizeCollegeItemWrite(json);
+      } catch (err) {
+        throw new AiPermissionError(
+          err instanceof Error ? err.message : "Invalid counseling item write",
+          422,
+        );
       }
-      if (body.action === "update") {
-        return {
-          action: "update_item",
-          section: body.section,
-          id: body.id,
-          patch: body.patch,
-        };
-      }
-      return {
-        action: "delete_item",
-        section: body.section,
-        id: body.id,
-      };
     }
     case "add-item": {
       const body = collegeWriteAddItemBody.parse(json);

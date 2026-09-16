@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const configured = process.env.AI_API_KEY ?? "";
-  const provided = extractAiApiKey(request);
+  const provided = extractAiApiKey(request) ?? "";
   const authenticated =
     Boolean(configured) &&
     Boolean(provided) &&

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Check,
   Copy,
   Download,
   RefreshCw,
@@ -61,16 +62,28 @@ export default function CollegeCounselingPage() {
 
 function CollegeCounseling() {
   const [tab, setTab] = useState<Tab>("Overview");
-  const { data, loading, saving, dirty, source, save, refresh } =
+  const [reloaded, setReloaded] = useState(false);
+  const { data, loading, saving, refreshing, dirty, source, save, refresh } =
     useCounseling();
 
   useEffect(() => {
     const onFocus = () => {
-      void refresh();
+      void refresh({ silent: true });
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
+
+  useEffect(() => {
+    if (!reloaded) return;
+    const id = window.setTimeout(() => setReloaded(false), 1800);
+    return () => window.clearTimeout(id);
+  }, [reloaded]);
+
+  async function onReload() {
+    const ok = await refresh();
+    if (ok) setReloaded(true);
+  }
 
   if (loading) {
     return (
@@ -88,11 +101,27 @@ function CollegeCounseling() {
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => void refresh()}
-              disabled={loading || dirty}
+              onClick={() => void onReload()}
+              disabled={loading || dirty || refreshing}
+              aria-busy={refreshing}
+              className={
+                reloaded
+                  ? "border-success/40 bg-success/10 text-success hover:bg-success/10 hover:text-success"
+                  : undefined
+              }
             >
-              <RefreshCw />
-              Reload from server
+              {refreshing ? (
+                <RefreshCw className="animate-spin" />
+              ) : reloaded ? (
+                <Check />
+              ) : (
+                <RefreshCw />
+              )}
+              {refreshing
+                ? "Reloading…"
+                : reloaded
+                  ? "Reloaded"
+                  : "Reload from server"}
             </Button>
             <Button
               size="sm"
@@ -105,6 +134,22 @@ function CollegeCounseling() {
           </div>
         }
       />
+
+      {refreshing ? (
+        <div
+          role="status"
+          className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-muted"
+        >
+          Reloading counseling data from the server…
+        </div>
+      ) : reloaded ? (
+        <div
+          role="status"
+          className="rounded-lg border border-success/20 bg-success/10 px-3 py-2 text-sm text-success"
+        >
+          Reloaded from server
+        </div>
+      ) : null}
 
       <div className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
         {TABS.map((t) => (
@@ -473,6 +518,10 @@ function ActivitiesTab() {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-muted">
+        Activity boxes are read-only here. Custom GPT can rewrite, add, or
+        delete any card — then tap Reload from server.
+      </p>
       <div className="flex flex-wrap gap-2">
         <Select
           value={category}

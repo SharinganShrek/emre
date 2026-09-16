@@ -1,4 +1,5 @@
 import type {
+  AcademicRecord,
   ActivityItem,
   CollegeCounselingData,
   TestPlanItem,
@@ -77,7 +78,9 @@ export function mergeCollegeCounseling(
 export function overlayCollegeCounseling(
   current: CollegeCounselingData,
   patch: Partial<CollegeCounselingData> | null | undefined,
+  options?: { replaceLists?: boolean },
 ): CollegeCounselingData {
+  const replaceLists = options?.replaceLists === true;
   const next = omitRemovedCounselingKeys(
     (patch ?? {}) as Record<string, unknown>,
   ) as Partial<CollegeCounselingData>;
@@ -93,11 +96,19 @@ export function overlayCollegeCounseling(
         ...current.profile.positioning,
         ...(next.profile?.positioning ?? {}),
       },
-      academic_records:
-        next.profile?.academic_records ?? current.profile.academic_records,
-      testing: normalizeTesting(
-        next.profile?.testing ?? current.profile.testing,
-      ),
+      academic_records: Array.isArray(next.profile?.academic_records)
+        ? replaceLists
+          ? next.profile.academic_records
+          : mergeAcademicByPeriod(
+              current.profile.academic_records,
+              next.profile.academic_records,
+            )
+        : current.profile.academic_records,
+      testing: Array.isArray(next.profile?.testing)
+        ? replaceLists
+          ? normalizeTesting(next.profile.testing)
+          : mergeTestingByName(current.profile.testing, next.profile.testing)
+        : current.profile.testing,
       citizenship: next.profile?.citizenship ?? current.profile.citizenship,
       intended_fields:
         next.profile?.intended_fields ?? current.profile.intended_fields,
@@ -112,16 +123,23 @@ export function overlayCollegeCounseling(
       ...current.financial_aid,
       ...(next.financial_aid ?? {}),
     },
-    activities: Array.isArray(next.activities)
-      ? next.activities
-      : current.activities,
-    research: Array.isArray(next.research) ? next.research : current.research,
+    activities:
+      replaceLists && Array.isArray(next.activities)
+        ? next.activities
+        : current.activities,
+    research:
+      replaceLists && Array.isArray(next.research)
+        ? next.research
+        : current.research,
     schools: withoutNeedAwareSchools(
-      Array.isArray(next.schools) ? next.schools : current.schools,
+      replaceLists && Array.isArray(next.schools)
+        ? next.schools
+        : current.schools,
     ),
-    recommendations: Array.isArray(next.recommendations)
-      ? next.recommendations
-      : current.recommendations,
+    recommendations:
+      replaceLists && Array.isArray(next.recommendations)
+        ? next.recommendations
+        : current.recommendations,
     research_narrative:
       next.research_narrative ?? current.research_narrative,
     brag_sheet_notes: next.brag_sheet_notes ?? current.brag_sheet_notes,
@@ -130,6 +148,23 @@ export function overlayCollegeCounseling(
         ? String(next.counselor_todo)
         : current.counselor_todo ?? "",
   };
+}
+
+export function mergeAcademicByPeriod(
+  current: AcademicRecord[],
+  incoming: AcademicRecord[],
+): AcademicRecord[] {
+  const map = new Map(current.map((item) => [item.period, item]));
+  for (const item of incoming) {
+    const key = item.period || "Untitled period";
+    const prev = map.get(key);
+    map.set(key, {
+      period: item.period || prev?.period || key,
+      gpa: item.gpa !== undefined ? item.gpa : (prev?.gpa ?? 0),
+      notes: item.notes !== undefined ? item.notes : prev?.notes,
+    });
+  }
+  return [...map.values()];
 }
 
 export function mergeTestingByName(

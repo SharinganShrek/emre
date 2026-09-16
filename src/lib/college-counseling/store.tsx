@@ -21,6 +21,7 @@ type CounselingContextValue = {
   data: CollegeCounselingData;
   loading: boolean;
   saving: boolean;
+  refreshing: boolean;
   dirty: boolean;
   source: "local" | "supabase";
   setData: (
@@ -33,7 +34,7 @@ type CounselingContextValue = {
     key: K,
     value: CollegeCounselingData[K],
   ) => void;
-  refresh: () => Promise<void>;
+  refresh: (opts?: { silent?: boolean }) => Promise<boolean>;
 };
 
 const CounselingContext = createContext<CounselingContextValue | null>(null);
@@ -76,10 +77,12 @@ export function CounselingProvider({ children }: { children: ReactNode }) {
   );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [source, setSource] = useState<"local" | "supabase">("local");
   const dataRef = useRef(data);
   const dirtyRef = useRef(false);
+  const refreshInFlight = useRef(false);
   dataRef.current = data;
   dirtyRef.current = dirty;
 
@@ -152,17 +155,46 @@ export function CounselingProvider({ children }: { children: ReactNode }) {
     [setData],
   );
 
-  const refresh = useCallback(async () => {
-    if (!isSupabaseConfigured()) return;
+  const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
+    if (!isSupabaseConfigured()) {
+      if (!silent) toast.error("Server sync is not configured");
+      return false;
+    }
+    if (dirtyRef.current) {
+      if (!silent) toast.message("Save your changes before reloading");
+      return false;
+    }
+    if (refreshInFlight.current) return false;
+    refreshInFlight.current = true;
+    if (!silent) setRefreshing(true);
     try {
       const res = await fetch("/api/college-counseling");
-      if (!res.ok) return;
+      if (!res.ok) {
+        const err = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(err?.error ?? "Could not reload from server");
+      }
       const json = (await res.json()) as { data: CollegeCounselingData };
-      if (dirtyRef.current) return;
+      if (dirtyRef.current) {
+        if (!silent) toast.message("Skipped reload — you have unsaved changes");
+        return false;
+      }
       setDataState(json.data);
       setSource("supabase");
-    } catch {
-      /* ignore background refresh */
+      if (!silent) toast.success("Reloaded from server");
+      return true;
+    } catch (err) {
+      if (!silent) {
+        toast.error(
+          err instanceof Error ? err.message : "Could not reload from server",
+        );
+      }
+      return false;
+    } finally {
+      refreshInFlight.current = false;
+      if (!silent) setRefreshing(false);
     }
   }, []);
 
@@ -204,6 +236,7 @@ export function CounselingProvider({ children }: { children: ReactNode }) {
         data,
         loading,
         saving,
+        refreshing,
         dirty,
         source,
         setData,

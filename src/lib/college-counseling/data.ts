@@ -6,20 +6,25 @@ export const collegeCounselingData: CollegeCounselingData = {
     full_name: "Emre Arslan",
     school: "TEV İnanç High School for the Gifted",
     country: "Türkiye",
-    current_grade: "10th grade",
+    current_grade: "11th grade",
     graduation_year: 2028,
     citizenship: ["Turkish", "Bulgarian / EU"],
-    intended_fields: ["Computer Science", "Applied AI", "Data Science"],
+    intended_fields: [
+      "Computer Science",
+      "Applied AI",
+      "Computer Vision",
+      "Data Science",
+    ],
     positioning_idea:
-      "Applied AI / Computer Vision / Data Science for high-stakes human systems: healthcare imaging, environmental/remote sensing, and online behavior.",
+      "CS-first applicant with an Applied AI / Computer Vision / Data Science specialization for high-stakes human systems (healthcare imaging, remote sensing, online behavior).",
     us_strategy:
       "Full financial aid needed. US T20/reach-heavy applications should be balanced with Europe.",
     europe_strategy:
-      "EU citizenship makes European universities financially attractive as a strong parallel plan.",
+      "EU citizenship makes English-taught European bachelor programs a strong parallel plan. Prefer CS-first tracks (not AI-named bachelors as the default), with Applied AI/CV/DS as specialization.",
     academic_records: [
       { period: "Prep", gpa: 96.56 },
       { period: "Grade 9", gpa: 96.28 },
-      { period: "Grade 10", gpa: 96.22, notes: "Current year (in progress)" },
+      { period: "Grade 10", gpa: 96.22, notes: "Completed" },
     ],
     testing: [
       {
@@ -51,32 +56,33 @@ export const collegeCounselingData: CollegeCounselingData = {
       "Balance US reach applications with Europe main plan",
     ],
     preferences: [
-      "Strong CS / AI / Data Science curricula",
+      "CS-first bachelor (Computer Science / CSE) with Applied AI, CV, or Data Science specialization",
+      "English-taught bachelor programs in Europe",
       "Research opportunities for undergrads",
-      "International / English-taught options in Europe",
-      "Communities that value building systems and leadership",
+      "International communities that value building systems and leadership",
+      "Full financial aid required for US private colleges",
     ],
     positioning: {
       one_line:
-        "Applied AI researcher-builder focused on computer vision and data science for high-stakes human systems.",
+        "CS-first researcher-builder specializing in Applied AI, computer vision, and data science for high-stakes human systems.",
       common_app_bio:
-        "I'm a student researcher and systems builder exploring how AI can support high-stakes human domains—from medical imaging to online behavior—while leading community infrastructure at my school.",
+        "I'm a CS-first student researcher and systems builder specializing in applied AI, computer vision, and data science for high-stakes human domains—from medical imaging to online behavior—while leading community infrastructure at my school.",
       research_heavy:
         "My work spans medical AI (lung CT segmentation), social computing/infodemiology with clinicians, and cross-modal vision research—always asking how models behave when decisions affect real people.",
       europe_technical:
-        "EU-citizen CS/AI applicant with peer-reviewed research, industry/academia internships (Politecnico di Milano, Özyeğin), and a track record building production systems for school and community.",
+        "EU-citizen CS-first applicant targeting English-taught Computer Science / CSE bachelors, with peer-reviewed research, industry/academia internships, and production systems for school and community.",
     },
   },
 
   overview: {
     next_priority: "SAT foundation + CV cleanup + school list v1",
-    applications_tracked: 18,
+    applications_tracked: 16,
     financial_aid_status: "Planning / checklist started",
     counselor_readiness_score: 62,
     strategic_diagnosis:
       "US T20 is worth attempting but should not be the only plan; Europe should be a strong parallel plan because of EU citizenship and lower tuition.",
     current_positioning:
-      "Applied AI / Computer Vision / Data Science for high-stakes human systems.",
+      "CS-first with Applied AI / Computer Vision / Data Science specialization.",
     gpa_average: 96.35,
     sat_target: "1530–1560+",
   },
@@ -456,13 +462,49 @@ export const collegeCounselingData: CollegeCounselingData = {
 
     // Europe main
     ...[
-      ["TU Delft", "Netherlands", "CSE", "Studielink / TU Delft"],
-      ["TU/e + Tilburg", "Netherlands", "Data Science", "Joint / portals"],
-      ["Vrije Universiteit Amsterdam", "Netherlands", "AI / CS", "Studielink"],
-      ["University of Groningen", "Netherlands", "AI", "Studielink"],
-      ["Aalto University", "Finland", "Data Science / Computer Engineering", "Studyinfo"],
-      ["Politecnico di Milano", "Italy", "English CS/AI-related programs", "PoliMi portal"],
-    ].map(([school, country, program, system], i) => ({
+      [
+        "TU Delft",
+        "Netherlands",
+        "Computer Science and Engineering",
+        "Studielink / TU Delft",
+        "#1 Europe target. English-taught CSE bachelor. Confirm Dutch diploma eligibility in writing early.",
+      ],
+      [
+        "Eindhoven University of Technology (TU/e)",
+        "Netherlands",
+        "Computer Science and Engineering",
+        "Studielink / TU/e",
+        "#2 Europe target. English-taught CSE bachelor (not the Tilburg joint Data Science degree as primary).",
+      ],
+      [
+        "Vrije Universiteit Amsterdam",
+        "Netherlands",
+        "Computer Science",
+        "Studielink",
+        "Optional Europe target. English-taught Computer Science bachelor (not AI as the primary program).",
+      ],
+      [
+        "University of Groningen",
+        "Netherlands",
+        "Computing Science",
+        "Studielink",
+        "English-taught Computing Science bachelor.",
+      ],
+      [
+        "Saarland University",
+        "Germany",
+        "Computer Science",
+        "University portal",
+        "English-taught CS bachelor option in Germany.",
+      ],
+      [
+        "University of Twente",
+        "Netherlands",
+        "Technical Computer Science",
+        "Studielink / Twente",
+        "English-taught Technical Computer Science. Include in Dutch diploma-eligibility check.",
+      ],
+    ].map(([school, country, program, system, notes], i) => ({
       id: `eu_${i}`,
       school_name: school,
       country,
@@ -474,9 +516,9 @@ export const collegeCounselingData: CollegeCounselingData = {
       academic_fit: "high" as const,
       narrative_fit: "high" as const,
       reach_severity: (i < 2 ? "high" : "moderate") as "high" | "moderate",
-      strategic_value: "high" as const,
+      strategic_value: (i === 2 ? "medium" : "high") as "high" | "medium",
       status: "researching" as const,
-      notes: "Core parallel plan; map English-taught tracks carefully.",
+      notes,
       group: "europe_main" as const,
       requirements: ["Transcripts", "Language/English proof if needed", "Motivation letter"],
     })),

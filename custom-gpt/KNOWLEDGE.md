@@ -46,17 +46,20 @@ Item shapes:
 ## College Counseling writes
 
 Always `getCollegeCounseling` first. After a write, tell Emre to tap **Reload from server**.
+Send only real fields. Empty strings are ignored (they will not wipe a box).
 
 Profile (`updateCollegeProfile`) **must** send `patch`:
 `{"patch":{"current_grade":"11th grade","preferences":["English-taught bachelor in Europe"],"testing":[{"name":"AP Statistics","status":"Taken","score":"5"}]}}`
 
-Cards (`writeCollegeItem`) always send `action`, `section`, `id`, `item`, `patch`:
+Cards (`writeCollegeItem`) always send `action`, `section`, `id`, `item`, `patch`. `item` and `patch` are freeform objects — do not fill unused keys.
+
 - add: `{"action":"add","section":"schools","id":"","item":{"school_name":"Saarland","group":"europe_main","program":"Computer Science"},"patch":{}}`
 - update: `{"action":"update","section":"schools","id":"school_tudelft","item":{},"patch":{"program":"Computer Science and Engineering","notes":"#1 Europe target"}}`
 - delete: `{"action":"delete","section":"schools","id":"school_aalto","item":{},"patch":{}}`
-- testing id = exam name; academic_records id = period
+- activity rewrite: `{"action":"update","section":"activities","id":"act_xxx","item":{},"patch":{"expanded_description":"full new text","common_app_description":"150-char summary"}}`
+- testing id = exam name; academic_records id = period (e.g. `Grade 10`)
 
-Document merge (`patchCollegeCounseling`):
+Document merge (`patchCollegeCounseling`) does **not** delete cards:
 `{"data":{"overview":{"next_priority":"…"},"counselor_todo":"Check NL diploma eligibility"}}`
 
 `hours_per_week` and `weeks_per_year` must be numbers. School `group` is `us_need_blind` or `europe_main` only.

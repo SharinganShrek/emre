@@ -339,46 +339,36 @@ export const collegeCounselingWrite = z.discriminatedUnion("action", [
 ]);
 export type CollegeCounselingWrite = z.infer<typeof collegeCounselingWrite>;
 
-export const collegeWriteProfileBody = z.object({
-  patch: collegeProfilePatch,
-});
+export const collegeWriteProfileBody = z
+  .object({
+    patch: collegeProfilePatch.optional(),
+  })
+  .passthrough();
 export const collegeWriteTestingBody = z.object({
   testing: z.array(collegeTestItem).min(1).max(40),
 });
-export const collegeWriteDocumentBody = z.object({
-  data: z.record(z.string(), z.unknown()),
-});
+export const collegeWriteDocumentBody = z
+  .object({
+    data: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
 export const collegeWriteNotesBody = z.object({
   field: z.enum(["counselor_todo", "brag_sheet_notes", "research_narrative"]),
   text: z.string().max(20000),
 });
 export const collegeWriteItemBody = z
   .object({
-    action: z.enum(["add", "update", "delete"]),
-    section: counselingItemSection,
-    id: z.string().max(80).default(""),
-    item: z.record(z.string(), z.unknown()).default({}),
-    patch: z.record(z.string(), z.unknown()).default({}),
+    action: z.preprocess(
+      (value) =>
+        typeof value === "string" ? value.trim().toLowerCase() : value,
+      z.enum(["add", "update", "delete"]),
+    ),
+    section: z.string().min(1),
+    id: z.unknown().optional(),
+    item: z.unknown().optional(),
+    patch: z.unknown().optional(),
   })
-  .superRefine((val, ctx) => {
-    if (val.action === "add" && Object.keys(val.item).length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["item"],
-        message: "item is required when action is add",
-      });
-    }
-    if (
-      (val.action === "update" || val.action === "delete") &&
-      !val.id.trim()
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["id"],
-        message: "id is required when action is update or delete",
-      });
-    }
-  });
+  .passthrough();
 export const collegeWriteAddItemBody = z.object({
   section: counselingItemSection,
   item: z.record(z.string(), z.unknown()),

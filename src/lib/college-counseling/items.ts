@@ -1,4 +1,4 @@
-import { AiPermissionError } from "@/lib/ai/permissions";
+import { AiPermissionError } from "@/lib/ai/errors";
 import { uid } from "@/lib/utils";
 import type {
   AcademicRecord,
@@ -10,16 +10,15 @@ import type {
   TestPlanItem,
 } from "./types";
 
-export const COUNSELING_ITEM_SECTIONS = [
-  "activities",
-  "research",
-  "schools",
-  "recommendations",
-  "testing",
-  "academic_records",
-] as const;
+import {
+  omitEmptyLeaves,
+  type CounselingItemSection,
+} from "./write-normalize";
 
-export type CounselingItemSection = (typeof COUNSELING_ITEM_SECTIONS)[number];
+export {
+  COUNSELING_ITEM_SECTIONS,
+  type CounselingItemSection,
+} from "./write-normalize";
 
 type Loose = Record<string, unknown>;
 
@@ -36,6 +35,11 @@ function str(value: unknown, fallback = ""): string {
 }
 
 function num(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = parseFloat(value.replace(",", "."));
+    if (Number.isFinite(parsed)) return parsed;
+  }
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
@@ -278,13 +282,43 @@ export function addCounselingItem(
   throw new AiPermissionError(`Unknown counseling section "${section}".`, 400);
 }
 
+export function counselingItemExists(
+  current: CollegeCounselingData,
+  section: CounselingItemSection,
+  id: string,
+): boolean {
+  const key = id.trim().toLowerCase();
+  if (section === "testing") {
+    return current.profile.testing.some((t) => t.name.trim().toLowerCase() === key);
+  }
+  if (section === "academic_records") {
+    return current.profile.academic_records.some((row) => row.period === id);
+  }
+  if (section === "activities") {
+    return current.activities.some((row) => row.id === id);
+  }
+  if (section === "research") {
+    return current.research.some((row) => row.id === id);
+  }
+  if (section === "schools") {
+    return current.schools.some((row) => row.id === id);
+  }
+  return current.recommendations.some((row) => row.id === id);
+}
+
 export function updateCounselingItem(
   current: CollegeCounselingData,
   section: CounselingItemSection,
   id: string,
   patch: unknown,
 ): CollegeCounselingData {
-  const extra = asLoose(patch);
+  const extra = omitEmptyLeaves(asLoose(patch));
+  if (Object.keys(extra).length === 0) {
+    throw new AiPermissionError(
+      "Update patch is empty. Send only the fields to change.",
+      422,
+    );
+  }
   if (section === "testing") {
     const key = id.trim().toLowerCase();
     const index = current.profile.testing.findIndex(

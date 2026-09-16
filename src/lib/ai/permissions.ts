@@ -2,6 +2,9 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getHubUserId } from "@/lib/access";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { AiPermissionError } from "./errors";
+
+export { AiPermissionError } from "./errors";
 
 /**
  * AI permission layer.
@@ -33,16 +36,6 @@ export const AI_RESOURCE_POLICY: Record<
   sat_vocab: { read: true, write: true },
   // Aggregations are read-only views over the above.
 };
-
-export class AiPermissionError extends Error {
-  constructor(
-    message: string,
-    public status: number = 403,
-  ) {
-    super(message);
-    this.name = "AiPermissionError";
-  }
-}
 
 export interface AiContext {
   userId: string;
