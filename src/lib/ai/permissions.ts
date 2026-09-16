@@ -3,8 +3,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getHubUserId } from "@/lib/access";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AiPermissionError } from "./errors";
+import {
+  aiKeysMatch,
+  extractAiApiKey,
+  getConfiguredAiApiKey,
+} from "./key";
 
 export { AiPermissionError } from "./errors";
+export { extractAiApiKey, timingSafeEqual } from "./key";
 
 /**
  * AI permission layer.
@@ -47,18 +53,27 @@ export interface AiContext {
  * Throws AiPermissionError (401/403/500) on failure.
  */
 export function authorizeAiRequest(request: Request): AiContext {
-  const configured = process.env.AI_API_KEY;
+  const configured = getConfiguredAiApiKey();
 
   if (!configured) {
     throw new AiPermissionError(
-      "AI API is not configured. Set AI_API_KEY on the server.",
+      "AI API is not configured. Set AI_API_KEY on the Vercel production environment.",
       500,
     );
   }
 
-  const provided = extractBearer(request);
-  if (!provided || !timingSafeEqual(provided, configured)) {
-    throw new AiPermissionError("Invalid or missing AI API key.", 401);
+  const provided = extractAiApiKey(request);
+  if (!provided) {
+    throw new AiPermissionError(
+      "Missing AI API key. In GPT Actions set Authentication to API Key → Bearer and paste only the Vercel AI_API_KEY (do not type the word Bearer).",
+      401,
+    );
+  }
+  if (!aiKeysMatch(provided, configured)) {
+    throw new AiPermissionError(
+      "AI API key did not match the server. Re-paste Vercel AI_API_KEY into the GPT Action (no Bearer prefix, no quotes).",
+      401,
+    );
   }
 
   let admin;
@@ -83,31 +98,4 @@ export function assertPermission(resource: string, op: AiOperation): void {
       403,
     );
   }
-}
-
-function extractBearer(request: Request): string | null {
-  return extractAiApiKey(request);
-}
-
-/** Public so health can report whether the GPT sent a valid key. */
-export function extractAiApiKey(request: Request): string | null {
-  const header = request.headers.get("authorization")?.trim();
-  if (header) {
-    let value = header;
-    while (value.toLowerCase().startsWith("bearer ")) {
-      value = value.slice(7).trim();
-    }
-    if (value) return value;
-  }
-  return request.headers.get("x-ai-api-key")?.trim() ?? null;
-}
-
-/** Constant-time string comparison to avoid timing attacks. */
-export function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return mismatch === 0;
 }

@@ -17,6 +17,9 @@ servers:
   - url: https://emre-xi.vercel.app
     description: Production
 
+security:
+  - bearerAuth: []
+
 tags:
   - name: Summary
   - name: Habits
@@ -34,8 +37,9 @@ paths:
       operationId: getAiHealth
       tags: [Summary]
       summary: AI Actions connectivity check
-      description: Public ping. Does not require a key. authenticated=true means the Bearer key was accepted.
-      security: []
+      description: Auth check. authenticated=true means the Action Bearer key matched AI_API_KEY. Always HTTP 200. Report key_configured and key_sent if false.
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: Service is reachable

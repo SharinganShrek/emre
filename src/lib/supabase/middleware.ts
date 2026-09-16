@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { UNLOCK_COOKIE, tokenMatches } from "@/lib/access-edge";
+import { AI_CORS_HEADERS } from "@/lib/ai/key";
 
 /**
  * Password gate only — no Supabase Auth.
@@ -14,6 +15,23 @@ export async function updateSession(request: NextRequest) {
     typeof rawPassword === "string" ? rawPassword.trim() : "";
   const { pathname } = request.nextUrl;
 
+  if (pathname.startsWith("/api/ai") && request.method === "OPTIONS") {
+    return new NextResponse(null, { status: 204, headers: AI_CORS_HEADERS });
+  }
+
+  const requestHeaders = new Headers(request.headers);
+  const passThrough = () => {
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    if (pathname.startsWith("/api/ai")) {
+      for (const [key, value] of Object.entries(AI_CORS_HEADERS)) {
+        response.headers.set(key, value);
+      }
+    }
+    return response;
+  };
+
   const isPublic =
     pathname === "/unlock" ||
     pathname.startsWith("/api/unlock") ||
@@ -26,7 +44,7 @@ export async function updateSession(request: NextRequest) {
     pathname === "/manifest.webmanifest";
 
   if (!password || isPublic) {
-    return NextResponse.next({ request });
+    return passThrough();
   }
 
   // API routes: let the route return JSON 401 (don't HTML-redirect).
@@ -34,7 +52,7 @@ export async function updateSession(request: NextRequest) {
   const unlocked = await tokenMatches(cookie, password);
 
   if (unlocked) {
-    return NextResponse.next({ request });
+    return passThrough();
   }
 
   if (pathname.startsWith("/api/")) {

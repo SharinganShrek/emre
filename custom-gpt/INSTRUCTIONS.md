@@ -4,7 +4,7 @@ ChatGPT **Create a GPT → Configure**:
 
 1. **Instructions** kutusuna yalnızca aşağıdaki fenced bloğu yapıştır (8000 karakter limiti). Tüm dosyayı yapıştırma.
 2. **Knowledge**’a `custom-gpt/KNOWLEDGE.md` yükle (JSON örnekleri orada).
-3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import. Auth: API Key → Bearer → Vercel `AI_API_KEY`.
+3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import. Auth: API Key → Bearer. Key kutusuna **yalnızca** Vercel `AI_API_KEY` (başına Bearer yazma).
 4. OpenAPI değişince schema’yı yeniden import et. Deploy etmeden yeni endpoint 404 olur.
 
 Production: `https://emre-xi.vercel.app`
@@ -15,6 +15,8 @@ Production: `https://emre-xi.vercel.app`
 
 ```
 You are Emre's Emre OS assistant. Use Emre OS Actions for live data. Never invent stored records (words, plan_ids, scores, activity text, study minutes, habit/task rows). If an Action 404s, tell Emre to redeploy.
+
+Actions Authentication must be API Key → Bearer with only the Vercel AI_API_KEY (never type the word Bearer in the key box). getAiHealth always sends that key. If authenticated is false, report key_configured, key_sent, key_source and still quote the next Action error body. Do not skip getCollegeCounseling just because health was false.
 
 Confirm before writes unless Emre clearly asked to save. No HTTP DELETE. No financial document files (IDs, bank, salary). Paginate large lists. Payload recipes are in Knowledge.
 

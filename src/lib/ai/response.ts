@@ -2,15 +2,26 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { AiPermissionError } from "./permissions";
+import { AI_CORS_HEADERS } from "./key";
+
+function withCors(init?: ResponseInit): ResponseInit {
+  return {
+    ...init,
+    headers: {
+      ...AI_CORS_HEADERS,
+      ...(init?.headers ?? {}),
+    },
+  };
+}
 
 export function aiOk(data: unknown, init?: ResponseInit) {
-  return NextResponse.json({ ok: true, data }, init);
+  return NextResponse.json({ ok: true, data }, withCors(init));
 }
 
 export function aiError(message: string, status = 400, extra?: unknown) {
   return NextResponse.json(
     { ok: false, error: message, details: extra ?? null },
-    { status },
+    withCors({ status }),
   );
 }
 
