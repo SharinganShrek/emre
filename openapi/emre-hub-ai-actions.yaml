@@ -633,14 +633,7 @@ paths:
       operationId: writeCollegeItem
       tags: [College Counseling]
       summary: Add, update, or delete a counseling card
-      description: |
-        Add, rewrite, or delete one counseling box/card. Always send action,
-        section, id, item, and patch. Unused objects can be {}.
-        add: put fields in item, id="" and patch={}.
-        update: put ONLY changed fields in patch, item={}.
-        delete: id required, item={} and patch={}.
-        testing id = exam name. academic_records id = period (e.g. Grade 10).
-        Do not send empty placeholders. hours_per_week and weeks_per_year are numbers.
+      description: Always send action, section, id, item, and patch. add uses item (id empty, patch {}). update uses patch only. delete needs id (item and patch {}). testing id is the exam name; academic_records id is the period.
       security:
         - bearerAuth: []
       requestBody:
