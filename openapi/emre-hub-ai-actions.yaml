@@ -1,7 +1,7 @@
 openapi: 3.1.1
 info:
   title: Emre OS AI Actions
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Safe, AI-ready HTTP API for Emre OS (personal life dashboard).
 
@@ -9,13 +9,17 @@ info:
     internal agent. Routes are **non-destructive** (no DELETE). Writes are
     inserts or upserts only and are always audit-logged server-side.
 
-    Authentication: `Authorization: Bearer <AI_API_KEY>` (server env).
-    All data access is scoped to a single hub owner UUID on the server.
+    Authentication: GPT Actions must use API Key → Custom, header `X-Api-Key`.
+    Value is server env `AI_API_KEY`. Do not use Bearer. Server still accepts
+    Authorization as a fallback. Data is scoped to one hub owner UUID.
   contact:
     name: Emre OS
 servers:
   - url: https://emre-xi.vercel.app
     description: Production
+
+security:
+  - apiKeyAuth: []
 
 tags:
   - name: Summary
@@ -32,10 +36,11 @@ paths:
   /api/ai/health:
     get:
       operationId: getAiHealth
+      security:
+        - apiKeyAuth: []
       tags: [Summary]
       summary: AI Actions connectivity check
-      description: Public ping. Always HTTP 200. authenticated=true only if this request included a matching Bearer key.
-      security: []
+      description: Always HTTP 200. ok and authenticated are true only when X-Api-Key matches AI_API_KEY.
       responses:
         "200":
           description: Service is reachable
@@ -49,13 +54,13 @@ paths:
   /api/ai/summary/today:
     get:
       operationId: getTodaySummary
+      security:
+        - apiKeyAuth: []
       tags: [Summary]
       summary: Today's compact snapshot
       description: |
         Read-only snapshot: habit completion for today, incomplete tasks due
         today or overdue, and today's journal entry (if any).
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Summary payload
@@ -76,11 +81,11 @@ paths:
   /api/ai/habits:
     get:
       operationId: listHabits
+      security:
+        - apiKeyAuth: []
       tags: [Habits]
       summary: List active habits
       description: Active habits with `completed_today` flag.
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Habit list
@@ -103,13 +108,13 @@ paths:
   /api/ai/habits/log:
     patch:
       operationId: upsertHabitLog
+      security:
+        - apiKeyAuth: []
       tags: [Habits]
       summary: Mark habit complete / incomplete
       description: |
         Non-destructive upsert of a habit log for a date (defaults to today).
         Never deletes rows.
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -144,10 +149,10 @@ paths:
   /api/ai/tasks:
     get:
       operationId: listTasks
+      security:
+        - apiKeyAuth: []
       tags: [Tasks]
       summary: List tasks
-      security:
-        - bearerAuth: []
       parameters:
         - name: status
           in: query
@@ -176,11 +181,11 @@ paths:
           $ref: "#/components/responses/Error"
     post:
       operationId: createTask
+      security:
+        - apiKeyAuth: []
       tags: [Tasks]
       summary: Create a task
       description: Creates a task. Destructive delete is not available to AI.
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -214,10 +219,10 @@ paths:
   /api/ai/movies:
     get:
       operationId: listMovies
+      security:
+        - apiKeyAuth: []
       tags: [Movies]
       summary: List movies / anime
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Movie list
@@ -238,10 +243,10 @@ paths:
           $ref: "#/components/responses/Error"
     post:
       operationId: createMovie
+      security:
+        - apiKeyAuth: []
       tags: [Movies]
       summary: Add a movie / anime
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -275,10 +280,10 @@ paths:
   /api/ai/journal/recent:
     get:
       operationId: listRecentJournal
+      security:
+        - apiKeyAuth: []
       tags: [Journal]
       summary: Recent journal entries
-      security:
-        - bearerAuth: []
       parameters:
         - name: limit
           in: query
@@ -313,12 +318,12 @@ paths:
   /api/ai/journal:
     post:
       operationId: upsertJournal
+      security:
+        - apiKeyAuth: []
       tags: [Journal]
       summary: Create or update a journal entry
       description: |
         Upserts the entry for `entry_date` (defaults to today). Non-destructive.
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -361,13 +366,13 @@ paths:
   /api/ai/analytics/last-30-days:
     get:
       operationId: getLast30DaysAnalytics
+      security:
+        - apiKeyAuth: []
       tags: [Analytics]
       summary: Last 30 days aggregates
       description: |
         Read-only aggregates: habit completion %, study hours, journal count,
         average mood, movies watched, books read.
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Analytics payload
@@ -388,14 +393,14 @@ paths:
   /api/ai/sat-vocab/progress:
     get:
       operationId: getSatVocabProgress
+      security:
+        - apiKeyAuth: []
       tags: [SAT Vocab]
       summary: SAT vocabulary progress + streak + next session
       description: |
         Completion counts, day streak (1 miss-shield per ISO week), next
         unfinished plan session, and activity dates (days actually studied).
         Sessions are not bound to calendar dates.
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Progress payload
@@ -414,11 +419,11 @@ paths:
           $ref: "#/components/responses/Error"
     post:
       operationId: updateSatVocabProgress
+      security:
+        - apiKeyAuth: []
       tags: [SAT Vocab]
       summary: Record learn / test / rest / quiz results
       description: Upsert learn, test, rest, word_results, or send_test. send_test queues an in-app GPT quiz. Prefer format mixed (context multiple_choice + type_word + type_definition in one test). Item count is 1–200. Single-format tests still work.
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -444,13 +449,13 @@ paths:
   /api/ai/sat-vocab/plan:
     get:
       operationId: getSatVocabPlan
+      security:
+        - apiKeyAuth: []
       tags: [SAT Vocab]
       summary: 10-week plan (optionally one week)
       description: |
         Sessions in Excel order with learned/tested/complete flags.
         Word lists are omitted by default — use getSatVocabSession for cards.
-      security:
-        - bearerAuth: []
       parameters:
         - name: week
           in: query
@@ -472,13 +477,13 @@ paths:
   /api/ai/sat-vocab/session:
     get:
       operationId: getSatVocabSession
+      security:
+        - apiKeyAuth: []
       tags: [SAT Vocab]
       summary: One session with word cards (flashcards)
       description: |
         Returns the session's words with definitions (compact or full Excel fields).
         If no query is given, uses the next unfinished session.
-      security:
-        - bearerAuth: []
       parameters:
         - name: plan_id
           in: query
@@ -505,10 +510,10 @@ paths:
   /api/ai/sat-vocab/themes:
     get:
       operationId: getSatVocabThemes
+      security:
+        - apiKeyAuth: []
       tags: [SAT Vocab]
       summary: 25 themes in Excel order
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Theme list
@@ -520,13 +525,13 @@ paths:
   /api/ai/sat-vocab/words:
     get:
       operationId: getSatVocabWords
+      security:
+        - apiKeyAuth: []
       tags: [SAT Vocab]
       summary: Lookup / search / list theme words
       description: |
         Prefer `word=` for one card or `theme=` / `q=` with pagination.
         Default limit 20, max 40. Use detail=full for morphology + long notes.
-      security:
-        - bearerAuth: []
       parameters:
         - name: word
           in: query
@@ -557,10 +562,10 @@ paths:
   /api/ai/sat-vocab/weak-words:
     get:
       operationId: getSatVocabWeakWords
+      security:
+        - apiKeyAuth: []
       tags: [SAT Vocab]
       summary: Words with under 70% quiz accuracy, plus due_review from spaced repetition
-      security:
-        - bearerAuth: []
       parameters:
         - name: limit
           in: query
@@ -576,6 +581,8 @@ paths:
   /api/ai/college-counseling:
     get:
       operationId: getCollegeCounseling
+      security:
+        - apiKeyAuth: []
       tags: [College Counseling]
       summary: Full college counseling document
       description: |
@@ -583,8 +590,6 @@ paths:
         school list, aid, recommendations).
         Activities are the source of truth for the Activities / CV tab
         (UI is read-only; edits go through these Actions).
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Counseling document
@@ -600,14 +605,14 @@ paths:
   /api/ai/college-counseling/write/profile:
     post:
       operationId: updateCollegeProfile
+      security:
+        - apiKeyAuth: []
       tags: [College Counseling]
       summary: Update college profile fields
       description: |
         Requires a patch object. Send only fields you are changing.
         Grade, preferences, positioning, AP/testing rows. GET counseling first.
         Empty strings are ignored so unused fields cannot wipe stored text.
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -631,11 +636,11 @@ paths:
   /api/ai/college-counseling/write/item:
     post:
       operationId: writeCollegeItem
+      security:
+        - apiKeyAuth: []
       tags: [College Counseling]
       summary: Add, update, or delete a counseling card
       description: Always send action, section, id, item, and patch. add uses item (id empty, patch {}). update uses patch only. delete needs id (item and patch {}). testing id is the exam name; academic_records id is the period.
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -663,14 +668,14 @@ paths:
   /api/ai/college-counseling/write/document:
     post:
       operationId: patchCollegeCounseling
+      security:
+        - apiKeyAuth: []
       tags: [College Counseling]
       summary: Patch counseling document sections
       description: |
         Merge freeform fields onto the CURRENT document. Does not delete cards.
         Use for overview, counselor_todo, brag_sheet_notes, research_narrative,
         financial_aid. Card add/update/delete must use writeCollegeItem.
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -694,14 +699,14 @@ paths:
   /api/ai/college-counseling/context-pack:
     get:
       operationId: getCollegeCounselingContextPack
+      security:
+        - apiKeyAuth: []
       tags: [College Counseling]
       summary: Counselor context pack (Markdown)
       description: |
         Read-only Markdown pack generated from the persisted college counseling
         document (or seed defaults). Does **not** call any LLM. Intended for
         Custom GPT Actions / counselor assistants.
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Markdown context pack
@@ -724,11 +729,11 @@ paths:
   /api/ai/study/sessions:
     get:
       operationId: getStudySessions
+      security:
+        - apiKeyAuth: []
       tags: [Study]
       summary: List study timer sessions
       description: Logged YPT-style study blocks (subject + minutes + date).
-      security:
-        - bearerAuth: []
       parameters:
         - name: from
           in: query
@@ -755,13 +760,13 @@ paths:
           $ref: "#/components/responses/Error"
     post:
       operationId: saveStudySession
+      security:
+        - apiKeyAuth: []
       tags: [Study]
       summary: Log or update a study session
       description: |
         Create: `{ subject, duration_minutes, session_date?, notes? }`.
         Update: include `id` plus any fields to change. No DELETE.
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -793,10 +798,10 @@ paths:
   /api/ai/study/stats:
     get:
       operationId: getStudyStats
+      security:
+        - apiKeyAuth: []
       tags: [Study]
       summary: Today / week / month study totals
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Totals in minutes
@@ -811,14 +816,14 @@ paths:
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: API key
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
       description: |
-        Shared secret from server env `AI_API_KEY`.
-        Send as `Authorization: Bearer <AI_API_KEY>`.
-        Fallback header also accepted by the server: `x-ai-api-key`.
+        Shared secret from server env AI_API_KEY.
+        In ChatGPT: Authentication → API Key → Custom, header X-Api-Key.
+        Do not choose Bearer. Paste only the key value.
 
   responses:
     Unauthorized:
@@ -843,13 +848,16 @@ components:
   schemas:
     OkEnvelope:
       type: object
-      required: [ok, data]
+      required: [ok]
       properties:
         ok:
           type: boolean
-        data:
-          type: object
-          additionalProperties: true
+        data: {}
+        error:
+          type: string
+        details: {}
+        http_status:
+          type: integer
 
     ErrorEnvelope:
       type: object
@@ -859,9 +867,10 @@ components:
           type: boolean
         error:
           type: string
-        details:
-          type: [object, "null"]
-          additionalProperties: true
+        details: {}
+        http_status:
+          type: integer
+        data: {}
 
     IsoDate:
       type: string

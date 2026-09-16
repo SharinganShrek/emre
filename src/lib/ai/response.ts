@@ -25,7 +25,13 @@ export function aiOk(data: unknown, init?: ResponseInit) {
  */
 export function aiError(message: string, status = 400, extra?: unknown) {
   return NextResponse.json(
-    { ok: false, error: message, details: extra ?? null, http_status: status },
+    {
+      ok: false,
+      error: message,
+      details: extra ?? null,
+      http_status: status,
+      data: extra ?? null,
+    },
     withCors({ status: 200 }),
   );
 }

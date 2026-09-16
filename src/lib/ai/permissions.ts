@@ -65,7 +65,7 @@ export function authorizeAiRequest(request: Request): AiContext {
   const provided = extractAiApiKey(request);
   if (!provided) {
     throw new AiPermissionError(
-      "Missing AI API key. GPT Actions Authentication must be API Key / Bearer. Paste only the Vercel AI_API_KEY value into the key box.",
+      "Missing AI API key. In GPT Actions set Authentication to API Key → Custom, header name X-Api-Key, and paste only the Vercel AI_API_KEY value.",
       401,
     );
   }

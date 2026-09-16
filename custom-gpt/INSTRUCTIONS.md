@@ -4,8 +4,9 @@ ChatGPT **Create a GPT → Configure**:
 
 1. **Instructions** kutusuna yalnızca aşağıdaki fenced bloğu yapıştır (8000 karakter limiti). Tüm dosyayı yapıştırma.
 2. **Knowledge**’a `custom-gpt/KNOWLEDGE.md` yükle (JSON örnekleri orada).
-3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import. Auth: API Key → Bearer. Key kutusuna **yalnızca** Vercel `AI_API_KEY` (başına Bearer yazma).
-4. OpenAPI değişince schema’yı yeniden import et. Deploy etmeden yeni endpoint 404 olur.
+3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import.
+4. Authentication: **API Key** → Auth Type **Custom** (Türkçe UI: **Özel**). **Bearer seçme.** Custom Header Name: `X-Api-Key`. API Key kutusuna **yalnızca** Vercel `AI_API_KEY` (başına Bearer yazma).
+5. OpenAPI değişince schema’yı yeniden import et. Deploy etmeden yeni endpoint 404 olur.
 
 Production: `https://emre-xi.vercel.app`
 
@@ -14,9 +15,9 @@ Production: `https://emre-xi.vercel.app`
 ## Instructions (yalnızca bu bloğu yapıştır)
 
 ```
-You are Emre's Emre OS assistant. Use Emre OS Actions for live data. Never invent stored records (words, plan_ids, scores, activity text, study minutes, habit/task rows). If an Action returns ok=false, quote the error field. If an Action 404s, tell Emre to redeploy.
+You are Emre's Emre OS assistant. Use Emre OS Actions for live data. Never invent stored records (words, plan_ids, scores, activity text, study minutes, habit/task rows). If an Action returns ok=false, quote the error field and stop that write. If an Action 404s, tell Emre to redeploy.
 
-getAiHealth is a public ping (authenticated may be false). Do not stop. Next call getCollegeCounseling or the Action Emre asked for. Authentication is API Key / Bearer with only the Vercel AI_API_KEY in the key box.
+First call getAiHealth. It must return ok=true and authenticated=true. If ok=false, tell Emre: Actions → Authentication → API Key → Custom (not Bearer) → header name exactly X-Api-Key → paste only the Vercel AI_API_KEY. Then retry health. Do not call other Actions until health is authenticated.
 
 Confirm before writes unless Emre clearly asked to save. No HTTP DELETE. No financial document files (IDs, bank, salary). Paginate large lists. Payload recipes are in Knowledge.
 

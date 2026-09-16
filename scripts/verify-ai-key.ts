@@ -36,6 +36,17 @@ assert(basic.key === "secret-key" && basic.source === "basic", "basic");
 const header = extractAiApiKeyDetailed(req({ "x-ai-api-key": " secret-key " }));
 assert(header.key === "secret-key" && header.source === "x-ai-api-key", "fallback header");
 
+const xApiKey = extractAiApiKeyDetailed(req({ "x-api-key": " secret-key " }));
+assert(xApiKey.key === "secret-key" && xApiKey.source === "x-api-key", "X-Api-Key header");
+
+const prefersNamed = extractAiApiKeyDetailed(
+  req({ authorization: "Bearer wrong", "x-api-key": "secret-key" }),
+);
+assert(
+  prefersNamed.key === "secret-key" && prefersNamed.source === "x-api-key",
+  "named header wins over Authorization",
+);
+
 const none = extractAiApiKeyDetailed(req({}));
 assert(none.source === "none" && none.key === "", "missing");
 
