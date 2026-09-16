@@ -93,19 +93,24 @@ export function assertPermission(resource: string, op: AiOperation): void {
 }
 
 function extractBearer(request: Request): string | null {
+  return extractAiApiKey(request);
+}
+
+/** Public so health can report whether the GPT sent a valid key. */
+export function extractAiApiKey(request: Request): string | null {
   const header = request.headers.get("authorization")?.trim();
   if (header) {
-    if (header.toLowerCase().startsWith("bearer ")) {
-      return header.slice(7).trim();
+    let value = header;
+    while (value.toLowerCase().startsWith("bearer ")) {
+      value = value.slice(7).trim();
     }
-    // Some API clients (including misconfigured GPT Actions) send the raw key.
-    return header;
+    if (value) return value;
   }
   return request.headers.get("x-ai-api-key")?.trim() ?? null;
 }
 
 /** Constant-time string comparison to avoid timing attacks. */
-function timingSafeEqual(a: string, b: string): boolean {
+export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let mismatch = 0;
   for (let i = 0; i < a.length; i++) {

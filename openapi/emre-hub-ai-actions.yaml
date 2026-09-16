@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: Emre OS AI Actions
   version: 1.0.0
@@ -15,9 +15,7 @@ info:
     name: Emre OS
 servers:
   - url: https://emre-xi.vercel.app
-    description: Production (replace with your deployed Next.js URL)
-  - url: http://localhost:3000
-    description: Local development
+    description: Production
 
 tags:
   - name: Summary
@@ -36,9 +34,8 @@ paths:
       operationId: getAiHealth
       tags: [Summary]
       summary: AI Actions connectivity check
-      description: Lightweight ping to verify Bearer auth and deployment reachability.
-      security:
-        - bearerAuth: []
+      description: Public ping. Does not require a key. authenticated=true means the Bearer key was accepted.
+      security: []
       responses:
         "200":
           description: Service is reachable
@@ -844,8 +841,9 @@ components:
       properties:
         ok:
           type: boolean
-          const: true
-        data: {}
+        data:
+          type: object
+          additionalProperties: true
 
     ErrorEnvelope:
       type: object
@@ -853,10 +851,12 @@ components:
       properties:
         ok:
           type: boolean
-          const: false
         error:
           type: string
-        details: {}
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
 
     IsoDate:
       type: string
@@ -996,9 +996,9 @@ components:
           items:
             $ref: "#/components/schemas/Task"
         journal_today:
-          oneOf:
+          allOf:
             - $ref: "#/components/schemas/JournalEntry"
-            - type: "null"
+          nullable: true
 
     Analytics30Days:
       type: object
@@ -1021,7 +1021,7 @@ components:
       properties:
         format:
           type: string
-          const: markdown
+          enum: [markdown]
         generated_at:
           type: string
           format: date-time
