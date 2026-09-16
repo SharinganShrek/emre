@@ -9,6 +9,7 @@ function withCors(init?: ResponseInit): ResponseInit {
     ...init,
     headers: {
       ...AI_CORS_HEADERS,
+      "Cache-Control": "no-store",
       ...(init?.headers ?? {}),
     },
   };
@@ -18,10 +19,14 @@ export function aiOk(data: unknown, init?: ResponseInit) {
   return NextResponse.json({ ok: true, data }, withCors(init));
 }
 
+/**
+ * Custom GPT Actions treat non-2xx as ClientResponseError and hide the body.
+ * Keep HTTP 200 and put the real code in `http_status` so the model can read it.
+ */
 export function aiError(message: string, status = 400, extra?: unknown) {
   return NextResponse.json(
-    { ok: false, error: message, details: extra ?? null },
-    withCors({ status }),
+    { ok: false, error: message, details: extra ?? null, http_status: status },
+    withCors({ status: 200 }),
   );
 }
 
