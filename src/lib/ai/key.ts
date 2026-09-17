@@ -19,6 +19,7 @@ export type AiKeySource =
   | "x-api-key"
   | "x-ai-api-key"
   | "api-key"
+  | "query"
   | "bearer"
   | "basic"
   | "raw-authorization"
@@ -41,21 +42,35 @@ function decodeBasic(value: string): string {
 }
 
 const NAMED_KEY_HEADERS: Array<
-  [string, Exclude<AiKeySource, "bearer" | "basic" | "raw-authorization" | "none">]
+  [string, Exclude<AiKeySource, "query" | "bearer" | "basic" | "raw-authorization" | "none">]
 > = [
   ["x-api-key", "x-api-key"],
   ["x-ai-api-key", "x-ai-api-key"],
   ["api-key", "api-key"],
 ];
 
+function queryApiKey(request: Request): string {
+  try {
+    const url = new URL(request.url);
+    return normalizeAiSecret(
+      url.searchParams.get("api_key") ?? url.searchParams.get("key"),
+    );
+  } catch {
+    return "";
+  }
+}
+
 /** Read the GPT/Action secret from common header shapes ChatGPT actually sends. */
 export function extractAiApiKeyDetailed(request: Request): ExtractedAiKey {
-  // Custom GPT Bearer auth often sends a broken Authorization header and never
-  // reaches the server. Prefer the named API-key headers ChatGPT Custom auth uses.
+  // ChatGPT Action Authentication (Bearer/Custom) often throws ClientResponseError
+  // before the HTTP call. Prefer named headers, then api_key query (Auth = None).
   for (const [header, source] of NAMED_KEY_HEADERS) {
     const key = normalizeAiSecret(request.headers.get(header));
     if (key) return { key, source };
   }
+
+  const fromQuery = queryApiKey(request);
+  if (fromQuery) return { key: fromQuery, source: "query" };
 
   const authorization = request.headers.get("authorization");
   if (authorization) {

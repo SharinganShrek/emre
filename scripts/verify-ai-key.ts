@@ -47,6 +47,21 @@ assert(
   "named header wins over Authorization",
 );
 
+const fromQuery = extractAiApiKeyDetailed(
+  new Request("https://emre-xi.vercel.app/api/ai/habits?api_key=secret-key"),
+);
+assert(fromQuery.key === "secret-key" && fromQuery.source === "query", "query api_key");
+
+const queryBeatsBearer = extractAiApiKeyDetailed(
+  new Request("https://emre-xi.vercel.app/api/ai/habits?api_key=secret-key", {
+    headers: { authorization: "Bearer wrong" },
+  }),
+);
+assert(
+  queryBeatsBearer.key === "secret-key" && queryBeatsBearer.source === "query",
+  "query wins over Authorization",
+);
+
 const none = extractAiApiKeyDetailed(req({}));
 assert(none.source === "none" && none.key === "", "missing");
 

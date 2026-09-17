@@ -65,13 +65,13 @@ export function authorizeAiRequest(request: Request): AiContext {
   const provided = extractAiApiKey(request);
   if (!provided) {
     throw new AiPermissionError(
-      "Missing AI API key. In GPT Actions set Authentication to API Key → Custom, header name X-Api-Key, and paste only the Vercel AI_API_KEY value.",
+      "Missing AI API key. GPT Actions Authentication must be None. Pass query param api_key with the Vercel AI_API_KEY value.",
       401,
     );
   }
   if (!aiKeysMatch(provided, configured)) {
     throw new AiPermissionError(
-      "AI API key did not match the server. Re-copy AI_API_KEY from Vercel and paste it into the GPT Action key box with no extra spaces or quotes.",
+      "AI API key did not match the server. Re-copy AI_API_KEY from Vercel into the GPT instructions API_KEY line and pass it as api_key.",
       401,
     );
   }
