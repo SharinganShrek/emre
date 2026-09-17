@@ -1,4 +1,5 @@
 import { isHabitDueOn } from "./habit-schedule";
+import { isAnimeRow } from "./anime/movie";
 import type { HubData } from "./types";
 import { pct, toISODate, todayISO } from "./utils";
 
@@ -229,7 +230,10 @@ export function last30Days(data: HubData) {
   const habitCompletionPct = pct(habitCompleted, habitLogs.length);
 
   const moviesWatched = data.movies.filter(
-    (m) => m.status === "watched" && (m.watched_date ?? "") >= startISO,
+    (m) =>
+      isAnimeRow(m) &&
+      m.status === "watched" &&
+      (m.watched_date ?? "") >= startISO,
   ).length;
   const booksRead = data.books.filter(
     (b) => b.status === "read" && (b.finished_date ?? "") >= startISO,

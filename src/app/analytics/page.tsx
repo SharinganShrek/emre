@@ -122,7 +122,7 @@ function Analytics() {
           accent="text-warning"
         />
         <StatCard
-          label="Watched"
+          label="Anime"
           value={stats.moviesWatched}
           icon={Clapperboard}
           accent="text-primary"

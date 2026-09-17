@@ -30,6 +30,10 @@ export const movieInput = z.object({
   rating: z.number().min(0).max(10).optional(),
   review: z.string().max(2000).optional(),
   watched_date: isoDate.optional(),
+  source: z.enum(["mal", "anilist"]).optional(),
+  external_id: z.string().min(1).max(40).optional(),
+  episodes_watched: z.number().int().min(0).max(10000).optional(),
+  episodes: z.number().int().min(0).max(10000).optional(),
 });
 export type MovieInput = z.infer<typeof movieInput>;
 

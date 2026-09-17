@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeMovie } from "@/lib/anime/movie";
 import type {
   Book,
   Goal,
@@ -124,10 +125,10 @@ function mapJournal(row: Record<string, unknown>): JournalEntry {
 }
 
 function mapMovie(row: Record<string, unknown>): Movie {
-  return {
+  return normalizeMovie({
     ...(row as unknown as Movie),
     watched_date: asIsoDate(row.watched_date as string | null),
-  };
+  });
 }
 
 function mapGoal(row: Record<string, unknown>): Goal {

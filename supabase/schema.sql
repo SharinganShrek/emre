@@ -228,18 +228,36 @@ create index if not exists gym_exercises_session_idx on public.gym_exercises(ses
 -- movies (also used for anime/series) + books
 -- ---------------------------------------------------------------------------
 create table if not exists public.movies (
-  id            uuid primary key default gen_random_uuid(),
-  user_id       uuid not null references auth.users(id) on delete cascade,
-  title         text not null,
-  kind          text not null default 'anime' check (kind in ('anime','movie','series')),
-  status        text not null default 'planned' check (status in ('planned','watching','watched')),
-  rating        int check (rating between 0 and 10),
-  review        text,
-  watched_date  date,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  id                 uuid primary key default gen_random_uuid(),
+  user_id            uuid not null references auth.users(id) on delete cascade,
+  title              text not null,
+  kind               text not null default 'anime' check (kind in ('anime','movie','series')),
+  status             text not null default 'planned' check (status in ('planned','watching','watched')),
+  rating             int check (rating between 0 and 10),
+  review             text,
+  watched_date       date,
+  source             text not null default 'mal' check (source in ('mal','anilist')),
+  external_id        text,
+  image_url          text,
+  title_english      text,
+  title_japanese     text,
+  anime_type         text,
+  episodes           int,
+  episodes_watched   int not null default 0 check (episodes_watched >= 0),
+  year               int,
+  genres             text[] not null default '{}',
+  synopsis           text,
+  site_url           text,
+  community_score    numeric,
+  airing_status      text,
+  catalog            jsonb not null default '{}'::jsonb,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
 );
 create index if not exists movies_user_status_idx on public.movies(user_id, status);
+create unique index if not exists movies_user_source_external_uidx
+  on public.movies (user_id, source, external_id)
+  where external_id is not null;
 
 create table if not exists public.books (
   id            uuid primary key default gen_random_uuid(),

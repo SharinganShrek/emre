@@ -47,6 +47,7 @@ export async function GET(request: Request) {
         .from("movies")
         .select("id")
         .eq("user_id", ctx.userId)
+        .eq("kind", "anime")
         .eq("status", "watched")
         .gte("watched_date", startISO),
       ctx.admin

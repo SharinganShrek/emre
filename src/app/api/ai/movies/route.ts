@@ -17,7 +17,9 @@ export async function GET(request: Request) {
 
     const { data, error } = await ctx.admin
       .from("movies")
-      .select("id,title,kind,status,rating,review,watched_date")
+      .select(
+        "id,title,kind,status,rating,review,watched_date,source,external_id,image_url,title_english,anime_type,episodes,episodes_watched,year,genres,community_score",
+      )
       .eq("user_id", ctx.userId)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -51,11 +53,15 @@ export async function POST(request: Request) {
       .insert({
         user_id: ctx.userId,
         title: body.title,
-        kind: body.kind,
+        kind: "anime",
         status: body.status,
         rating: body.rating ?? null,
         review: body.review ?? null,
         watched_date: body.watched_date ?? null,
+        source: body.source ?? "mal",
+        external_id: body.external_id ?? null,
+        episodes: body.episodes ?? null,
+        episodes_watched: body.episodes_watched ?? 0,
       })
       .select()
       .single();

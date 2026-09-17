@@ -4,6 +4,10 @@
  * so the local store can be swapped for a Supabase-backed store later.
  */
 
+import type { AnimeCatalog, AnimeSource } from "./anime/types";
+
+export type { AnimeCatalog, AnimeSource };
+
 export interface BaseRow {
   id: string;
   created_at: string;
@@ -149,7 +153,7 @@ export interface GymExercise extends BaseRow {
 
 export type WatchStatus = "planned" | "watching" | "watched";
 
-/** Used for the "Anime / Movies" watched list. */
+/** Used for the anime list (legacy kind still allows old movie/series rows). */
 export interface Movie extends BaseRow {
   user_id: string;
   title: string;
@@ -158,6 +162,21 @@ export interface Movie extends BaseRow {
   rating?: number | null; // 0-10
   review?: string | null;
   watched_date?: string | null;
+  source?: AnimeSource | null;
+  external_id?: string | null;
+  image_url?: string | null;
+  title_english?: string | null;
+  title_japanese?: string | null;
+  anime_type?: string | null;
+  episodes?: number | null;
+  episodes_watched?: number | null;
+  year?: number | null;
+  genres?: string[];
+  synopsis?: string | null;
+  site_url?: string | null;
+  community_score?: number | null;
+  airing_status?: string | null;
+  catalog?: AnimeCatalog | null;
 }
 
 export type BookStatus = "to_read" | "reading" | "read";
