@@ -4,7 +4,7 @@ ChatGPT **Create a GPT → Configure**:
 
 1. **Instructions** kutusuna aşağıdaki fenced bloğu yapıştır. `PASTE_AI_API_KEY` yerine Vercel `AI_API_KEY` koy.
 2. **Knowledge**’a `custom-gpt/KNOWLEDGE.md` yükle.
-3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import (version `1.2.0`).
+3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import (version `1.2.1`).
 4. Authentication: **None**. Mevcut API Key / Bearer / Custom kaydını sil. Auth açıksa ChatGPT `ClientResponseError` fırlatır ve istek sunucuya gitmez.
 5. OpenAPI değişince schema’yı yeniden import et.
 

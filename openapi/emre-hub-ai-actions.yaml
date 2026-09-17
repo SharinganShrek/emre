@@ -1,7 +1,7 @@
 openapi: 3.1.1
 info:
   title: Emre OS AI Actions
-  version: 1.2.0
+  version: 1.2.1
   description: |
     Safe, AI-ready HTTP API for Emre OS (personal life dashboard).
 
@@ -53,7 +53,12 @@ paths:
         Read-only snapshot: habit completion for today, incomplete tasks due
         today or overdue, and today's journal entry (if any).
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       responses:
         "200":
@@ -79,7 +84,12 @@ paths:
       summary: List active habits
       description: Active habits with `completed_today` flag.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       responses:
         "200":
@@ -109,7 +119,12 @@ paths:
         Non-destructive upsert of a habit log for a date (defaults to today).
         Never deletes rows.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       requestBody:
         required: true
@@ -148,7 +163,12 @@ paths:
       tags: [Tasks]
       summary: List tasks
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
         - name: status
           in: query
           required: false
@@ -180,7 +200,12 @@ paths:
       summary: Create a task
       description: Creates a task. Destructive delete is not available to AI.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       requestBody:
         required: true
@@ -218,7 +243,12 @@ paths:
       tags: [Movies]
       summary: List movies / anime
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       responses:
         "200":
@@ -243,7 +273,12 @@ paths:
       tags: [Movies]
       summary: Add a movie / anime
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       requestBody:
         required: true
@@ -281,7 +316,12 @@ paths:
       tags: [Journal]
       summary: Recent journal entries
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
         - name: limit
           in: query
           required: false
@@ -320,7 +360,12 @@ paths:
       description: |
         Upserts the entry for `entry_date` (defaults to today). Non-destructive.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       requestBody:
         required: true
@@ -370,7 +415,12 @@ paths:
         Read-only aggregates: habit completion %, study hours, journal count,
         average mood, movies watched, books read.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       responses:
         "200":
@@ -399,7 +449,12 @@ paths:
         unfinished plan session, and activity dates (days actually studied).
         Sessions are not bound to calendar dates.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       responses:
         "200":
@@ -423,7 +478,12 @@ paths:
       summary: Record learn / test / rest / quiz results
       description: Upsert learn, test, rest, word_results, or send_test. send_test queues an in-app GPT quiz. Prefer format mixed (context multiple_choice + type_word + type_definition in one test). Item count is 1–200. Single-format tests still work.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       requestBody:
         required: true
@@ -456,7 +516,12 @@ paths:
         Sessions in Excel order with learned/tested/complete flags.
         Word lists are omitted by default — use getSatVocabSession for cards.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
         - name: week
           in: query
           schema: { type: integer, minimum: 1, maximum: 10 }
@@ -483,7 +548,12 @@ paths:
         Returns the session's words with definitions (compact or full Excel fields).
         If no query is given, uses the next unfinished session.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
         - name: plan_id
           in: query
           schema: { type: string, example: plan-001 }
@@ -512,7 +582,12 @@ paths:
       tags: [SAT Vocab]
       summary: 25 themes in Excel order
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       responses:
         "200":
@@ -531,7 +606,12 @@ paths:
         Prefer `word=` for one card or `theme=` / `q=` with pagination.
         Default limit 20, max 40. Use detail=full for morphology + long notes.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
         - name: word
           in: query
           schema: { type: string }
@@ -564,7 +644,12 @@ paths:
       tags: [SAT Vocab]
       summary: Words with under 70% quiz accuracy, plus due_review from spaced repetition
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 40, default: 20 }
@@ -587,7 +672,12 @@ paths:
         Activities are the source of truth for the Activities / CV tab
         (UI is read-only; edits go through these Actions).
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       responses:
         "200":
@@ -611,7 +701,12 @@ paths:
         Grade, preferences, positioning, AP/testing rows. GET counseling first.
         Empty strings are ignored so unused fields cannot wipe stored text.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       requestBody:
         required: true
@@ -640,7 +735,12 @@ paths:
       summary: Add, update, or delete a counseling card
       description: Always send action, section, id, item, and patch. add uses item (id empty, patch {}). update uses patch only. delete needs id (item and patch {}). testing id is the exam name; academic_records id is the period.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       requestBody:
         required: true
@@ -676,7 +776,12 @@ paths:
         Use for overview, counselor_todo, brag_sheet_notes, research_narrative,
         financial_aid. Card add/update/delete must use writeCollegeItem.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       requestBody:
         required: true
@@ -708,7 +813,12 @@ paths:
         document (or seed defaults). Does **not** call any LLM. Intended for
         Custom GPT Actions / counselor assistants.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       responses:
         "200":
@@ -736,7 +846,12 @@ paths:
       summary: List study timer sessions
       description: Logged YPT-style study blocks (subject + minutes + date).
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
         - name: from
           in: query
           schema: { $ref: "#/components/schemas/IsoDate" }
@@ -768,7 +883,12 @@ paths:
         Create: `{ subject, duration_minutes, session_date?, notes? }`.
         Update: include `id` plus any fields to change. No DELETE.
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
 
       requestBody:
         required: true
@@ -804,7 +924,12 @@ paths:
       tags: [Study]
       summary: Today / week / month study totals
       parameters:
-        - $ref: "#/components/parameters/ApiKeyQuery"
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
       responses:
         "200":
           description: Totals in minutes
@@ -818,15 +943,6 @@ paths:
           $ref: "#/components/responses/Error"
 
 components:
-  parameters:
-    ApiKeyQuery:
-      name: api_key
-      in: query
-      required: false
-      schema:
-        type: string
-      description: Vercel AI_API_KEY. Send on every Action except getAiHealth.
-
   responses:
     Unauthorized:
       description: Missing or invalid API key
