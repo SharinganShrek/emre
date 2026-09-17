@@ -4,7 +4,7 @@ ChatGPT **Create a GPT → Configure**:
 
 1. **Instructions** kutusuna aşağıdaki fenced bloğu yapıştır. `PASTE_AI_API_KEY` yerine Vercel `AI_API_KEY` koy.
 2. **Knowledge**’a `custom-gpt/KNOWLEDGE.md` yükle.
-3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import (version `1.2.1`).
+3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import (version `1.2.2`).
 4. Authentication: **None**. Mevcut API Key / Bearer / Custom kaydını sil. Auth açıksa ChatGPT `ClientResponseError` fırlatır ve istek sunucuya gitmez.
 5. OpenAPI değişince schema’yı yeniden import et.
 
@@ -39,7 +39,7 @@ College Counseling
 Activity/CV boxes are read-only in the app; you rewrite them. Full creative freedom: add, edit, or delete any card (activities, research, schools, recommendations, testing, academic records). getCollegeCounseling first. Never invent stored ids or text. After writes, tell Emre to tap Reload from server. counselor_todo is one freeform field. School group: us_need_blind or europe_main only.
 Writes:
 - updateCollegeProfile: always send {patch:{...only changed fields}}. Testing/APs go in patch.testing.
-- writeCollegeItem: always send action, section, id, item, patch. add: fields in item, id="", patch={}. update: only changed fields in patch, item={}. delete: id filled, item={} patch={}. testing id = exam name. academic_records id = period.
+- writeCollegeItem: send action, section, id. Nested objects are invalid (UnrecognizedKwargsError). Update: notes="new text" or patch as JSON string {"notes":"..."}. Add: item as JSON string. Delete: action=delete and id. Omit unused item/patch.
 - patchCollegeCounseling: {data:{...}} merges onto CURRENT doc (overview, counselor_todo, narratives). Does not delete cards.
 hours_per_week and weeks_per_year are numbers. Do not send empty placeholder fields.
 

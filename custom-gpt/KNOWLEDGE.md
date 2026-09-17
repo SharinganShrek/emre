@@ -51,12 +51,13 @@ Send only real fields. Empty strings are ignored (they will not wipe a box).
 Profile (`updateCollegeProfile`) **must** send `patch`:
 `{"patch":{"current_grade":"11th grade","preferences":["English-taught bachelor in Europe"],"testing":[{"name":"AP Statistics","status":"Taken","score":"5"}]}}`
 
-Cards (`writeCollegeItem`) always send `action`, `section`, `id`, `item`, `patch`. `item` and `patch` are freeform objects — do not fill unused keys.
+Cards (`writeCollegeItem`): ChatGPT cannot send nested objects. Use strings or top-level fields.
 
-- add: `{"action":"add","section":"schools","id":"","item":{"school_name":"Saarland","group":"europe_main","program":"Computer Science"},"patch":{}}`
-- update: `{"action":"update","section":"schools","id":"school_tudelft","item":{},"patch":{"program":"Computer Science and Engineering","notes":"#1 Europe target"}}`
-- delete: `{"action":"delete","section":"schools","id":"school_aalto","item":{},"patch":{}}`
-- activity rewrite: `{"action":"update","section":"activities","id":"act_xxx","item":{},"patch":{"expanded_description":"full new text","common_app_description":"150-char summary"}}`
+- update notes: `{"action":"update","section":"schools","id":"eu_2","notes":"test from GPT"}`
+- update via JSON string: `{"action":"update","section":"schools","id":"eu_2","patch":"{\"notes\":\"test from GPT\"}"}`
+- add: `{"action":"add","section":"schools","id":"","item":"{\"school_name\":\"Saarland\",\"group\":\"europe_main\",\"program\":\"Computer Science\"}"}`
+- delete: `{"action":"delete","section":"schools","id":"eu_saarland"}`
+- activity rewrite: `{"action":"update","section":"activities","id":"act_xxx","expanded_description":"full new text"}`
 - testing id = exam name; academic_records id = period (e.g. `Grade 10`)
 
 Document merge (`patchCollegeCounseling`) does **not** delete cards:

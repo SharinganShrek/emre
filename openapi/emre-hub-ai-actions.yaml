@@ -1,7 +1,7 @@
 openapi: 3.1.1
 info:
   title: Emre OS AI Actions
-  version: 1.2.1
+  version: 1.2.2
   description: |
     Safe, AI-ready HTTP API for Emre OS (personal life dashboard).
 
@@ -733,7 +733,7 @@ paths:
       operationId: writeCollegeItem
       tags: [College Counseling]
       summary: Add, update, or delete a counseling card
-      description: Always send action, section, id, item, and patch. add uses item (id empty, patch {}). update uses patch only. delete needs id (item and patch {}). testing id is the exam name; academic_records id is the period.
+      description: Always send action, section, id. Nested objects are invalid in ChatGPT. Update with notes= or patch as a JSON string. Add with item as a JSON string. Delete needs id.
       parameters:
         - name: api_key
           in: query
@@ -747,7 +747,41 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CollegeWriteItemBody"
+              type: object
+              required: [action, section]
+              properties:
+                action:
+                  type: string
+                  enum: [add, update, delete]
+                section:
+                  type: string
+                  enum:
+                    - activities
+                    - research
+                    - schools
+                    - recommendations
+                    - testing
+                    - academic_records
+                id:
+                  type: string
+                  description: From getCollegeCounseling. Empty for add. Testing uses exam name.
+                item:
+                  type: string
+                  description: JSON object string for add, e.g. {"school_name":"Saarland","group":"europe_main"}. Use {} if unused.
+                patch:
+                  type: string
+                  description: JSON object string for update, e.g. {"notes":"test from GPT"}. Use {} if unused.
+                notes:
+                  type: string
+                  description: Top-level shortcut for update (schools, recs, testing).
+                school_name: { type: string }
+                program: { type: string }
+                title: { type: string }
+                expanded_description: { type: string }
+                common_app_description: { type: string }
+                group:
+                  type: string
+                  enum: [us_need_blind, europe_main]
       responses:
         "200":
           description: Updated document
@@ -1335,25 +1369,28 @@ components:
 
     CollegeWriteItemBody:
       type: object
-      additionalProperties: true
-      required: [action, section, id, item, patch]
+      required: [action, section]
       properties:
         action:
           type: string
           enum: [add, update, delete]
         section:
-          $ref: "#/components/schemas/CollegeCounselingItemSection"
-        id:
           type: string
-          description: Required for update/delete. Empty string for add. Testing uses exam name. Academic records uses period.
+          enum:
+            - activities
+            - research
+            - schools
+            - recommendations
+            - testing
+            - academic_records
+        id: { type: string }
         item:
-          type: object
-          additionalProperties: true
-          description: Card fields for add. Use {} on update/delete. Omit unused keys.
+          type: string
+          description: JSON object string
         patch:
-          type: object
-          additionalProperties: true
-          description: Only fields to change on update. Use {} on add/delete.
+          type: string
+          description: JSON object string
+        notes: { type: string }
 
     CollegeCounselingItemSection:
       type: string

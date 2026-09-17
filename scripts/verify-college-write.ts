@@ -118,6 +118,27 @@ const folded = foldEnvelope(
 assert(folded.current_grade === "11th grade", "nested patch kept");
 assert(folded.us_strategy === "need-blind only", "top-level fields folded");
 
-assert(originalDesc !== undefined, "seed description exists");
+const jsonPatch = normalizeCollegeItemWrite({
+  action: "update",
+  section: "schools",
+  id: firstSchoolId,
+  patch: JSON.stringify({ notes: "test from GPT" }),
+});
+assert(jsonPatch.action === "update_item", "JSON string patch");
+assert(
+  jsonPatch.action === "update_item" && jsonPatch.patch.notes === "test from GPT",
+  "notes from JSON string",
+);
+
+const topLevelNotes = normalizeCollegeItemWrite({
+  action: "update",
+  section: "schools",
+  id: "eu_2",
+  notes: "test from GPT",
+});
+assert(
+  topLevelNotes.action === "update_item" && topLevelNotes.patch.notes === "test from GPT",
+  "top-level notes become patch",
+);
 
 console.log("college counseling write checks passed");

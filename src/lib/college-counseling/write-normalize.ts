@@ -51,6 +51,24 @@ export function asObject(value: unknown): Record<string, unknown> {
   return isPlainObject(value) ? value : {};
 }
 
+export function coerceObject(value: unknown): Record<string, unknown> {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === "{}") return {};
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (!isPlainObject(parsed)) {
+        throw new Error("item/patch JSON must be an object");
+      }
+      return parsed;
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith("item/patch")) throw err;
+      throw new Error("item/patch must be a JSON object string");
+    }
+  }
+  return asObject(value);
+}
+
 /** Drop blank placeholders GPT often fills for unused schema fields. */
 export function omitEmptyLeaves(
   input: Record<string, unknown>,
@@ -171,8 +189,8 @@ export function normalizeCollegeItemWrite(
   }
 
   const leftover = leftoverFields(input);
-  const item = pickFilledObject(input.item, leftover);
-  const patch = pickFilledObject(input.patch, leftover);
+  const item = pickFilledObject(coerceObject(input.item), leftover);
+  const patch = pickFilledObject(coerceObject(input.patch), leftover);
   const id = resolveWriteId(input.id, item, patch);
 
   if (action === "add") {
