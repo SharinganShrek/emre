@@ -4,6 +4,11 @@ import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getHubUserId } from "@/lib/access";
 import { questionContentHash } from "./hash";
+import {
+  mergeQuestionBank,
+  modulesNeedChoices,
+  parseMockHtml,
+} from "./parse-mock-html";
 import { parseResultsReport } from "./parse-report";
 import { scoreAttempt } from "./score";
 import seedFile from "./seed-rw-1.json";
@@ -21,7 +26,10 @@ import type {
 } from "./types";
 import { SECTION_META } from "./types";
 
-const seedJson = seedFile as { report: string };
+const seedJson = seedFile as {
+  report: string;
+  modules?: SatModules;
+};
 
 export const SEED_RW_ATTEMPT_ID = "c48f0054-2026-4000-8000-000000000001";
 
@@ -41,7 +49,15 @@ export function newSecret(prefix: string) {
 }
 
 function asAttempt(row: Record<string, unknown>): SatPracticeAttempt {
-  const modules = (row.modules as SatModules) || { m1: [], m2: [] };
+  const rawModules = (row.modules as SatModules) || { m1: [], m2: [] };
+  const fromHtml = parseMockHtml(String(row.source_html || ""));
+  const modules = mergeQuestionBank(
+    {
+      m1: Array.isArray(rawModules.m1) ? rawModules.m1 : [],
+      m2: Array.isArray(rawModules.m2) ? rawModules.m2 : [],
+    },
+    fromHtml,
+  );
   return {
     id: String(row.id),
     user_id: String(row.user_id),
@@ -50,10 +66,7 @@ function asAttempt(row: Record<string, unknown>): SatPracticeAttempt {
     status: (row.status as SatAttemptStatus) || "ready",
     include_timing_in_report: row.include_timing_in_report !== false,
     source_html: (row.source_html as string | null) ?? null,
-    modules: {
-      m1: Array.isArray(modules.m1) ? modules.m1 : [],
-      m2: Array.isArray(modules.m2) ? modules.m2 : [],
-    },
+    modules,
     answers: (row.answers as SatAnswerMap) || {},
     flagged: (row.flagged as SatFlagMap) || {},
     seconds_spent: (row.seconds_spent as SatTimingMap) || {},
@@ -129,6 +142,11 @@ export async function ensureSettings(
   return inserted.data;
 }
 
+function seedModules() {
+  const parsed = parseResultsReport(seedJson.report, "rw");
+  return mergeQuestionBank(parsed.modules, seedJson.modules || null);
+}
+
 function buildSeedAttempt(userId: string): SatPracticeAttempt {
   const parsed = parseResultsReport(seedJson.report, "rw");
   const now = new Date().toISOString();
@@ -140,7 +158,7 @@ function buildSeedAttempt(userId: string): SatPracticeAttempt {
     status: "completed",
     include_timing_in_report: false,
     source_html: null,
-    modules: parsed.modules,
+    modules: seedModules(),
     answers: parsed.answers,
     flagged: {},
     seconds_spent: {},
@@ -157,10 +175,15 @@ function buildSeedAttempt(userId: string): SatPracticeAttempt {
 }
 
 export function seedContentHashes() {
-  const parsed = parseResultsReport(seedJson.report, "rw");
-  return [...parsed.modules.m1, ...parsed.modules.m2].map((q) =>
-    questionContentHash(q),
-  );
+  const modules = seedModules();
+  return [...modules.m1, ...modules.m2].map((q) => questionContentHash(q));
+}
+
+function seedExternalIds() {
+  const modules = seedModules();
+  return [...modules.m1, ...modules.m2]
+    .map((q) => q.externalId)
+    .filter((id): id is string => Boolean(id));
 }
 
 export async function ensureSeedAttempt(
@@ -175,7 +198,10 @@ export async function ensureSeedAttempt(
       .eq("id", SEED_RW_ATTEMPT_ID)
       .maybeSingle();
     throwIfError(existing.error);
-    if (existing.data) return;
+    if (existing.data) {
+      await repairSeedChoices(supabase, userId);
+      return;
+    }
 
     const seed = buildSeedAttempt(userId);
     const inserted = await supabase.from("sat_practice_attempts").insert({
@@ -207,13 +233,57 @@ export async function ensureSeedAttempt(
       ...(((settings.used_content_hashes as string[]) || []).map(String)),
       ...seedContentHashes(),
     ]);
+    const ids = new Set<string>([
+      ...(((settings.used_external_ids as string[]) || []).map(String)),
+      ...seedExternalIds(),
+    ]);
     await supabase
       .from("sat_practice_settings")
-      .update({ used_content_hashes: [...hashes] })
+      .update({
+        used_content_hashes: [...hashes],
+        used_external_ids: [...ids],
+      })
       .eq("user_id", userId);
   } catch (err) {
     console.error("[sat-practice] seed attempt skipped", err);
   }
+}
+
+async function repairSeedChoices(
+  supabase: SupabaseClient,
+  userId: string,
+) {
+  const existing = await supabase
+    .from("sat_practice_attempts")
+    .select("modules")
+    .eq("user_id", userId)
+    .eq("id", SEED_RW_ATTEMPT_ID)
+    .maybeSingle();
+  throwIfError(existing.error);
+  if (!modulesNeedChoices(existing.data?.modules as SatModules | undefined)) return;
+  const seed = buildSeedAttempt(userId);
+  const { error } = await supabase
+    .from("sat_practice_attempts")
+    .update({ modules: seed.modules })
+    .eq("user_id", userId)
+    .eq("id", SEED_RW_ATTEMPT_ID);
+  throwIfError(error);
+  const settings = await ensureSettings(supabase, userId);
+  const hashes = new Set<string>([
+    ...(((settings.used_content_hashes as string[]) || []).map(String)),
+    ...seedContentHashes(),
+  ]);
+  const ids = new Set<string>([
+    ...(((settings.used_external_ids as string[]) || []).map(String)),
+    ...seedExternalIds(),
+  ]);
+  await supabase
+    .from("sat_practice_settings")
+    .update({
+      used_content_hashes: [...hashes],
+      used_external_ids: [...ids],
+    })
+    .eq("user_id", userId);
 }
 
 export async function listAttempts(
@@ -387,7 +457,11 @@ export async function createAttemptFromIngest(
   throwIfError(listed.error);
   const title = nextTitle(listed.data || [], body.section);
   const moduleToken = newSecret("mod_");
-  const modules: SatModules = { m1: body.m1 || [], m2: body.m2 || [] };
+  const fromHtml = parseMockHtml(body.html || "");
+  const modules: SatModules = mergeQuestionBank(
+    { m1: body.m1 || [], m2: body.m2 || [] },
+    fromHtml,
+  );
   const { data, error } = await supabase
     .from("sat_practice_attempts")
     .insert({
@@ -430,9 +504,24 @@ export async function saveAttemptHtml(
   html: string,
   userId = getHubUserId(),
 ) {
+  const current = await supabase
+    .from("sat_practice_attempts")
+    .select("modules")
+    .eq("user_id", userId)
+    .eq("id", attemptId)
+    .maybeSingle();
+  throwIfError(current.error);
+  const merged = mergeQuestionBank(
+    (current.data?.modules as SatModules) || { m1: [], m2: [] },
+    parseMockHtml(html),
+  );
   const { error } = await supabase
     .from("sat_practice_attempts")
-    .update({ source_html: html, has_html: Boolean(html) })
+    .update({
+      source_html: html,
+      has_html: Boolean(html),
+      modules: merged,
+    })
     .eq("user_id", userId)
     .eq("id", attemptId);
   throwIfError(error);

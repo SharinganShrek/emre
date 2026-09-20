@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, ExternalLink, Loader2 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Download, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 import type {
   SatPracticeAttemptSummary,
@@ -201,25 +201,41 @@ function ScoreCard({
             <span className="size-4" />
           )}
         </div>
-        <div className="flex items-baseline justify-between bg-[#1473e6] px-4 py-2 text-white">
-          <span className="text-xs font-bold uppercase">{attempt.title}</span>
-          <span className="text-[11px] opacity-90">{dateLabel}</span>
-        </div>
-        <div className="px-4 py-5">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-            {completed ? "Estimated section score" : attempt.status.replace("_", " ")}
-          </p>
-          <p className="mt-1 text-5xl font-semibold tabular-nums">
-            {completed ? attempt.scaled_estimated ?? "—" : "—"}
-          </p>
-          <p className="text-[11px] text-muted-2">200-800 · {meta.short}</p>
-          {completed ? (
+      </button>
+      {completed ? (
+        <Link href={`/sat-practice/${attempt.id}`} className="block">
+          <div className="flex items-baseline justify-between bg-[#1473e6] px-4 py-2 text-white">
+            <span className="text-xs font-bold uppercase">{attempt.title}</span>
+            <span className="text-[11px] opacity-90">{dateLabel}</span>
+          </div>
+          <div className="px-4 py-5">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+              Estimated section score
+            </p>
+            <p className="mt-1 text-5xl font-semibold tabular-nums">
+              {attempt.scaled_estimated ?? "—"}
+            </p>
+            <p className="text-[11px] text-muted-2">200-800 · {meta.short}</p>
             <p className="mt-1 text-xs text-muted">
               {attempt.raw_correct} / {attempt.raw_total} correct
             </p>
-          ) : null}
+          </div>
+        </Link>
+      ) : (
+        <div>
+          <div className="flex items-baseline justify-between bg-[#1473e6] px-4 py-2 text-white">
+            <span className="text-xs font-bold uppercase">{attempt.title}</span>
+            <span className="text-[11px] opacity-90">{dateLabel}</span>
+          </div>
+          <div className="px-4 py-5">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+              {attempt.status.replace("_", " ")}
+            </p>
+            <p className="mt-1 text-5xl font-semibold tabular-nums">—</p>
+            <p className="text-[11px] text-muted-2">200-800 · {meta.short}</p>
+          </div>
         </div>
-      </button>
+      )}
       <div className="space-y-2 border-t border-border px-4 py-3 text-sm">
         <Row
           label="Reading and Writing"
@@ -239,33 +255,6 @@ function ScoreCard({
               : "—"
           }
         />
-      </div>
-      <div className="space-y-2 px-4 pb-4">
-        <Link
-          href={`/sat-practice/${attempt.id}`}
-          className={cn(
-            buttonVariants({ variant: "primary" }),
-            "w-full bg-[#f9dc1c] text-[#111] hover:bg-[#f5d000]",
-            !completed && "pointer-events-none opacity-50",
-          )}
-        >
-          Score Details
-        </Link>
-        <a
-          href={meta.khanUrl}
-          target="_blank"
-          rel="noreferrer"
-          className={cn(buttonVariants({ variant: "outline" }), "w-full")}
-        >
-          Practice on Khan Academy
-          <ExternalLink />
-        </a>
-        <Link
-          href={`/sat-practice/${attempt.id}#tailored`}
-          className={cn(buttonVariants({ variant: "ghost" }), "w-full text-xs")}
-        >
-          Get Tailored Practice
-        </Link>
       </div>
     </article>
   );

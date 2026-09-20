@@ -3,12 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { flattenQuestions } from "@/lib/sat-practice/report";
 import type { SatPracticeAttempt, SatQuestionRow } from "@/lib/sat-practice/types";
-import { SECTION_META } from "@/lib/sat-practice/types";
 
 type Tab = "all" | "rw" | "math";
 
@@ -95,7 +94,6 @@ export default function SatPracticeDetailsPage() {
   }
 
   const date = new Date(attempt.completed_at || attempt.created_at);
-  const misses = filtered.filter((r) => !r.isCorrect);
 
   return (
     <div className="space-y-8">
@@ -249,40 +247,10 @@ export default function SatPracticeDetailsPage() {
         </pre>
       </section>
 
-      <section id="tailored" className="rounded-2xl border border-border p-5">
-        <h2 className="text-lg font-semibold">Get Tailored Practice</h2>
-        <p className="mt-1 text-sm text-muted">
-          Misses from this mock. Build the next {SECTION_META[attempt.section].short}{" "}
-          mock in the Opera extension — used questions stay skipped on Emre OS.
-        </p>
-        {misses.length === 0 ? (
-          <p className="mt-3 text-sm">No misses on this filtered set.</p>
-        ) : (
-          <ul className="mt-3 space-y-1 text-sm">
-            {misses.map((row) => (
-              <li key={row.key}>
-                Module {row.module} Q{row.index + 1} · {row.question.skill} ·{" "}
-                {row.question.difficulty} · you {row.chosen}, correct {row.correct}
-              </li>
-            ))}
-          </ul>
-        )}
-        <a
-          href={SECTION_META[attempt.section].khanUrl}
-          target="_blank"
-          rel="noreferrer"
-          className={cn(buttonVariants({ variant: "outline" }), "mt-4")}
-        >
-          Practice on Khan Academy
-        </a>
-      </section>
-
       {reviewRow ? (
         <ReviewModal
           attemptTitle={`${attempt.title} — ${date.toLocaleDateString()}`}
           row={reviewRow}
-          showExplain={showCorrect}
-          onShowExplain={setShowCorrect}
           onClose={() => setReview(null)}
           onPrev={() => setReview((i) => (i == null ? 0 : Math.max(0, i - 1)))}
           onNext={() =>
@@ -323,20 +291,25 @@ function Stat({ value, label }: { value: number; label: string }) {
 function ReviewModal({
   attemptTitle,
   row,
-  showExplain,
-  onShowExplain,
   onClose,
   onPrev,
   onNext,
 }: {
   attemptTitle: string;
   row: SatQuestionRow;
-  showExplain: boolean;
-  onShowExplain: (v: boolean) => void;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
 }) {
+  const [showExplain, setShowExplain] = useState(false);
+  useEffect(() => {
+    setShowExplain(false);
+  }, [row.key]);
+
+  const correctSet = new Set(
+    (row.question.correctAnswers || []).map((value) => value.toUpperCase()),
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
       <button
@@ -360,19 +333,45 @@ function ReviewModal({
             <p className="text-sm font-semibold">
               {row.sectionLabel}: Question {row.number}
             </p>
-            <Rich html={(row.question.stimulus || "") + (row.question.stimulus && row.question.prompt ? "\n\n" : "") + (row.question.prompt || "")} />
-            {row.question.answerOptions?.length ? (
-              <ol className="mt-4 list-none space-y-1 text-sm">
-                {row.question.answerOptions.map((opt) => (
-                  <li key={opt.letter} className="flex gap-2">
-                    <span>{opt.letter}.</span>
-                    <span
-                      dangerouslySetInnerHTML={{ __html: opt.content }}
-                    />
-                  </li>
-                ))}
-              </ol>
+            {row.question.externalId ? (
+              <p className="mt-1 font-mono text-[11px] text-muted">
+                {row.question.externalId}
+              </p>
             ) : null}
+            <Rich html={row.question.stimulus || ""} />
+            <Rich html={row.question.prompt || ""} />
+            {row.question.answerOptions?.length ? (
+              <ul className="mt-4 space-y-2">
+                {row.question.answerOptions.map((opt) => {
+                  const letter = opt.letter.toUpperCase();
+                  const chosen = row.chosen.toUpperCase() === letter;
+                  const isCorrect = correctSet.has(letter);
+                  return (
+                    <li
+                      key={opt.letter}
+                      className={cn(
+                        "flex gap-3 rounded-lg border px-3 py-2 text-sm",
+                        chosen && !showExplain && "border-primary",
+                        showExplain && isCorrect && "border-success bg-success/10",
+                        showExplain && chosen && !isCorrect && "border-danger bg-danger/10",
+                      )}
+                    >
+                      <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">
+                        {opt.letter}
+                      </span>
+                      <span
+                        className="min-w-0 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: opt.content }}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="mt-4 text-sm text-muted">
+                Answer choices were not stored for this question.
+              </p>
+            )}
           </div>
           <div className="p-5">
             <p className="text-sm font-semibold">Answer</p>
@@ -384,8 +383,8 @@ function ReviewModal({
                   : "bg-danger/15 text-danger",
               )}
             >
-              You selected answer {row.chosen}. The correct answer is{" "}
-              {row.correct}.
+              You selected answer {row.chosen}.
+              {showExplain ? ` The correct answer is ${row.correct}.` : ""}
             </div>
             {showExplain && row.question.rationale ? (
               <div className="mt-4 text-sm leading-relaxed">
@@ -400,7 +399,7 @@ function ReviewModal({
             <input
               type="checkbox"
               checked={showExplain}
-              onChange={(e) => onShowExplain(e.target.checked)}
+              onChange={(e) => setShowExplain(e.target.checked)}
             />
             Show correct answer and explanation
           </label>
