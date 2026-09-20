@@ -3,10 +3,17 @@ import type {
   SatDifficulty,
   SatDomainStat,
   SatModules,
+  SatPart,
   SatQuestion,
   SatSection,
+  SatSectionModules,
 } from "./types";
-import { answerKey, MATH_DOMAIN_ORDER, RW_DOMAIN_ORDER } from "./types";
+import {
+  answerKey,
+  emptySectionModules,
+  MATH_DOMAIN_ORDER,
+  RW_DOMAIN_ORDER,
+} from "./types";
 
 const DIFF_CODE: Record<string, "E" | "M" | "H"> = {
   E: "E",
@@ -49,7 +56,7 @@ function interpolate(raw: number, max: number, points: Array<[number, number]>) 
 }
 
 /** Estimated section scale (200–800). Not an official College Board conversion. */
-export function estimateScaledScore(section: SatSection, raw: number) {
+export function estimateScaledScore(section: SatPart, raw: number) {
   if (section === "rw") {
     return interpolate(raw, 54, [
       [0, 200],
@@ -79,7 +86,7 @@ export function estimateScaledScore(section: SatSection, raw: number) {
   ]);
 }
 
-function canonicalDomain(section: SatSection, domain: string, domainCode?: string) {
+function canonicalDomain(section: SatPart, domain: string, domainCode?: string) {
   const code = String(domainCode || "").toUpperCase();
   if (section === "rw") {
     if (code === "CAS" || /craft/i.test(domain)) return "Craft and Structure";
@@ -106,7 +113,12 @@ function barsFromDifficulty(easy: [number, number], medium: [number, number], ha
   return Math.max(0, Math.min(7, fill(easy, 3) + fill(medium, 2) + fill(hard, 2)));
 }
 
-export function scoreAttempt(section: SatSection, modules: SatModules, answers: SatAnswerMap) {
+function scoreSection(
+  section: SatPart,
+  modules: SatSectionModules,
+  answers: SatAnswerMap,
+  keySection?: SatPart,
+) {
   const order = section === "rw" ? RW_DOMAIN_ORDER : MATH_DOMAIN_ORDER;
   const buckets = new Map<string, SatDomainStat>();
   for (const domain of order) {
@@ -129,7 +141,7 @@ export function scoreAttempt(section: SatSection, modules: SatModules, answers: 
   const visit = (qs: SatQuestion[], module: 1 | 2) => {
     qs.forEach((q, i) => {
       total += 1;
-      const ok = answersMatch(answers[answerKey(module, i)], q.correctAnswers);
+      const ok = answersMatch(answers[answerKey(module, i, keySection)], q.correctAnswers);
       if (ok) correct += 1;
       const domain = canonicalDomain(section, q.domain, q.domainCode);
       let row = buckets.get(domain);
@@ -182,4 +194,18 @@ export function scoreAttempt(section: SatSection, modules: SatModules, answers: 
     scaled_estimated: estimateScaledScore(section, correct),
     domain_stats,
   };
+}
+
+export function scoreAttempt(section: SatSection, modules: SatModules, answers: SatAnswerMap) {
+  if (section === "full") {
+    const rw = scoreSection("rw", modules.rw || emptySectionModules(), answers, "rw");
+    const math = scoreSection("math", modules.math || emptySectionModules(), answers, "math");
+    return {
+      raw_correct: rw.raw_correct + math.raw_correct,
+      raw_total: rw.raw_total + math.raw_total,
+      scaled_estimated: (rw.scaled_estimated || 0) + (math.scaled_estimated || 0),
+      domain_stats: [...rw.domain_stats, ...math.domain_stats],
+    };
+  }
+  return scoreSection(section, modules, answers);
 }

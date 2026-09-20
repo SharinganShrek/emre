@@ -1,7 +1,7 @@
 openapi: 3.1.1
 info:
   title: Emre OS AI Actions
-  version: 1.3.0
+  version: 1.3.1
   description: |
     Safe, AI-ready HTTP API for Emre OS (personal life dashboard).
 
@@ -981,11 +981,11 @@ paths:
     get:
       operationId: getSatPracticeSummary
       tags: [SAT Practice]
-      summary: Completed R&W and Math mock overview
+      summary: Completed R&W, Math, and official Bluebook SAT overview
       description: |
-        R&W and Math are separate mocks, not a combined 1600 SAT.
-        scaled_estimated is unofficial. Use getSatPracticeReport for the full
-        results text with rationales.
+        QBank R&W and Math are separate mocks; scaled_estimated is unofficial.
+        Bluebook imports are official 400–1600 SAT scores (section=full,
+        source=bluebook). Use getSatPracticeReport for the full results text.
       parameters:
         - name: api_key
           in: query
@@ -1021,7 +1021,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [rw, math]
+            enum: [rw, math, full]
       responses:
         "200":
           description: Attempt cards

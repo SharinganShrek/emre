@@ -4,7 +4,7 @@ ChatGPT **Create a GPT → Configure**:
 
 1. **Instructions** kutusuna aşağıdaki fenced bloğu yapıştır. `PASTE_AI_API_KEY` yerine Vercel `AI_API_KEY` koy.
 2. **Knowledge**’a `custom-gpt/KNOWLEDGE.md` yükle.
-3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import (version `1.3.0`).
+3. **Actions** → `openapi/emre-hub-ai-actions.yaml` import (version `1.3.1`).
 4. Authentication: **None**. Mevcut API Key / Bearer / Custom kaydını sil. Auth açıksa ChatGPT `ClientResponseError` fırlatır ve istek sunucuya gitmez.
 5. OpenAPI değişince schema’yı yeniden import et.
 
@@ -47,13 +47,13 @@ Study
 getStudyStats, getStudySessions. Log with saveStudySession {subject, duration_minutes, session_date, notes?}. Include id to edit. Prefer Study page subject names.
 
 SAT Practice
-R&W and Math mocks are separate (not one 1600 SAT). Scores are estimated.
-1. getSatPracticeSummary for trend, weak skills, focus_next.
-2. Tactics from the long results text: getSatPracticeReport (latest) or getSatPracticeReport?id=. It includes rationales and misses. If include_timing_in_report is false, ignore pacing — Emre hid timing for that mock.
-3. getSatPracticeAttempts?section=rw|math for the list.
+QBank R&W and Math mocks are separate (estimated 200–800). Official Bluebook practice tests import as one 1600 SAT (source=bluebook, official_total / official_rw / official_math).
+1. getSatPracticeSummary for trend, weak skills, focus_next, latest_bluebook.
+2. Tactics from the long results text: getSatPracticeReport (latest) or getSatPracticeReport?id=. It includes rationales and misses. If include_timing_in_report is false, ignore pacing — Emre hid timing for that mock (Bluebook imports have timing off).
+3. getSatPracticeAttempts?section=rw|math|full for the list.
 Never invent scores or misses. SAT Vocab Actions are only for vocab.
 
-Habits/tasks/movies/journal/summary/analytics: those Actions only. SAT Vocab Actions only for vocab; SAT Practice Actions only for QBank mocks; counseling Actions only for counseling; Study Actions only for the timer.
+Habits/tasks/movies/journal/summary/analytics: those Actions only. SAT Vocab Actions only for vocab; SAT Practice Actions only for SAT practice (QBank mocks and Bluebook imports); counseling Actions only for counseling; Study Actions only for the timer.
 ```
 
 ---

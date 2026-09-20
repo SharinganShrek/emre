@@ -50,10 +50,12 @@ export default function SatPracticeDetailsPage() {
   }, [attempt]);
 
   const filtered = useMemo(() => {
-    if (tab === "all") return rows;
-    if (tab === "rw") return attempt?.section === "rw" ? rows : [];
-    return attempt?.section === "math" ? rows : [];
-  }, [attempt, rows, tab]);
+    const list =
+      tab === "all"
+        ? rows
+        : rows.filter((row) => row.sectionKey === tab);
+    return list.map((row, index) => ({ ...row, number: index + 1 }));
+  }, [rows, tab]);
 
   const visible =
     pageSize === "all" ? filtered : filtered.slice(0, pageSize);
@@ -351,7 +353,6 @@ function ReviewModal({
                       key={opt.letter}
                       className={cn(
                         "flex gap-3 rounded-lg border px-3 py-2 text-sm",
-                        chosen && !showExplain && "border-primary",
                         showExplain && isCorrect && "border-success bg-success/10",
                         showExplain && chosen && !isCorrect && "border-danger bg-danger/10",
                       )}
@@ -374,23 +375,27 @@ function ReviewModal({
             )}
           </div>
           <div className="p-5">
-            <p className="text-sm font-semibold">Answer</p>
-            <div
-              className={cn(
-                "mt-2 rounded-md px-3 py-2 text-sm font-medium",
-                row.isCorrect
-                  ? "bg-success/15 text-success"
-                  : "bg-danger/15 text-danger",
-              )}
-            >
-              You selected answer {row.chosen}.
-              {showExplain ? ` The correct answer is ${row.correct}.` : ""}
-            </div>
-            {showExplain && row.question.rationale ? (
-              <div className="mt-4 text-sm leading-relaxed">
-                <p className="font-semibold">Rationale</p>
-                <Rich html={row.question.rationale} />
-              </div>
+            {showExplain ? (
+              <>
+                <p className="text-sm font-semibold">Answer</p>
+                <div
+                  className={cn(
+                    "mt-2 rounded-md px-3 py-2 text-sm font-medium",
+                    row.isCorrect
+                      ? "bg-success/15 text-success"
+                      : "bg-danger/15 text-danger",
+                  )}
+                >
+                  You selected answer {row.chosen}. The correct answer is{" "}
+                  {row.correct}.
+                </div>
+                {row.question.rationale ? (
+                  <div className="mt-4 text-sm leading-relaxed">
+                    <p className="font-semibold">Rationale</p>
+                    <Rich html={row.question.rationale} />
+                  </div>
+                ) : null}
+              </>
             ) : null}
           </div>
         </div>

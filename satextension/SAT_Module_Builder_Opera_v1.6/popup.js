@@ -1,5 +1,5 @@
 const $ = s => document.querySelector(s);
-const statusEl=$('#status'), dot=$('#dot'), build=$('#build'), buildDownload=$('#buildDownload'), downloadCurrent=$('#downloadCurrent'), log=$('#log');
+const statusEl=$('#status'), dot=$('#dot'), build=$('#build'), buildDownload=$('#buildDownload'), downloadCurrent=$('#downloadCurrent'), importBluebook=$('#importBluebook'), log=$('#log');
 const APP_KEY='satBuilder.app';
 
 function setStatus(ok,text,hasCurrent=false){statusEl.textContent=text;dot.className='dot '+(ok?'ok':'bad');build.disabled=!ok;buildDownload.disabled=!ok;downloadCurrent.disabled=!hasCurrent;}
@@ -77,6 +77,21 @@ downloadCurrent.addEventListener('click',async()=>{
     write(`Downloaded exact current mock: ${r.filename}`);
   }catch(e){write('ERROR: '+e.message);}
   finally{await refresh();}
+});
+
+importBluebook.addEventListener('click',async()=>{
+  importBluebook.disabled=true; build.disabled=true; buildDownload.disabled=true; log.textContent='';
+  write('Importing official Bluebook tests from My Practice…');
+  try{
+    const r=await chrome.runtime.sendMessage({type:'importBluebook'});
+    if(!r?.ok) throw new Error(r?.error||'Unknown error');
+    if(r.imported?.length) r.imported.forEach(x=>write('Imported: '+x));
+    else write('No new SAT practice tests imported.');
+    if(r.skipped?.length) r.skipped.forEach(x=>write('Skipped: '+x));
+    if(r.warnings?.length) r.warnings.forEach(x=>write('Warning: '+x));
+    write('Open Emre OS → SAT Practice to review official scores.');
+  }catch(e){write('ERROR: '+e.message);}
+  finally{importBluebook.disabled=false; await refresh();}
 });
 
 $('#reset').addEventListener('click', async ()=>{

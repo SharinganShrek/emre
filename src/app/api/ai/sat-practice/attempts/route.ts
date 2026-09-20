@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const section = url.searchParams.get("section");
     const filtered =
-      section === "rw" || section === "math"
+      section === "rw" || section === "math" || section === "full"
         ? attempts.filter((a) => a.section === section)
         : attempts;
     await logAiAction({

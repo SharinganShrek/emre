@@ -73,10 +73,10 @@ Include `id` to edit a block. Prefer names from the Study page subject list.
 
 ## SAT Practice
 
-`getSatPracticeSummary` — completed R&W and Math mocks (separate, not a 1600 total), weak skills, focus_next.
+`getSatPracticeSummary` — completed QBank R&W/Math mocks (separate, estimated) plus official Bluebook SATs (`latest_bluebook`, `official_total`), weak skills, focus_next.
 
-`getSatPracticeAttempts?section=rw` or `section=math`
+`getSatPracticeAttempts?section=rw` or `section=math` or `section=full`
 
 `getSatPracticeReport` (latest) or `getSatPracticeReport?id=<uuid>`
-Returns `report`: the long SAT® Results text (domains, every question, your answer, correct answer, rationale). `include_timing_in_report` false means time spent is omitted — do not infer pacing. `misses_only=true` skips the long string.
+Returns `report`: the long SAT® Results text (domains, every question, your answer, correct answer, rationale). Official Bluebook imports include TOTAL SCORE. `include_timing_in_report` false means time spent is omitted — do not infer pacing. `misses_only=true` skips the long string.
 

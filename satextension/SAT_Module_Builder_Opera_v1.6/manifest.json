@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SAT Module Builder",
-  "version": "1.6.0",
-  "description": "Builds timed SAT Reading & Writing (27+27) or Math (22+22) mocks from the Student Question Bank and syncs them to Emre OS.",
+  "version": "1.6.2",
+  "description": "Builds timed SAT R&W or Math QBank mocks and imports official Bluebook practice tests into Emre OS.",
   "permissions": [
     "downloads",
     "storage",
@@ -32,7 +32,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://mypractice.collegeboard.org/questionbank/*"
+        "https://mypractice.collegeboard.org/*"
       ],
       "js": [
         "page-hook.js"
@@ -42,7 +42,7 @@
     },
     {
       "matches": [
-        "https://mypractice.collegeboard.org/questionbank/*"
+        "https://mypractice.collegeboard.org/*"
       ],
       "js": [
         "bridge.js"

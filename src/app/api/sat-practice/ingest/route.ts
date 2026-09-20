@@ -7,6 +7,7 @@ import {
   completeModule,
   createAttemptFromIngest,
   saveAttemptHtml,
+  upsertBluebookAttempt,
   usedQuestionLists,
   verifyIngestToken,
 } from "@/lib/sat-practice/repository";
@@ -110,6 +111,16 @@ export async function POST(request: Request) {
     }
 
     const ctx = await requireIngest(request);
+    const url = new URL(request.url);
+    const opName = `${op} ${url.searchParams.get("op") || ""}`.toLowerCase();
+    const looksBluebook =
+      opName.includes("bluebook") ||
+      Boolean(body.roster_id || body.rosterEntryId) ||
+      Boolean(
+        body.modules &&
+          typeof body.modules === "object" &&
+          (body.modules as { rw?: unknown; math?: unknown }).rw,
+      );
     if (op === "html") {
       const attemptId = String(body.attempt_id || body.attemptId || "");
       const html = typeof body.html === "string" ? body.html : "";
@@ -129,6 +140,29 @@ export async function POST(request: Request) {
         ctx.userId,
       );
       return json({ ok: true, ...used });
+    }
+    if (looksBluebook) {
+      const rosterId = String(body.roster_id || body.rosterEntryId || "");
+      if (!rosterId) {
+        return json({ ok: false, error: "roster_id required" }, 400);
+      }
+      const attempt = await upsertBluebookAttempt(
+        ctx.supabase,
+        {
+          roster_id: rosterId,
+          title: typeof body.title === "string" ? body.title : undefined,
+          started_at: typeof body.started_at === "string" ? body.started_at : undefined,
+          official_total:
+            body.official_total == null ? null : Number(body.official_total),
+          official_rw: body.official_rw == null ? null : Number(body.official_rw),
+          official_math:
+            body.official_math == null ? null : Number(body.official_math),
+          modules: body.modules,
+          answers: body.answers,
+        },
+        ctx.userId,
+      );
+      return json({ ok: true, attempt, attempt_id: attempt.id, title: attempt.title });
     }
 
     const section: SatSection = body.section === "math" ? "math" : "rw";

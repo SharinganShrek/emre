@@ -1,4 +1,5 @@
-import type { SatModules, SatQuestion } from "./types";
+import type { SatAnswerMap, SatModules, SatQuestion, SatSectionModules } from "./types";
+import { allQuestions } from "./types";
 
 const DATA_TAG = '<script id="DATA" type="application/json">';
 
@@ -23,7 +24,7 @@ export function parseMockHtml(html: string): SatModules | null {
 }
 
 export function modulesNeedChoices(modules: SatModules | null | undefined) {
-  const qs = [...(modules?.m1 || []), ...(modules?.m2 || [])];
+  const qs = allQuestions(modules);
   if (!qs.length) return true;
   return qs.some((q) => !q.answerOptions?.length);
 }
@@ -36,6 +37,19 @@ export function mergeQuestionBank(
   return {
     m1: mergeList(base.m1, extra.m1),
     m2: mergeList(base.m2, extra.m2),
+    rw: mergeNested(base.rw, extra.rw),
+    math: mergeNested(base.math, extra.math),
+  };
+}
+
+function mergeNested(
+  base?: SatSectionModules,
+  extra?: SatSectionModules,
+): SatSectionModules | undefined {
+  if (!base && !extra) return undefined;
+  return {
+    m1: mergeList(base?.m1, extra?.m1),
+    m2: mergeList(base?.m2, extra?.m2),
   };
 }
 
@@ -73,7 +87,26 @@ function normalizeQuestions(raw: unknown): SatQuestion[] {
   return raw.map(normalizeQuestion);
 }
 
-function normalizeQuestion(raw: unknown): SatQuestion {
+export function normalizeSectionModules(raw: unknown): SatSectionModules {
+  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    m1: normalizeQuestions(obj.m1),
+    m2: normalizeQuestions(obj.m2),
+  };
+}
+
+export function normalizeAnswerMap(raw: unknown): SatAnswerMap {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: SatAnswerMap = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (value == null) continue;
+    const text = String(value).trim();
+    if (text) out[key] = text;
+  }
+  return out;
+}
+
+export function normalizeQuestion(raw: unknown): SatQuestion {
   const q = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const opts = Array.isArray(q.answerOptions) ? q.answerOptions : [];
   const correct = Array.isArray(q.correctAnswers)

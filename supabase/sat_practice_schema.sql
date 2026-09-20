@@ -2,7 +2,8 @@
 -- Emre Hub — SAT Practice attempts (additive)
 -- =============================================================================
 -- Run in Supabase SQL Editor after mvp_schema / phase2_schema.
--- Stores QBank-built R&W and Math mocks separately (not a combined 1600 SAT).
+-- Stores QBank-built R&W and Math mocks separately, plus official Bluebook
+-- full SAT imports (section = 'full', source = 'bluebook').
 -- =============================================================================
 
 create extension if not exists "pgcrypto";
@@ -51,7 +52,10 @@ create policy "sat_practice_settings_delete_own"
 create table if not exists public.sat_practice_attempts (
   id                       uuid primary key default gen_random_uuid(),
   user_id                  uuid not null,
-  section                  text not null check (section in ('rw', 'math')),
+  section                  text not null check (section in ('rw', 'math', 'full')),
+  source                   text not null default 'qbank'
+    check (source in ('qbank', 'bluebook')),
+  roster_id                text,
   title                    text not null,
   status                   text not null default 'ready'
     check (status in ('ready', 'module1_done', 'completed')),
@@ -68,6 +72,9 @@ create table if not exists public.sat_practice_attempts (
   raw_correct              int,
   raw_total                int,
   scaled_estimated         int,
+  official_total           int,
+  official_rw              int,
+  official_math            int,
   domain_stats             jsonb,
   started_at               timestamptz not null default now(),
   module1_completed_at     timestamptz,
@@ -100,3 +107,38 @@ create policy "sat_practice_attempts_update_own"
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "sat_practice_attempts_delete_own"
   on public.sat_practice_attempts for delete using (auth.uid() = user_id);
+
+-- Additive upgrades if sat_practice_attempts already existed from an earlier run.
+alter table public.sat_practice_attempts
+  add column if not exists source text;
+alter table public.sat_practice_attempts
+  add column if not exists roster_id text;
+alter table public.sat_practice_attempts
+  add column if not exists official_total int;
+alter table public.sat_practice_attempts
+  add column if not exists official_rw int;
+alter table public.sat_practice_attempts
+  add column if not exists official_math int;
+
+update public.sat_practice_attempts
+  set source = 'qbank'
+  where source is null;
+
+alter table public.sat_practice_attempts
+  alter column source set default 'qbank';
+alter table public.sat_practice_attempts
+  alter column source set not null;
+
+alter table public.sat_practice_attempts drop constraint if exists sat_practice_attempts_section_check;
+alter table public.sat_practice_attempts
+  add constraint sat_practice_attempts_section_check
+  check (section in ('rw', 'math', 'full'));
+
+alter table public.sat_practice_attempts drop constraint if exists sat_practice_attempts_source_check;
+alter table public.sat_practice_attempts
+  add constraint sat_practice_attempts_source_check
+  check (source in ('qbank', 'bluebook'));
+
+create unique index if not exists sat_practice_attempts_roster_idx
+  on public.sat_practice_attempts(user_id, roster_id)
+  where roster_id is not null;

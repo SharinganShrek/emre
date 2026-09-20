@@ -43,7 +43,7 @@ Supabase SQL Editor’da şunu çalıştır:
 supabase/sat_practice_schema.sql
 ```
 
-Sonra Vercel deploy. SAT Practice sayfasından **Generate connect token** alıp Opera extension v1.6 popup’ına yapıştır. Custom GPT Actions’ı `1.3.0` olarak yeniden import et (`getSatPracticeSummary`, `getSatPracticeReport`).
+Sonra Vercel deploy. SAT Practice sayfasından **Generate connect token** alıp Opera extension v1.6.1 popup’ına yapıştır. Custom GPT Actions’ı `1.3.1` olarak yeniden import et (`getSatPracticeSummary`, `getSatPracticeReport`). SQL’i yeniden çalıştır (Bluebook kolonları için ALTER var). Extension’da **Import Bluebook tests** My Practice dashboard’dan resmi 1600 skorları çeker.
 
 ### SAT Vocab (yeni)
 

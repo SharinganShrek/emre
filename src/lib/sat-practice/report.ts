@@ -3,12 +3,14 @@ import type {
   SatAnswerMap,
   SatFlagMap,
   SatModules,
+  SatPart,
   SatPracticeAttempt,
   SatQuestionRow,
   SatSection,
+  SatSectionModules,
   SatTimingMap,
 } from "./types";
-import { answerKey, SECTION_META } from "./types";
+import { answerKey, emptySectionModules, isFullSat, SECTION_META } from "./types";
 
 export function formatSpent(seconds: number | null | undefined) {
   if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "";
@@ -18,6 +20,41 @@ export function formatSpent(seconds: number | null | undefined) {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
+function pushModule(
+  rows: SatQuestionRow[],
+  qs: SatSectionModules["m1"],
+  module: 1 | 2,
+  sectionKey: SatPart,
+  answers: SatAnswerMap,
+  flagged: SatFlagMap,
+  secondsSpent: SatTimingMap,
+  prefixed: boolean,
+) {
+  const sectionLabel = SECTION_META[sectionKey].label;
+  (qs || []).forEach((question, index) => {
+    const answerId = prefixed
+      ? answerKey(module, index, sectionKey)
+      : answerKey(module, index);
+    const chosen = answers[answerId] || "";
+    const isCorrect = answersMatch(chosen, question.correctAnswers);
+    rows.push({
+      key: answerId,
+      module,
+      index,
+      number: rows.length + 1,
+      sectionKey,
+      sectionLabel,
+      question,
+      chosen: chosen || "—",
+      correct: (question.correctAnswers || []).join(", ") || "—",
+      isCorrect,
+      flagged: !!flagged[answerId],
+      secondsSpent:
+        secondsSpent[answerId] == null ? null : Number(secondsSpent[answerId]),
+    });
+  });
+}
+
 export function flattenQuestions(
   section: SatSection,
   modules: SatModules,
@@ -25,31 +62,20 @@ export function flattenQuestions(
   flagged: SatFlagMap = {},
   secondsSpent: SatTimingMap = {},
 ): SatQuestionRow[] {
-  const sectionLabel = SECTION_META[section].label;
   const rows: SatQuestionRow[] = [];
-  const push = (qs: typeof modules.m1, module: 1 | 2) => {
-    (qs || []).forEach((question, index) => {
-      const key = answerKey(module, index);
-      const chosen = answers[key] || "";
-      const isCorrect = answersMatch(chosen, question.correctAnswers);
-      rows.push({
-        key,
-        module,
-        index,
-        number: rows.length + 1,
-        sectionLabel,
-        question,
-        chosen: chosen || "—",
-        correct: (question.correctAnswers || []).join(", ") || "—",
-        isCorrect,
-        flagged: !!flagged[key],
-        secondsSpent:
-          secondsSpent[key] == null ? null : Number(secondsSpent[key]),
-      });
-    });
-  };
-  push(modules.m1, 1);
-  push(modules.m2, 2);
+  if (section === "full" || modules.rw || modules.math) {
+    const pushSection = (part: SatPart, mods: SatSectionModules | undefined) => {
+      const block = mods || emptySectionModules();
+      pushModule(rows, block.m1, 1, part, answers, flagged, secondsSpent, true);
+      pushModule(rows, block.m2, 2, part, answers, flagged, secondsSpent, true);
+    };
+    pushSection("rw", modules.rw);
+    pushSection("math", modules.math);
+    return rows;
+  }
+  const part: SatPart = section === "math" ? "math" : "rw";
+  pushModule(rows, modules.m1, 1, part, answers, flagged, secondsSpent, false);
+  pushModule(rows, modules.m2, 2, part, answers, flagged, secondsSpent, false);
   return rows;
 }
 
@@ -63,6 +89,8 @@ export function buildResultsReport(
   attempt: Pick<
     SatPracticeAttempt,
     | "section"
+    | "source"
+    | "title"
     | "modules"
     | "answers"
     | "flagged"
@@ -70,6 +98,9 @@ export function buildResultsReport(
     | "include_timing_in_report"
     | "raw_correct"
     | "raw_total"
+    | "official_total"
+    | "official_rw"
+    | "official_math"
     | "domain_stats"
   >,
   opts?: { includeTiming?: boolean },
@@ -89,13 +120,20 @@ export function buildResultsReport(
     attempt.domain_stats && attempt.domain_stats.length
       ? attempt.domain_stats
       : [];
+  const official = isFullSat(attempt);
 
-  const lines = [
-    "SAT®",
-    "Results",
-    `${correct} / ${total} correct`,
-    "Domain\tCorrect",
-  ];
+  const lines = ["SAT®", "Results"];
+  if (official && attempt.title) lines.push(String(attempt.title));
+  if (official && attempt.official_total != null) {
+    lines.push(`TOTAL SCORE ${attempt.official_total}`);
+    if (attempt.official_rw != null) {
+      lines.push(`Reading and Writing ${attempt.official_rw}`);
+    }
+    if (attempt.official_math != null) {
+      lines.push(`Math ${attempt.official_math}`);
+    }
+  }
+  lines.push(`${correct} / ${total} correct`, "Domain\tCorrect");
   for (const s of stats) {
     lines.push(`${s.domain}\t${s.correct} / ${s.total}`);
   }
@@ -103,7 +141,10 @@ export function buildResultsReport(
 
   for (const row of rows) {
     const mark = row.isCorrect ? "Correct" : "Incorrect";
-    lines.push(`Module ${row.module}, Q${row.index + 1} ${mark}`);
+    const loc = official
+      ? `${row.sectionLabel} · Module ${row.module}, Q${row.index + 1}`
+      : `Module ${row.module}, Q${row.index + 1}`;
+    lines.push(`${loc} ${mark}`);
     lines.push(domainLine(row));
     const stimulus = (row.question.stimulus || "").trim();
     const prompt = (row.question.prompt || "").trim();

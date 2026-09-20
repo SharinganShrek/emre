@@ -7,6 +7,8 @@ import { questionContentHash } from "./hash";
 import {
   mergeQuestionBank,
   modulesNeedChoices,
+  normalizeAnswerMap,
+  normalizeSectionModules,
   parseMockHtml,
 } from "./parse-mock-html";
 import { parseResultsReport } from "./parse-report";
@@ -24,7 +26,7 @@ import type {
   SatSection,
   SatTimingMap,
 } from "./types";
-import { SECTION_META } from "./types";
+import { allQuestions, SECTION_META } from "./types";
 
 const seedJson = seedFile as {
   report: string;
@@ -48,6 +50,11 @@ export function newSecret(prefix: string) {
   return `${prefix}${randomBytes(24).toString("base64url")}`;
 }
 
+function asSatSection(value: unknown): SatSection {
+  if (value === "math" || value === "full") return value;
+  return "rw";
+}
+
 function asAttempt(row: Record<string, unknown>): SatPracticeAttempt {
   const rawModules = (row.modules as SatModules) || { m1: [], m2: [] };
   const fromHtml = parseMockHtml(String(row.source_html || ""));
@@ -55,13 +62,17 @@ function asAttempt(row: Record<string, unknown>): SatPracticeAttempt {
     {
       m1: Array.isArray(rawModules.m1) ? rawModules.m1 : [],
       m2: Array.isArray(rawModules.m2) ? rawModules.m2 : [],
+      rw: rawModules.rw,
+      math: rawModules.math,
     },
     fromHtml,
   );
   return {
     id: String(row.id),
     user_id: String(row.user_id),
-    section: row.section === "math" ? "math" : "rw",
+    section: asSatSection(row.section),
+    source: row.source === "bluebook" ? "bluebook" : "qbank",
+    roster_id: (row.roster_id as string | null) ?? null,
     title: String(row.title || ""),
     status: (row.status as SatAttemptStatus) || "ready",
     include_timing_in_report: row.include_timing_in_report !== false,
@@ -75,6 +86,9 @@ function asAttempt(row: Record<string, unknown>): SatPracticeAttempt {
     raw_correct: (row.raw_correct as number | null) ?? null,
     raw_total: (row.raw_total as number | null) ?? null,
     scaled_estimated: (row.scaled_estimated as number | null) ?? null,
+    official_total: (row.official_total as number | null) ?? null,
+    official_rw: (row.official_rw as number | null) ?? null,
+    official_math: (row.official_math as number | null) ?? null,
     domain_stats: (row.domain_stats as SatPracticeAttempt["domain_stats"]) ?? null,
     started_at: String(row.started_at || row.created_at),
     module1_completed_at: (row.module1_completed_at as string | null) ?? null,
@@ -93,21 +107,23 @@ function toSummary(row: Record<string, unknown>): SatPracticeAttemptSummary {
     has_html: Boolean(row.has_html) || Boolean(row.source_html),
     question_count:
       attempt.raw_total ||
-      (modules.m1?.length || 0) + (modules.m2?.length || 0) ||
-      SECTION_META[attempt.section].questionsPerModule * 2,
+      allQuestions(modules).length ||
+      (attempt.section === "full"
+        ? 98
+        : SECTION_META[attempt.section].questionsPerModule * 2),
   };
 }
 
 const LIST_COLS =
-  "id,user_id,section,title,status,include_timing_in_report,has_html,raw_correct,raw_total,scaled_estimated,domain_stats,started_at,module1_completed_at,completed_at,created_at,updated_at";
+  "id,user_id,section,source,roster_id,title,status,include_timing_in_report,has_html,raw_correct,raw_total,scaled_estimated,official_total,official_rw,official_math,domain_stats,started_at,module1_completed_at,completed_at,created_at,updated_at";
 
 function throwIfError(
   error: { message?: string; code?: string } | null,
 ): asserts error is null {
   if (!error) return;
   throw new Error(
-    error.code === "42P01"
-      ? "Database table missing. Run supabase/sat_practice_schema.sql in the Supabase SQL Editor."
+    error.code === "42P01" || error.code === "42703"
+      ? "Database table missing columns. Run supabase/sat_practice_schema.sql in the Supabase SQL Editor."
       : error.message || "Supabase request failed",
   );
 }
@@ -154,6 +170,8 @@ function buildSeedAttempt(userId: string): SatPracticeAttempt {
     id: SEED_RW_ATTEMPT_ID,
     user_id: userId,
     section: "rw",
+    source: "qbank",
+    roster_id: null,
     title: "R&W MOCK 1",
     status: "completed",
     include_timing_in_report: false,
@@ -429,7 +447,8 @@ function nextTitle(
   existing: { section: string; title: string }[],
   section: SatSection,
 ) {
-  const prefix = section === "math" ? "MATH MOCK" : "R&W MOCK";
+  const prefix =
+    section === "math" ? "MATH MOCK" : section === "full" ? "Practice" : "R&W MOCK";
   let max = 0;
   for (const row of existing) {
     if (row.section !== section) continue;
@@ -437,6 +456,116 @@ function nextTitle(
     if (n > max) max = n;
   }
   return `${prefix} ${max + 1}`;
+}
+
+function usedFromModules(modules: SatModules) {
+  const questions = allQuestions(modules);
+  return {
+    external_ids: questions
+      .map((q) => q.externalId)
+      .filter((id): id is string => Boolean(id)),
+    content_hashes: questions.map((q) => questionContentHash(q)),
+  };
+}
+
+export async function upsertBluebookAttempt(
+  supabase: SupabaseClient,
+  body: {
+    roster_id: string;
+    title?: string;
+    started_at?: string;
+    official_total?: number | null;
+    official_rw?: number | null;
+    official_math?: number | null;
+    modules?: unknown;
+    answers?: unknown;
+  },
+  userId = getHubUserId(),
+) {
+  const rosterId = String(body.roster_id || "").trim();
+  if (!rosterId) throw new Error("roster_id is required");
+  const modules: SatModules = {
+    m1: [],
+    m2: [],
+    rw: normalizeSectionModules(
+      (body.modules as SatModules | undefined)?.rw ?? body.modules,
+    ),
+    math: normalizeSectionModules((body.modules as SatModules | undefined)?.math),
+  };
+  if (!allQuestions(modules).length) {
+    throw new Error("Bluebook import needs questions");
+  }
+  const answers = normalizeAnswerMap(body.answers);
+  const scored = scoreAttempt("full", modules, answers);
+  const officialTotal =
+    body.official_total == null ? null : Number(body.official_total);
+  const officialRw = body.official_rw == null ? null : Number(body.official_rw);
+  const officialMath = body.official_math == null ? null : Number(body.official_math);
+  const title = String(body.title || "").trim() || nextTitle(
+    ((await supabase
+      .from("sat_practice_attempts")
+      .select("section,title")
+      .eq("user_id", userId)).data || []) as { section: string; title: string }[],
+    "full",
+  );
+  let startedAt = new Date().toISOString();
+  if (body.started_at) {
+    const parsed = new Date(body.started_at);
+    if (!Number.isNaN(parsed.getTime())) startedAt = parsed.toISOString();
+  }
+  const now = new Date().toISOString();
+  const row = {
+    user_id: userId,
+    section: "full" as const,
+    source: "bluebook" as const,
+    roster_id: rosterId,
+    title,
+    status: "completed" as const,
+    include_timing_in_report: false,
+    has_html: false,
+    modules,
+    answers,
+    flagged: {},
+    seconds_spent: {},
+    raw_correct: scored.raw_correct,
+    raw_total: scored.raw_total,
+    scaled_estimated: officialTotal ?? scored.scaled_estimated,
+    official_total: officialTotal,
+    official_rw: officialRw,
+    official_math: officialMath,
+    domain_stats: scored.domain_stats,
+    started_at: startedAt,
+    module1_completed_at: startedAt,
+    completed_at: now,
+  };
+
+  const existing = await supabase
+    .from("sat_practice_attempts")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("roster_id", rosterId)
+    .maybeSingle();
+  throwIfError(existing.error);
+
+  let saved;
+  if (existing.data?.id) {
+    saved = await supabase
+      .from("sat_practice_attempts")
+      .update(row)
+      .eq("user_id", userId)
+      .eq("id", existing.data.id)
+      .select(LIST_COLS)
+      .single();
+  } else {
+    saved = await supabase
+      .from("sat_practice_attempts")
+      .insert(row)
+      .select(LIST_COLS)
+      .single();
+  }
+  throwIfError(saved.error);
+  await addUsedQuestions(supabase, usedFromModules(modules), userId);
+  return toSummary(saved.data as Record<string, unknown>);
 }
 
 export async function createAttemptFromIngest(
@@ -471,6 +600,7 @@ export async function createAttemptFromIngest(
       status: "ready",
       include_timing_in_report: true,
       has_html: Boolean(body.html),
+      source: "qbank",
       module_token_hash: hashSecret(moduleToken),
       source_html: body.html || null,
       modules,
@@ -484,12 +614,7 @@ export async function createAttemptFromIngest(
   throwIfError(error);
   if (!data) throw new Error("Failed to create SAT practice attempt");
 
-  const external_ids = [...modules.m1, ...modules.m2]
-    .map((q) => q.externalId)
-    .filter((id): id is string => Boolean(id));
-  const content_hashes = [...modules.m1, ...modules.m2].map((q) =>
-    questionContentHash(q),
-  );
+  const { external_ids, content_hashes } = usedFromModules(modules);
   await addUsedQuestions(supabase, { external_ids, content_hashes }, userId);
 
   return {
@@ -598,7 +723,7 @@ export async function allCompletedAttempts(
   const { data, error } = await supabase
     .from("sat_practice_attempts")
     .select(
-      "id,user_id,section,title,status,include_timing_in_report,modules,answers,flagged,seconds_spent,raw_correct,raw_total,scaled_estimated,domain_stats,started_at,completed_at,created_at,updated_at,module1_completed_at,module1_seconds_left,module2_seconds_left",
+      "id,user_id,section,source,roster_id,title,status,include_timing_in_report,modules,answers,flagged,seconds_spent,raw_correct,raw_total,scaled_estimated,official_total,official_rw,official_math,domain_stats,started_at,completed_at,created_at,updated_at,module1_completed_at,module1_seconds_left,module2_seconds_left",
     )
     .eq("user_id", userId)
     .eq("status", "completed")

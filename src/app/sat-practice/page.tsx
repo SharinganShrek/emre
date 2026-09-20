@@ -9,7 +9,7 @@ import type {
   SatPracticeAttemptSummary,
   SatPracticeSettings,
 } from "@/lib/sat-practice/types";
-import { SECTION_META } from "@/lib/sat-practice/types";
+import { isFullSat, SECTION_META } from "@/lib/sat-practice/types";
 import { cn } from "@/lib/utils";
 
 type Payload = {
@@ -74,32 +74,37 @@ export default function SatPracticePage() {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="overflow-hidden rounded-2xl bg-[#1473e6] px-6 py-8 text-white sm:px-8">
-        <h1 className="text-3xl font-semibold tracking-tight">My Practice</h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/90">
-          Review your performance and use tailored practice questions to
-          strengthen your skills before test day.
-        </p>
-      </section>
-
-      <ConnectPanel
-        settings={data.settings}
-        token={token}
-        busy={busy}
-        onGenerate={generateToken}
-      />
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 md:items-stretch">
+        <section className="flex flex-col justify-center overflow-hidden rounded-2xl bg-[#1473e6] px-6 py-6 text-white sm:px-7">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            My Practice
+          </h1>
+          <p className="mt-2 max-w-xl text-sm text-white/90">
+            Review mocks and official Bluebook tests, then drill the skills that
+            still cost you points.
+          </p>
+        </section>
+        <ConnectPanel
+          settings={data.settings}
+          token={token}
+          busy={busy}
+          onGenerate={generateToken}
+        />
+      </div>
 
       <div>
         <h2 className="text-xl font-semibold">SAT Practice Tests</h2>
         <p className="mt-1 text-sm text-muted">
-          Reading and Writing and Math are separate mocks, not one 1600 SAT.
+          QBank R&amp;W and Math mocks stay separate. Official Bluebook practice
+          tests import as one 1600 SAT.
         </p>
       </div>
 
       {data.attempts.length === 0 ? (
         <p className="text-sm text-muted">
-          No mocks yet. Connect the Opera extension and click Build.
+          No tests yet. Connect the Opera extension to build a QBank mock or
+          import official Bluebook scores.
         </p>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-2">
@@ -133,14 +138,12 @@ function ConnectPanel({
   onGenerate: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-5">
+    <div className="flex h-full flex-col rounded-2xl border border-border bg-surface p-5">
       <p className="text-sm font-medium">Opera extension connection</p>
       <p className="mt-1 text-sm text-muted">
-        The extension talks only to this app. Custom GPT reads your results from
-        the app with its own key — do not put the GPT API key in the extension.
-        Used-question history lives here so updating the extension does not
-        reset it ({settings.used_external_id_count} IDs,{" "}
-        {settings.used_content_hash_count} content hashes).
+        Connect token is only for the extension. Custom GPT uses its own key.
+        Used-question history stays here ({settings.used_external_id_count} IDs,{" "}
+        {settings.used_content_hash_count} hashes).
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button onClick={onGenerate} disabled={busy} size="sm">
@@ -170,6 +173,7 @@ function ScoreCard({
   onSelect: () => void;
 }) {
   const meta = SECTION_META[attempt.section];
+  const official = isFullSat(attempt);
   const date = new Date(attempt.completed_at || attempt.created_at);
   const dateLabel = date.toLocaleDateString(undefined, {
     month: "long",
@@ -177,6 +181,19 @@ function ScoreCard({
     year: "numeric",
   });
   const completed = attempt.status === "completed";
+  const totalScore = official
+    ? (attempt.official_total ?? attempt.scaled_estimated)
+    : attempt.scaled_estimated;
+  const rwScore = official
+    ? attempt.official_rw
+    : attempt.section === "rw"
+      ? attempt.scaled_estimated
+      : null;
+  const mathScore = official
+    ? attempt.official_math
+    : attempt.section === "math"
+      ? attempt.scaled_estimated
+      : null;
 
   return (
     <article
@@ -210,12 +227,15 @@ function ScoreCard({
           </div>
           <div className="px-4 py-5">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              Estimated section score
+              {official ? "Total Score" : "Estimated section score"}
             </p>
             <p className="mt-1 text-5xl font-semibold tabular-nums">
-              {attempt.scaled_estimated ?? "—"}
+              {totalScore ?? "—"}
             </p>
-            <p className="text-[11px] text-muted-2">200-800 · {meta.short}</p>
+            <p className="text-[11px] text-muted-2">
+              {official ? "400-1600" : `200-800 · ${meta.short}`}
+              {official ? " · official" : ""}
+            </p>
             <p className="mt-1 text-xs text-muted">
               {attempt.raw_correct} / {attempt.raw_total} correct
             </p>
@@ -232,7 +252,9 @@ function ScoreCard({
               {attempt.status.replace("_", " ")}
             </p>
             <p className="mt-1 text-5xl font-semibold tabular-nums">—</p>
-            <p className="text-[11px] text-muted-2">200-800 · {meta.short}</p>
+            <p className="text-[11px] text-muted-2">
+              {official ? "400-1600" : `200-800 · ${meta.short}`}
+            </p>
           </div>
         </div>
       )}
@@ -241,18 +263,14 @@ function ScoreCard({
           label="Reading and Writing"
           hint="200-800"
           value={
-            attempt.section === "rw" && completed
-              ? String(attempt.scaled_estimated)
-              : "—"
+            completed && rwScore != null ? String(rwScore) : "—"
           }
         />
         <Row
           label="Math"
           hint="200-800"
           value={
-            attempt.section === "math" && completed
-              ? String(attempt.scaled_estimated)
-              : "—"
+            completed && mathScore != null ? String(mathScore) : "—"
           }
         />
       </div>

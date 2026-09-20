@@ -9,7 +9,7 @@
 <body>
   <main>
     <h1>SAT Module Builder</h1>
-    <p class="sub">R&amp;W 27+27 or Math 22+22 · syncs to Emre OS</p>
+    <p class="sub">R&amp;W 27+27, Math 22+22, or import official Bluebook SATs</p>
 
     <section class="statusbox">
       <span id="dot" class="dot"></span>
@@ -36,6 +36,7 @@
     <button id="build" disabled>Build & Open Mock</button>
     <button id="buildDownload" disabled>Build & Download HTML</button>
     <button id="downloadCurrent" class="secondary" disabled>Download Current Mock HTML</button>
+    <button id="importBluebook" class="secondary">Import Bluebook tests</button>
     <button id="reset" class="secondary">Reset local question history</button>
 
     <div id="progress" class="progress" hidden>
@@ -43,7 +44,7 @@
     </div>
     <pre id="log"></pre>
 
-    <p class="note">Generate a connect token on Emre OS → SAT Practice. That token is only for this extension; Custom GPT still reads results from the app. Keep Student Question Bank signed in.</p>
+    <p class="note">Generate a connect token on Emre OS → SAT Practice. That token is only for this extension; Custom GPT still reads results from the app. Keep Student Question Bank signed in. Import Bluebook tests from the My Practice dashboard (official 1600 scores).</p>
   </main>
 <script src="popup.js"></script>
 </body>

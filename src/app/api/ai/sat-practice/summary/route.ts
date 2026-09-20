@@ -26,6 +26,7 @@ export async function GET(request: Request) {
     const attempts = await allCompletedAttempts(ctx.admin, ctx.userId);
     const rw = attempts.filter((a) => a.section === "rw");
     const math = attempts.filter((a) => a.section === "math");
+    const full = attempts.filter((a) => a.section === "full");
     await logAiAction({
       ctx,
       route: "/api/ai/sat-practice/summary",
@@ -37,6 +38,7 @@ export async function GET(request: Request) {
       completed_count: attempts.length,
       rw_count: rw.length,
       math_count: math.length,
+      bluebook_count: full.length,
       latest_rw: rw[0]
         ? {
             id: rw[0].id,
@@ -53,10 +55,20 @@ export async function GET(request: Request) {
             scaled_estimated: math[0].scaled_estimated,
           }
         : null,
+      latest_bluebook: full[0]
+        ? {
+            id: full[0].id,
+            title: full[0].title,
+            raw: `${full[0].raw_correct}/${full[0].raw_total}`,
+            official_total: full[0].official_total,
+            official_rw: full[0].official_rw,
+            official_math: full[0].official_math,
+          }
+        : null,
       weak_skills: weakSkills(attempts),
       focus_next: focusNext(attempts),
       attempts: attemptCards(attempts),
-      note: "R&W and Math mocks are separate. scaled_estimated is unofficial. Timing in reports is per-attempt include_timing_in_report.",
+      note: "QBank R&W and Math mocks are separate; scaled_estimated is unofficial. Bluebook imports (source=bluebook, section=full) use official 400–1600 scores. Timing in reports is per-attempt include_timing_in_report.",
     });
   } catch (err) {
     return aiCatch(err);

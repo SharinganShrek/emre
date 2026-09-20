@@ -1,4 +1,6 @@
-export type SatSection = "rw" | "math";
+export type SatSection = "rw" | "math" | "full";
+export type SatAttemptSource = "qbank" | "bluebook";
+export type SatPart = "rw" | "math";
 
 export type SatAttemptStatus = "ready" | "module1_done" | "completed";
 
@@ -24,9 +26,14 @@ export interface SatQuestion {
   rationale: string;
 }
 
-export interface SatModules {
+export interface SatSectionModules {
   m1: SatQuestion[];
   m2: SatQuestion[];
+}
+
+export interface SatModules extends SatSectionModules {
+  rw?: SatSectionModules;
+  math?: SatSectionModules;
 }
 
 export type SatAnswerMap = Record<string, string>;
@@ -51,6 +58,8 @@ export interface SatPracticeAttempt {
   id: string;
   user_id: string;
   section: SatSection;
+  source: SatAttemptSource;
+  roster_id?: string | null;
   title: string;
   status: SatAttemptStatus;
   include_timing_in_report: boolean;
@@ -64,6 +73,9 @@ export interface SatPracticeAttempt {
   raw_correct?: number | null;
   raw_total?: number | null;
   scaled_estimated?: number | null;
+  official_total?: number | null;
+  official_rw?: number | null;
+  official_math?: number | null;
   domain_stats?: SatDomainStat[] | null;
   started_at: string;
   module1_completed_at?: string | null;
@@ -91,6 +103,7 @@ export interface SatQuestionRow {
   module: 1 | 2;
   index: number;
   number: number;
+  sectionKey: SatPart;
   sectionLabel: string;
   question: SatQuestion;
   chosen: string;
@@ -144,8 +157,38 @@ export const SECTION_META: Record<
     scaleMax: 800,
     khanUrl: "https://www.khanacademy.org/test-prep/sat-math",
   },
+  full: {
+    label: "SAT",
+    short: "SAT",
+    questionsPerModule: 0,
+    secondsPerModule: 0,
+    scaleMin: 400,
+    scaleMax: 1600,
+    khanUrl: "https://www.khanacademy.org/test-prep/sat",
+  },
 };
 
-export function answerKey(module: 1 | 2, index: number) {
-  return `m${module}q${index}`;
+export function answerKey(module: 1 | 2, index: number, section?: SatPart) {
+  return section ? `${section}:m${module}q${index}` : `m${module}q${index}`;
+}
+
+export function emptySectionModules(): SatSectionModules {
+  return { m1: [], m2: [] };
+}
+
+export function allQuestions(modules: SatModules | null | undefined): SatQuestion[] {
+  if (!modules) return [];
+  if (modules.rw || modules.math) {
+    return [
+      ...(modules.rw?.m1 || []),
+      ...(modules.rw?.m2 || []),
+      ...(modules.math?.m1 || []),
+      ...(modules.math?.m2 || []),
+    ];
+  }
+  return [...(modules.m1 || []), ...(modules.m2 || [])];
+}
+
+export function isFullSat(attempt: { section?: string; source?: string }) {
+  return attempt.section === "full" || attempt.source === "bluebook";
 }

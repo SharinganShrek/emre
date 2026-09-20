@@ -14,9 +14,10 @@ export function weakSkills(attempts: SatPracticeAttempt[], limit = 12) {
       attempt.answers,
     )) {
       const skill = row.question.skill || "Unknown";
-      const key = `${attempt.section}:${skill}`;
+      const part = row.sectionKey;
+      const key = `${part}:${skill}`;
       const cur = buckets.get(key) || {
-        section: attempt.section,
+        section: part,
         skill,
         domain: row.question.domain,
         wrong: 0,
@@ -41,11 +42,15 @@ export function attemptCards(attempts: SatPracticeAttempt[]) {
     id: a.id,
     title: a.title,
     section: a.section,
+    source: a.source,
     section_label: SECTION_META[a.section].label,
     status: a.status,
     raw_correct: a.raw_correct,
     raw_total: a.raw_total,
     scaled_estimated: a.scaled_estimated,
+    official_total: a.official_total,
+    official_rw: a.official_rw,
+    official_math: a.official_math,
     completed_at: a.completed_at,
     include_timing_in_report: a.include_timing_in_report,
     domain_stats: a.domain_stats,
