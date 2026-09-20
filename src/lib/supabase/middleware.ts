@@ -15,7 +15,12 @@ export async function updateSession(request: NextRequest) {
     typeof rawPassword === "string" ? rawPassword.trim() : "";
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/api/ai") && request.method === "OPTIONS") {
+  const ingestPath = pathname.startsWith("/api/sat-practice/ingest");
+
+  if (
+    (pathname.startsWith("/api/ai") || ingestPath) &&
+    request.method === "OPTIONS"
+  ) {
     return new NextResponse(null, { status: 204, headers: AI_CORS_HEADERS });
   }
 
@@ -24,7 +29,7 @@ export async function updateSession(request: NextRequest) {
     const response = NextResponse.next({
       request: { headers: requestHeaders },
     });
-    if (pathname.startsWith("/api/ai")) {
+    if (pathname.startsWith("/api/ai") || ingestPath) {
       for (const [key, value] of Object.entries(AI_CORS_HEADERS)) {
         response.headers.set(key, value);
       }
@@ -36,6 +41,7 @@ export async function updateSession(request: NextRequest) {
     pathname === "/unlock" ||
     pathname.startsWith("/api/unlock") ||
     pathname.startsWith("/api/ai") ||
+    pathname.startsWith("/api/sat-practice/ingest") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
     pathname === "/icon" ||

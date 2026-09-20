@@ -6,6 +6,7 @@ import {
   Target,
   GraduationCap,
   BookA,
+  PenLine,
   Tv,
   StickyNote,
   BarChart3,
@@ -29,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Goals", href: "/goals", icon: Target, group: "Growth" },
   { label: "Study", href: "/study", icon: GraduationCap, group: "Growth" },
   { label: "SAT Vocab", href: "/sat-vocab", icon: BookA, group: "Growth" },
+  { label: "SAT Practice", href: "/sat-practice", icon: PenLine, group: "Growth" },
   {
     label: "College Counseling",
     href: "/college-counseling",

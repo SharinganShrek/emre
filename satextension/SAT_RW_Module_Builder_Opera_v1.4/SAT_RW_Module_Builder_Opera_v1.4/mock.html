@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAT R&W Timed Mock</title>
+<link rel="stylesheet" href="mock.css">
+</head>
+<body>
+<div id="loading" class="intro"><h1>Loading SAT R&W mock…</h1><p>If this page stays here, build a new mock from the extension popup.</p></div>
+<div id="intro" class="intro hidden">
+  <h1>SAT Reading & Writing — 2-Module Timing Mock</h1>
+  <p>This mock contains 27 questions in each module and gives you 32 minutes per module. Module 2 simulates the harder adaptive route.</p>
+  <p>Answers are not shown until both modules are complete.</p>
+  <button id="start" class="primary">Start Module 1</button>
+</div>
+<div id="test" class="hidden">
+  <div class="top"><div><b id="modTitle"></b><div id="qLabel" class="meta"></div></div><div id="timer" class="timer">32:00</div></div>
+  <div class="wrap">
+    <div id="grid" class="grid"></div>
+    <div class="card"><div id="content"></div><div id="answers" class="answers"></div></div>
+    <div class="nav"><button id="prev" class="secondary">Previous</button><button id="next">Next</button></div>
+  </div>
+</div>
+<div id="between" class="intro hidden"><h1>Module 1 complete</h1><p>Your Module 1 answers are locked. Module 2 is the harder route and has 32 minutes.</p><button id="start2" class="primary">Start Module 2</button></div>
+<div id="results" class="wrap hidden"></div>
+<script src="mock.js"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 openapi: 3.1.1
 info:
   title: Emre OS AI Actions
-  version: 1.2.2
+  version: 1.3.0
   description: |
     Safe, AI-ready HTTP API for Emre OS (personal life dashboard).
 
@@ -28,6 +28,7 @@ tags:
   - name: Analytics
   - name: College Counseling
   - name: SAT Vocab
+  - name: SAT Practice
   - name: Study
 
 paths:
@@ -973,6 +974,105 @@ paths:
                 $ref: "#/components/schemas/OkEnvelope"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/sat-practice/summary:
+    get:
+      operationId: getSatPracticeSummary
+      tags: [SAT Practice]
+      summary: Completed R&W and Math mock overview
+      description: |
+        R&W and Math are separate mocks, not a combined 1600 SAT.
+        scaled_estimated is unofficial. Use getSatPracticeReport for the full
+        results text with rationales.
+      parameters:
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Vercel AI_API_KEY. Required for this Action.
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/sat-practice/attempts:
+    get:
+      operationId: getSatPracticeAttempts
+      tags: [SAT Practice]
+      summary: List completed SAT practice mocks
+      parameters:
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: section
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [rw, math]
+      responses:
+        "200":
+          description: Attempt cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/ai/sat-practice/report:
+    get:
+      operationId: getSatPracticeReport
+      tags: [SAT Practice]
+      summary: Full results text for one mock
+      description: |
+        Returns the long SAT® Results report (domain table, every question,
+        your answer, correct answer, rationale). Time spent is included only
+        when include_timing_in_report is true for that mock. Omit id to get
+        the latest completed mock.
+      parameters:
+        - name: api_key
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Attempt UUID. Latest completed mock if omitted.
+        - name: misses_only
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: If true, omit the long report string and return misses only.
+      responses:
+        "200":
+          description: Report payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/Error"
         "503":
           $ref: "#/components/responses/Error"
 

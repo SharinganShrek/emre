@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "SAT R&W 2-Module Builder",
+  "version": "1.3.0",
+  "description": "Builds a 27-question SAT Reading & Writing Module 1 and a harder 27-question Module 2; includes robust Opera session capture.",
+  "permissions": [
+    "downloads",
+    "storage",
+    "webRequest",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://mypractice.collegeboard.org/*",
+    "https://digitalpractice-api.collegeboard.org/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SAT R&W Module Builder"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://mypractice.collegeboard.org/questionbank/*"
+      ],
+      "js": [
+        "page-hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://mypractice.collegeboard.org/questionbank/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

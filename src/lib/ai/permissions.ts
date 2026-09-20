@@ -40,6 +40,7 @@ export const AI_RESOURCE_POLICY: Record<
   journal_entries: { read: true, write: true },
   college_counseling: { read: true, write: true },
   sat_vocab: { read: true, write: true },
+  sat_practice: { read: true, write: false },
   // Aggregations are read-only views over the above.
 };
 

@@ -33,6 +33,17 @@ supabase/drop_auth_fks.sql
 - `goal_milestones`
 - `college_counseling`
 - `sat_vocab_progress` ← ayrıca çalıştır: `supabase/sat_vocab_schema.sql`
+- `sat_practice_attempts` / `sat_practice_settings` ← `supabase/sat_practice_schema.sql`
+
+### SAT Practice (yeni)
+
+Supabase SQL Editor’da şunu çalıştır:
+
+```text
+supabase/sat_practice_schema.sql
+```
+
+Sonra Vercel deploy. SAT Practice sayfasından **Generate connect token** alıp Opera extension v1.6 popup’ına yapıştır. Custom GPT Actions’ı `1.3.0` olarak yeniden import et (`getSatPracticeSummary`, `getSatPracticeReport`).
 
 ### SAT Vocab (yeni)
 

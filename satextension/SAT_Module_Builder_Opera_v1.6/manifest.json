@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "SAT Module Builder",
+  "version": "1.6.0",
+  "description": "Builds timed SAT Reading & Writing (27+27) or Math (22+22) mocks from the Student Question Bank and syncs them to Emre OS.",
+  "permissions": [
+    "downloads",
+    "storage",
+    "webRequest",
+    "scripting",
+    "tabs"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "host_permissions": [
+    "https://mypractice.collegeboard.org/*",
+    "https://digitalpractice-api.collegeboard.org/*",
+    "https://emre-xi.vercel.app/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SAT Module Builder"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://mypractice.collegeboard.org/questionbank/*"
+      ],
+      "js": [
+        "page-hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://mypractice.collegeboard.org/questionbank/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

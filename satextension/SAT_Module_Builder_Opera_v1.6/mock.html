@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAT R&W Timed Mock</title>
+<link rel="stylesheet" href="mock.css">
+</head>
+<body>
+<div id="loading" class="gate">
+  <div class="gate-card">
+    <div class="sat-mark">SAT<sup>®</sup></div>
+    <h1>Loading practice test…</h1>
+    <p>If this page stays here, build a new mock from the extension popup.</p>
+  </div>
+</div>
+
+<div id="intro" class="gate hidden">
+  <div class="gate-card">
+    <div class="sat-mark">SAT<sup>®</sup></div>
+    <p class="gate-kicker">Practice Test</p>
+    <h1 id="introTitle">Section 1: Reading and Writing</h1>
+    <p class="gate-lead" id="introLead">This mock uses 27 questions in each module and 32 minutes per module. Module 2 is intentionally the harder route.</p>
+    <p class="gate-note">No answers are shown until both modules are finished.</p>
+    <section class="directions-block">
+      <h2>Directions</h2>
+      <p>The questions in this section address a number of important reading and writing skills. Each question includes one or more passages, which may include a table or graph. Read each passage and question carefully, and then choose the best answer to the question based on the passage(s).</p>
+      <p>All questions in this section are multiple-choice with four answer choices. Each question has a single best answer.</p>
+    </section>
+    <p class="gate-meta" id="introMeta">Module 1 · 27 questions · 32 minutes</p>
+    <button id="start" class="bb-btn bb-btn-primary">Start Module</button>
+  </div>
+</div>
+
+<div id="test" class="bb-app hidden">
+  <header class="bb-header">
+    <div class="bb-header-left">
+      <div class="sat-mark header-logo">SAT<sup>®</sup></div>
+      <div class="bb-section">
+        <div id="modTitle">Section 1, Module 1: Reading and Writing</div>
+        <button id="directionsBtn" class="bb-text-btn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7.5L19 8v12.5H7V3.5z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M14.5 3.5V8H19" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+          Directions
+        </button>
+      </div>
+    </div>
+    <div class="bb-header-center">
+      <div id="timer" class="timer-time">0:32:00</div>
+      <div class="timer-actions">
+        <button id="hideTimer" class="bb-text-btn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+          <span id="hideTimerLabel">Hide</span>
+        </button>
+        <button id="pauseBtn" class="pause-btn" type="button">Pause</button>
+      </div>
+    </div>
+    <div class="bb-header-right">
+      <span class="practice-badge">Practice Test</span>
+      <div class="more-wrap">
+        <button id="moreBtn" class="bb-text-btn" type="button">More</button>
+        <div id="moreMenu" class="more-menu hidden">
+          <button id="shortcutsBtn" type="button">Keyboard shortcuts</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div id="directionsPanel" class="directions-panel hidden">
+    <div class="directions-panel-inner">
+      <div class="directions-panel-head">
+        <h2>Directions</h2>
+        <button id="closeDirections" class="icon-x" type="button" aria-label="Close directions">×</button>
+      </div>
+      <p>The questions in this section address a number of important reading and writing skills. Each question includes one or more passages, which may include a table or graph. Read each passage and question carefully, and then choose the best answer to the question based on the passage(s).</p>
+      <p>All questions in this section are multiple-choice with four answer choices. Each question has a single best answer.</p>
+    </div>
+  </div>
+
+  <div id="workspace" class="bb-workspace">
+    <div id="passage" class="bb-pane bb-left content-html"></div>
+    <div id="splitter" class="bb-splitter" role="separator" aria-orientation="vertical"></div>
+    <div class="bb-pane bb-right">
+      <div class="bb-qhead">
+        <div id="qNum" class="qnum">1</div>
+        <button id="markBtn" class="mark-btn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16l-5-3-5 3V4z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          Mark for Review
+        </button>
+        <button id="elimBtn" class="elim-btn" type="button" title="Option eliminator">
+          <span class="abc">ABC</span>
+        </button>
+      </div>
+      <div id="prompt" class="content-html stem"></div>
+      <div id="answers" class="answers"></div>
+    </div>
+  </div>
+
+  <div id="reviewView" class="review-view hidden">
+    <div class="review-inner">
+      <h1>Check Your Work</h1>
+      <p id="reviewSummary" class="review-summary"></p>
+      <div id="reviewGrid" class="review-grid"></div>
+      <p class="review-note">Once you leave this module, you cannot return to it.</p>
+      <button id="submitModule" class="bb-btn bb-btn-primary" type="button">Submit Module</button>
+    </div>
+  </div>
+
+  <footer class="bb-footer">
+    <button id="qMenuBtn" class="qmenu-btn" type="button">
+      <span id="qMenuLabel">Question 1 of 27</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
+    <div class="footer-nav">
+      <button id="prev" class="bb-btn bb-btn-ghost" type="button">Back</button>
+      <button id="next" class="bb-btn bb-btn-primary" type="button">Next</button>
+    </div>
+  </footer>
+
+  <div id="pauseOverlay" class="pause-overlay hidden">
+    <div class="pause-card">
+      <h1>Practice Paused</h1>
+      <p>The timer is stopped. Question content is hidden until you resume.</p>
+      <p class="pause-time">Time remaining: <b id="pauseTime">0:32:00</b></p>
+      <button id="resumeBtn" class="bb-btn bb-btn-primary" type="button">Resume Testing</button>
+    </div>
+  </div>
+
+  <div id="qMenu" class="qmenu hidden">
+    <div class="qmenu-card">
+      <div class="qmenu-head">
+        <div>
+          <div class="qmenu-kicker">Questions</div>
+          <div id="qMenuTitle" class="qmenu-title">Section 1, Module 1: Reading and Writing</div>
+        </div>
+        <button id="closeQMenu" class="icon-x" type="button" aria-label="Close question menu">×</button>
+      </div>
+      <div class="qmenu-legend">
+        <span><i class="lg current"></i> Current</span>
+        <span><i class="lg unanswered"></i> Unanswered</span>
+        <span><i class="lg answered"></i> Answered</span>
+        <span><i class="lg flagged"></i> For Review</span>
+      </div>
+      <div id="grid" class="qgrid"></div>
+      <button id="gotoReview" class="bb-btn bb-btn-ghost qmenu-review" type="button">Go to Review Page</button>
+    </div>
+  </div>
+</div>
+
+<div id="between" class="gate hidden">
+  <div class="gate-card">
+    <div class="sat-mark">SAT<sup>®</sup></div>
+    <p class="gate-kicker">Module 1 complete</p>
+    <h1>Your answers are locked</h1>
+    <p class="gate-lead" id="betweenLead">Module 2 is the harder route and has 32 minutes.</p>
+    <p class="gate-meta" id="betweenMeta">Module 2 · 27 questions · 32 minutes</p>
+    <button id="start2" class="bb-btn bb-btn-primary">Start Module</button>
+  </div>
+</div>
+
+<div id="results" class="results-page hidden"></div>
+
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div id="modalActions" class="modal-actions"></div>
+  </div>
+</div>
+
+<script src="mock.js"></script>
+</body>
+</html>
