@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { satPracticeErrorMessage } from "@/lib/sat-practice/errors";
 import { satPracticeGuard } from "@/lib/sat-practice/guard";
 import { getAttempt, patchAttempt } from "@/lib/sat-practice/repository";
 import { buildResultsReport } from "@/lib/sat-practice/report";
@@ -24,7 +25,7 @@ export async function GET(
   } catch (err) {
     console.error("[api/sat-practice/id]", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to load attempt" },
+      { error: satPracticeErrorMessage(err, "Failed to load attempt") },
       { status: 500 },
     );
   }
@@ -55,7 +56,7 @@ export async function PATCH(
   } catch (err) {
     console.error("[api/sat-practice/id patch]", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to update attempt" },
+      { error: satPracticeErrorMessage(err, "Failed to update attempt") },
       { status: 500 },
     );
   }

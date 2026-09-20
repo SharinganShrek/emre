@@ -11,6 +11,7 @@ import {
   verifyIngestToken,
 } from "@/lib/sat-practice/repository";
 import { extractAiApiKey } from "@/lib/ai/key";
+import { satPracticeErrorMessage } from "@/lib/sat-practice/errors";
 import type { SatSection } from "@/lib/sat-practice/types";
 
 export const runtime = "nodejs";
@@ -161,7 +162,7 @@ export async function POST(request: Request) {
 
 function catchErr(err: unknown) {
   const status = Number((err as { status?: number })?.status || 500);
-  const message = err instanceof Error ? err.message : "Ingest failed";
+  const message = satPracticeErrorMessage(err, "Ingest failed");
   console.error("[sat-practice ingest]", err);
   return json({ ok: false, error: message }, status === 401 || status === 503 ? status : 500);
 }

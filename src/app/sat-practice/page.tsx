@@ -63,8 +63,8 @@ export default function SatPracticePage() {
         <h1 className="text-2xl font-semibold">SAT Practice</h1>
         <p className="text-sm text-danger">{error}</p>
         <p className="text-sm text-muted">
-          Run <code className="rounded bg-surface-2 px-1">supabase/sat_practice_schema.sql</code>{" "}
-          in the Supabase SQL editor, then reload.
+          If this persists after a reload, the SAT Practice API is still
+          failing — check the red message above.
         </p>
       </div>
     );

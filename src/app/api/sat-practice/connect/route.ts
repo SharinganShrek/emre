@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { satPracticeErrorMessage } from "@/lib/sat-practice/errors";
 import { satPracticeGuard } from "@/lib/sat-practice/guard";
 import { rotateIngestToken, settingsSummary } from "@/lib/sat-practice/repository";
 
@@ -14,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ settings });
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to load connection" },
+      { error: satPracticeErrorMessage(err, "Failed to load connection") },
       { status: 500 },
     );
   }
@@ -32,7 +33,7 @@ export async function POST() {
     });
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to create token" },
+      { error: satPracticeErrorMessage(err, "Failed to create token") },
       { status: 500 },
     );
   }

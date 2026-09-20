@@ -23,7 +23,7 @@ import { SECTION_META } from "./types";
 
 const seedJson = seedFile as { report: string };
 
-export const SEED_RW_ATTEMPT_ID = "c48f0054-2026-4000-8000-rw0000000001";
+export const SEED_RW_ATTEMPT_ID = "c48f0054-2026-4000-8000-000000000001";
 
 export function hashSecret(value: string) {
   return createHash("sha256").update(value).digest("hex");
@@ -88,6 +88,15 @@ function toSummary(row: Record<string, unknown>): SatPracticeAttemptSummary {
 const LIST_COLS =
   "id,user_id,section,title,status,include_timing_in_report,has_html,raw_correct,raw_total,scaled_estimated,domain_stats,started_at,module1_completed_at,completed_at,created_at,updated_at";
 
+function throwIfError(error: { message?: string; code?: string } | null) {
+  if (!error) return;
+  throw new Error(
+    error.code === "42P01"
+      ? "Database table missing. Run supabase/sat_practice_schema.sql in the Supabase SQL Editor."
+      : error.message || "Supabase request failed",
+  );
+}
+
 export async function ensureSettings(
   supabase: SupabaseClient,
   userId = getHubUserId(),
@@ -97,7 +106,7 @@ export async function ensureSettings(
     .select("user_id,ingest_token_hash,used_external_ids,used_content_hashes")
     .eq("user_id", userId)
     .maybeSingle();
-  if (existing.error) throw existing.error;
+  throwIfError(existing.error);
   if (existing.data) return existing.data;
   const inserted = await supabase
     .from("sat_practice_settings")
@@ -110,7 +119,7 @@ export async function ensureSettings(
     .single();
   if (inserted.error) {
     if (inserted.error.code === "23505") return ensureSettings(supabase, userId);
-    throw inserted.error;
+    throwIfError(inserted.error);
   }
   return inserted.data;
 }
@@ -153,47 +162,53 @@ export async function ensureSeedAttempt(
   supabase: SupabaseClient,
   userId = getHubUserId(),
 ) {
-  const existing = await supabase
-    .from("sat_practice_attempts")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("id", SEED_RW_ATTEMPT_ID)
-    .maybeSingle();
-  if (existing.error) throw existing.error;
-  if (existing.data) return;
+  try {
+    const existing = await supabase
+      .from("sat_practice_attempts")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("id", SEED_RW_ATTEMPT_ID)
+      .maybeSingle();
+    throwIfError(existing.error);
+    if (existing.data) return;
 
-  const seed = buildSeedAttempt(userId);
-  const inserted = await supabase.from("sat_practice_attempts").insert({
-    id: seed.id,
-    user_id: userId,
-    section: seed.section,
-    title: seed.title,
-    status: seed.status,
-    include_timing_in_report: seed.include_timing_in_report,
-    has_html: false,
-    modules: seed.modules,
-    answers: seed.answers,
-    flagged: seed.flagged,
-    seconds_spent: seed.seconds_spent,
-    raw_correct: seed.raw_correct,
-    raw_total: seed.raw_total,
-    scaled_estimated: seed.scaled_estimated,
-    domain_stats: seed.domain_stats,
-    started_at: seed.started_at,
-    module1_completed_at: seed.module1_completed_at,
-    completed_at: seed.completed_at,
-  });
-  if (inserted.error && inserted.error.code !== "23505") throw inserted.error;
+    const seed = buildSeedAttempt(userId);
+    const inserted = await supabase.from("sat_practice_attempts").insert({
+      id: seed.id,
+      user_id: userId,
+      section: seed.section,
+      title: seed.title,
+      status: seed.status,
+      include_timing_in_report: seed.include_timing_in_report,
+      has_html: false,
+      modules: seed.modules,
+      answers: seed.answers,
+      flagged: seed.flagged,
+      seconds_spent: seed.seconds_spent,
+      raw_correct: seed.raw_correct,
+      raw_total: seed.raw_total,
+      scaled_estimated: seed.scaled_estimated,
+      domain_stats: seed.domain_stats,
+      started_at: seed.started_at,
+      module1_completed_at: seed.module1_completed_at,
+      completed_at: seed.completed_at,
+    });
+    if (inserted.error && inserted.error.code !== "23505") {
+      throwIfError(inserted.error);
+    }
 
-  const settings = await ensureSettings(supabase, userId);
-  const hashes = new Set<string>([
-    ...(((settings.used_content_hashes as string[]) || []).map(String)),
-    ...seedContentHashes(),
-  ]);
-  await supabase
-    .from("sat_practice_settings")
-    .update({ used_content_hashes: [...hashes] })
-    .eq("user_id", userId);
+    const settings = await ensureSettings(supabase, userId);
+    const hashes = new Set<string>([
+      ...(((settings.used_content_hashes as string[]) || []).map(String)),
+      ...seedContentHashes(),
+    ]);
+    await supabase
+      .from("sat_practice_settings")
+      .update({ used_content_hashes: [...hashes] })
+      .eq("user_id", userId);
+  } catch (err) {
+    console.error("[sat-practice] seed attempt skipped", err);
+  }
 }
 
 export async function listAttempts(
@@ -206,7 +221,7 @@ export async function listAttempts(
     .select(LIST_COLS)
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  throwIfError(error);
   return (data || []).map((row) => toSummary(row as Record<string, unknown>));
 }
 
@@ -223,7 +238,7 @@ export async function getAttempt(
     .eq("user_id", userId)
     .eq("id", id)
     .maybeSingle();
-  if (error) throw error;
+  throwIfError(error);
   if (!data) return null;
   const row = { ...(data as Record<string, unknown>) };
   if (!opts?.includeHtml) delete row.source_html;
@@ -241,7 +256,7 @@ export async function getAttemptHtml(
     .eq("user_id", userId)
     .eq("id", id)
     .maybeSingle();
-  if (error) throw error;
+  throwIfError(error);
   return data as { source_html: string | null; title: string; section: SatSection } | null;
 }
 
@@ -258,7 +273,7 @@ export async function patchAttempt(
     .eq("id", id)
     .select(LIST_COLS)
     .single();
-  if (error) throw error;
+  throwIfError(error);
   return toSummary(data as Record<string, unknown>);
 }
 
@@ -272,7 +287,7 @@ export async function rotateIngestToken(
     .from("sat_practice_settings")
     .update({ ingest_token_hash: hashSecret(token) })
     .eq("user_id", userId);
-  if (error) throw error;
+  throwIfError(error);
   return token;
 }
 
@@ -331,7 +346,7 @@ export async function addUsedQuestions(
       used_content_hashes: nextHashes,
     })
     .eq("user_id", userId);
-  if (error) throw error;
+  throwIfError(error);
   return { external_ids: nextIds, content_hashes: nextHashes };
 }
 
@@ -364,7 +379,7 @@ export async function createAttemptFromIngest(
     .from("sat_practice_attempts")
     .select("section,title")
     .eq("user_id", userId);
-  if (listed.error) throw listed.error;
+  throwIfError(listed.error);
   const title = nextTitle(listed.data || [], body.section);
   const moduleToken = newSecret("mod_");
   const modules: SatModules = { m1: body.m1 || [], m2: body.m2 || [] };
@@ -387,7 +402,7 @@ export async function createAttemptFromIngest(
     })
     .select("id,title,section,status,created_at")
     .single();
-  if (error) throw error;
+  throwIfError(error);
 
   const external_ids = [...modules.m1, ...modules.m2]
     .map((q) => q.externalId)
@@ -414,7 +429,7 @@ export async function saveAttemptHtml(
     .update({ source_html: html, has_html: Boolean(html) })
     .eq("user_id", userId)
     .eq("id", attemptId);
-  if (error) throw error;
+  throwIfError(error);
 }
 
 export async function completeModule(
@@ -436,7 +451,7 @@ export async function completeModule(
     .eq("user_id", userId)
     .eq("id", input.attemptId)
     .maybeSingle();
-  if (error) throw error;
+  throwIfError(error);
   if (!data) return { ok: false as const, error: "Attempt not found" };
   if (!secretsMatch(input.moduleToken, data.module_token_hash as string | null)) {
     return { ok: false as const, error: "Invalid module token" };
@@ -476,7 +491,7 @@ export async function completeModule(
     .eq("id", input.attemptId)
     .select(LIST_COLS)
     .single();
-  if (updated.error) throw updated.error;
+  throwIfError(updated.error);
   return { ok: true as const, attempt: toSummary(updated.data as Record<string, unknown>) };
 }
 
@@ -493,6 +508,6 @@ export async function allCompletedAttempts(
     .eq("user_id", userId)
     .eq("status", "completed")
     .order("completed_at", { ascending: false });
-  if (error) throw error;
+  throwIfError(error);
   return (data || []).map((row) => asAttempt(row as Record<string, unknown>));
 }

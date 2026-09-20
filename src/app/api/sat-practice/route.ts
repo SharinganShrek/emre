@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { satPracticeErrorMessage } from "@/lib/sat-practice/errors";
 import { satPracticeGuard } from "@/lib/sat-practice/guard";
 import { listAttempts, settingsSummary } from "@/lib/sat-practice/repository";
 
@@ -19,8 +20,7 @@ export async function GET() {
     console.error("[api/sat-practice]", err);
     return NextResponse.json(
       {
-        error:
-          err instanceof Error ? err.message : "Failed to load SAT practice data",
+        error: satPracticeErrorMessage(err, "Failed to load SAT practice data"),
       },
       { status: 500 },
     );

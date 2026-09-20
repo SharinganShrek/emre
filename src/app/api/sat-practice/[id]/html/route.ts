@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { satPracticeErrorMessage } from "@/lib/sat-practice/errors";
 import { satPracticeGuard } from "@/lib/sat-practice/guard";
 import { getAttemptHtml } from "@/lib/sat-practice/repository";
 
@@ -29,7 +30,7 @@ export async function GET(
   } catch (err) {
     console.error("[api/sat-practice/html]", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to load HTML" },
+      { error: satPracticeErrorMessage(err, "Failed to load HTML") },
       { status: 500 },
     );
   }
