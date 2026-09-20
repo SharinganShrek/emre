@@ -88,7 +88,9 @@ function toSummary(row: Record<string, unknown>): SatPracticeAttemptSummary {
 const LIST_COLS =
   "id,user_id,section,title,status,include_timing_in_report,has_html,raw_correct,raw_total,scaled_estimated,domain_stats,started_at,module1_completed_at,completed_at,created_at,updated_at";
 
-function throwIfError(error: { message?: string; code?: string } | null) {
+function throwIfError(
+  error: { message?: string; code?: string } | null,
+): asserts error is null {
   if (!error) return;
   throw new Error(
     error.code === "42P01"
@@ -120,6 +122,9 @@ export async function ensureSettings(
   if (inserted.error) {
     if (inserted.error.code === "23505") return ensureSettings(supabase, userId);
     throwIfError(inserted.error);
+  }
+  if (!inserted.data) {
+    throw new Error("Failed to create SAT practice settings");
   }
   return inserted.data;
 }
@@ -403,6 +408,7 @@ export async function createAttemptFromIngest(
     .select("id,title,section,status,created_at")
     .single();
   throwIfError(error);
+  if (!data) throw new Error("Failed to create SAT practice attempt");
 
   const external_ids = [...modules.m1, ...modules.m2]
     .map((q) => q.externalId)
