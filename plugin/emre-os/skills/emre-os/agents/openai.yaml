@@ -1,0 +1,7 @@
+dependencies:
+  tools:
+    - type: mcp
+      value: emre-os
+      description: Emre OS live reads and writes
+      transport: streamable_http
+      url: https://emre-xi.vercel.app/api/mcp

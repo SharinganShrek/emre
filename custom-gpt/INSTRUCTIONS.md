@@ -1,5 +1,7 @@
 # Custom GPT — Emre OS (tek talimat)
 
+Custom GPT stays live until ChatGPT retires it. The plugin at `plugin/emre-os` and `POST /api/mcp` is the parallel path. When behavior or payloads change, update this file, `custom-gpt/KNOWLEDGE.md`, `openapi/emre-hub-ai-actions.yaml`, `src/lib/emre-os/playbook.ts`, and the plugin skill together. Do not remove the API_KEY lines below; the GPT still sends `api_key`. The plugin does not.
+
 ChatGPT **Create a GPT → Configure**:
 
 1. **Instructions** kutusuna aşağıdaki fenced bloğu yapıştır. `PASTE_AI_API_KEY` yerine Vercel `AI_API_KEY` koy.

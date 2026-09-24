@@ -1,0 +1,19 @@
+---
+description: Keep Emre OS Custom GPT and the plugin in sync until GPT retirement
+globs: custom-gpt/**,openapi/**,plugin/emre-os/**,src/lib/emre-os/**,src/app/api/mcp/**,src/app/api/ai/**
+alwaysApply: false
+---
+
+# Emre OS GPT and plugin
+
+Custom GPT stays live until ChatGPT retires it (scheduled 11 Dec 2026). Do not remove OpenAPI actions, switch Actions auth away from None, or stop accepting `api_key`.
+
+When assistant behavior, payloads, or tools change, update all of:
+
+- `custom-gpt/INSTRUCTIONS.md` (keep the `API_KEY` lines)
+- `custom-gpt/KNOWLEDGE.md`
+- `openapi/emre-hub-ai-actions.yaml`
+- `src/lib/emre-os/playbook.ts` and `src/lib/emre-os/tools.ts`
+- `plugin/emre-os/skills/emre-os/SKILL.md` and `references/payloads.md`
+
+Tool names match the OpenAPI `operationId`s. The plugin server adds `api_key`; the model must not.
