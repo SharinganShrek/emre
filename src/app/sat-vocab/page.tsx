@@ -525,8 +525,26 @@ function WordDetail({ word }: { word: SatWord }) {
 }
 
 function WeakWordsTab() {
-  const { progress } = useSatVocab();
+  const { progress, recordWordResult, consumeGptTest, refresh } = useSatVocab();
   const today = todayISO();
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const reviewTests = useMemo(
+    () =>
+      Object.entries(progress.pending_gpt_tests ?? {}).filter(([key]) =>
+        key.startsWith("review:"),
+      ),
+    [progress.pending_gpt_tests],
+  );
+  const activeTest = activeKey
+    ? progress.pending_gpt_tests?.[activeKey]
+    : undefined;
+
+  useEffect(() => {
+    void refresh();
+    const id = window.setInterval(() => void refresh(), 8000);
+    return () => window.clearInterval(id);
+  }, [refresh]);
+
   const rows = useMemo(() => {
     return Object.entries(progress.word_stats).map(([word, raw]) => {
       const s = normalizeWordStat(raw);
@@ -556,27 +574,74 @@ function WeakWordsTab() {
     [rows],
   );
 
-  if (due.length === 0 && weak.length === 0) {
-    return (
-      <p className="text-sm text-muted">
-        No due or weak words yet — finish a few tests and misses will show up
-        here.
-      </p>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <WordStatList
-        title="Due for review"
-        hint="next_review is today or earlier. Spaced repetition brings these back."
-        words={due}
-      />
-      <WordStatList
-        title="Weak words"
-        hint="Accuracy under 70%. Revisit these in flashcards."
-        words={weak}
-      />
+      <div className="space-y-2">
+        <div>
+          <h2 className="text-sm font-semibold">Review tests</h2>
+          <p className="text-sm text-muted">
+            Sent from GPT. Not tied to a plan day. They stay here until you finish them.
+          </p>
+        </div>
+        {reviewTests.length === 0 ? (
+          <p className="text-sm text-muted">No review test waiting.</p>
+        ) : (
+          reviewTests.map(([key, test]) => (
+            <Card key={key}>
+              <CardContent className="flex items-center justify-between gap-3 p-3">
+                <div>
+                  <p className="font-medium">
+                    {test.title || "Review test"}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {test.format.replaceAll("_", " ")} · {test.items.length} questions
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => setActiveKey(key)}>
+                  <FlaskConical /> Start
+                </Button>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+      {due.length === 0 && weak.length === 0 ? (
+        <p className="text-sm text-muted">
+          No due or weak words yet — finish a few tests and misses will show up
+          here.
+        </p>
+      ) : (
+        <>
+          <WordStatList
+            title="Due for review"
+            hint="next_review is today or earlier. Spaced repetition brings these back."
+            words={due}
+          />
+          <WordStatList
+            title="Weak words"
+            hint="Accuracy under 70%. Revisit these in flashcards."
+            words={weak}
+          />
+        </>
+      )}
+      <Dialog
+        open={Boolean(activeTest && activeKey)}
+        onClose={() => setActiveKey(null)}
+        title={activeTest?.title || "Review test"}
+      >
+        {activeTest && activeKey && (
+          <GptDrillRunner
+            test={activeTest}
+            onWordResult={recordWordResult}
+            onCancel={() => setActiveKey(null)}
+            onFinish={(score) => {
+              consumeGptTest(activeKey);
+              toast.success(`Review test finished · score ${score}%`);
+              setActiveKey(null);
+            }}
+          />
+        )}
+      </Dialog>
     </div>
   );
 }

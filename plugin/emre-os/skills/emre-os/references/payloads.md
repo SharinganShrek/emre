@@ -43,6 +43,26 @@ Item shapes:
 
 1–200 items. Mixed needs ≥2 kinds. Use only words from that session. Rephrase catalog text when you can.
 
+## Review test (`send_review_test`)
+
+Not tied to a plan day. Omit `plan_id`. No item cap. It shows under SAT Vocab → Weak Words, not on a session card. Do not mark a plan day complete.
+
+```
+{
+  "action": "send_review_test",
+  "title": "Weak words mixed",
+  "test": {
+    "format": "mixed",
+    "items": [
+      {"kind":"multiple_choice","word":"cadence","prompt":"The cadence of the speech lulled the crowd.","choices":["rhythm of a sequence","sudden anger","a kind of bird","hidden meaning"],"answer":"rhythm of a sequence"},
+      {"kind":"type_word","word":"cadence","prompt":"the rhythmic flow or sequence of sounds","accepted":["cadence"]}
+    ]
+  }
+}
+```
+
+Item shapes match `send_test`. Mixed needs ≥2 kinds. Matching needs ≥2 pairs.
+
 ## College Counseling writes
 
 Always `getCollegeCounseling` first. After a write, tell Emre to tap **Reload from server**.

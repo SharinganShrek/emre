@@ -229,9 +229,9 @@ export function registerEmreOsTools(server: McpServer) {
     server,
     "updateSatVocabProgress",
     "Record SAT vocab progress",
-    "Use for learn, test, rest, word_results, or send_test. Learn day needs learn and test. send_test queues an in-app mixed quiz. See skill payloads.md. Confirm unless Emre asked to save.",
+    "Use for learn, test, rest, word_results, send_test, or send_review_test. Learn day needs learn and test. send_test queues a session quiz and needs plan_id (1–200 items). send_review_test omits plan_id, has no item cap, and shows under SAT Vocab → Weak Words. See skill payloads.md. Confirm unless Emre asked to save.",
     z.looseObject({
-      action: z.enum(["learn", "test", "rest", "word_results", "send_test"]),
+      action: z.enum(["learn", "test", "rest", "word_results", "send_test", "send_review_test"]),
       plan_id: z.string().optional(),
       known_words: z.array(z.string()).optional(),
       drill: z
@@ -264,7 +264,7 @@ export function registerEmreOsTools(server: McpServer) {
             "multiple_choice",
             "mixed",
           ]),
-          items: z.array(z.record(z.string(), z.unknown())).min(1).max(200),
+          items: z.array(z.record(z.string(), z.unknown())).min(1),
         })
         .optional(),
     }),

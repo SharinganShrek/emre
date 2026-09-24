@@ -390,9 +390,29 @@ export function applySendTest(
   };
 }
 
+export function applySendReviewTest(
+  progress: SatVocabProgress,
+  body: Extract<SatVocabProgressWrite, { action: "send_review_test" }>,
+): SatVocabProgress {
+  const asSession = applySendTest(progress, {
+    action: "send_test",
+    plan_id: "plan-001",
+    title: body.title,
+    test: body.test,
+  });
+  const queued = asSession.pending_gpt_tests?.["plan-001"];
+  if (!queued) return progress;
+  const key = `review:${queued.id}`;
+  const review: SatGptQueuedTest = { ...queued, plan_id: key };
+  const pending = { ...(progress.pending_gpt_tests ?? {}) };
+  pending[key] = review;
+  return { ...progress, pending_gpt_tests: pending };
+}
+
 export function pendingGptTestSummaries(progress: SatVocabProgress) {
-  return Object.values(progress.pending_gpt_tests ?? {}).map((t) => ({
-    plan_id: t.plan_id,
+  return Object.entries(progress.pending_gpt_tests ?? {}).map(([key, t]) => ({
+    plan_id: key.startsWith("review:") ? null : t.plan_id,
+    placement: key.startsWith("review:") ? "weak_words" : "session",
     format: t.format,
     title: t.title ?? null,
     item_count: t.items.length,

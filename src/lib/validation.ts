@@ -217,6 +217,48 @@ export const satVocabProgressWrite = z.discriminatedUnion("action", [
       }),
     ]),
   }),
+  z.object({
+    action: z.literal("send_review_test"),
+    title: z.string().max(120).optional(),
+    test: z.discriminatedUnion("format", [
+      z.object({
+        format: z.literal("multiple_choice"),
+        items: z.array(satMcItem).min(1),
+      }),
+      z.object({
+        format: z.literal("type_word"),
+        items: z.array(satTypeItem).min(1),
+      }),
+      z.object({
+        format: z.literal("type_definition"),
+        items: z.array(satTypeItem).min(1),
+      }),
+      z.object({
+        format: z.literal("matching"),
+        items: z
+          .array(
+            z.object({
+              word: z.string().min(1).max(80),
+              definition: z.string().min(1).max(400),
+            }),
+          )
+          .min(2),
+      }),
+      z.object({
+        format: z.literal("mixed"),
+        items: z
+          .array(satMixedItem)
+          .min(1)
+          .refine(
+            (items) => new Set(items.map((item) => item.kind)).size >= 2,
+            {
+              message:
+                "mixed tests need at least two kinds (multiple_choice, type_word, type_definition)",
+            },
+          ),
+      }),
+    ]),
+  }),
 ]);
 export type SatVocabProgressWrite = z.infer<typeof satVocabProgressWrite>;
 

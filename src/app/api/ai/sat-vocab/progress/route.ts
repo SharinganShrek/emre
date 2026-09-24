@@ -7,6 +7,7 @@ import { aiOk, aiCatch, aiError } from "@/lib/ai/response";
 import {
   applyLearn,
   applyRest,
+  applySendReviewTest,
   applySendTest,
   applyTest,
   applyWordResults,
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
     const body = satVocabProgressWrite.parse(await readJsonBody(request));
     let progress = await loadSatProgress(ctx);
 
-    if (body.action !== "word_results") {
+    if (body.action !== "word_results" && body.action !== "send_review_test") {
       const day = findPlanDay({ plan_id: body.plan_id });
       if (!day) return aiError("Unknown plan_id.", 404);
     }
@@ -110,6 +111,8 @@ export async function POST(request: Request) {
       progress = applyRest(progress, body.plan_id);
     } else if (body.action === "send_test") {
       progress = applySendTest(progress, body);
+    } else if (body.action === "send_review_test") {
+      progress = applySendReviewTest(progress, body);
     } else {
       progress = applyWordResults(progress, body.results);
     }
