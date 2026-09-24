@@ -22,9 +22,14 @@ const mcp = createMcpHandler(
   },
 );
 
+function pathToken(request: Request) {
+  const parts = new URL(request.url).pathname.split("/").filter(Boolean);
+  return parts[0] === "api" && parts[1] === "mcp" ? parts[2] || "" : "";
+}
+
 function authorized(request: Request) {
   const configured = getConfiguredAiApiKey();
-  const provided = extractAiApiKey(request) ?? "";
+  const provided = extractAiApiKey(request) || pathToken(request);
   return aiKeysMatch(provided, configured);
 }
 
@@ -37,7 +42,7 @@ async function route(request: Request) {
       {
         ok: false,
         error:
-          "Missing or invalid api_key. Connect ChatGPT to https://emre-xi.vercel.app/api/mcp?api_key=YOUR_AI_API_KEY",
+          "Missing or invalid api_key. Connect ChatGPT to https://emre-xi.vercel.app/api/mcp/<AI_API_KEY> with no question mark.",
       },
       { status: 401, headers: AI_CORS_HEADERS },
     );
