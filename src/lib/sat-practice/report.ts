@@ -1,4 +1,5 @@
-import { answersMatch } from "./score";
+import { fixMathHtml } from "./mathml";
+import { questionIsCorrect } from "./score";
 import type {
   SatAnswerMap,
   SatFlagMap,
@@ -36,7 +37,7 @@ function pushModule(
       ? answerKey(module, index, sectionKey)
       : answerKey(module, index);
     const chosen = answers[answerId] || "";
-    const isCorrect = answersMatch(chosen, question.correctAnswers);
+    const isCorrect = questionIsCorrect(chosen, question);
     rows.push({
       key: answerId,
       module,
@@ -146,8 +147,8 @@ export function buildResultsReport(
       : `Module ${row.module}, Q${row.index + 1}`;
     lines.push(`${loc} ${mark}`);
     lines.push(domainLine(row));
-    const stimulus = (row.question.stimulus || "").trim();
-    const prompt = (row.question.prompt || "").trim();
+    const stimulus = stripForReport(row.question.stimulus || "");
+    const prompt = stripForReport(row.question.prompt || "");
     if (stimulus) lines.push(stimulus);
     if (prompt) {
       if (stimulus) lines.push("");
@@ -165,7 +166,7 @@ export function buildResultsReport(
       const spent = formatSpent(row.secondsSpent);
       lines.push(spent ? `Time spent: ${spent}` : "Time spent: —");
     }
-    const rationale = (row.question.rationale || "").trim();
+    const rationale = stripForReport(row.question.rationale || "");
     if (rationale) {
       lines.push("");
       lines.push(rationale);
@@ -177,12 +178,14 @@ export function buildResultsReport(
 }
 
 function stripForReport(html: string) {
-  return String(html || "")
+  return fixMathHtml(String(html || ""))
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
+    .replace(/&minus;/gi, "−")
     .replace(/\s+\n/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
     .trim();
 }

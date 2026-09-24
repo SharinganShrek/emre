@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { flattenQuestions } from "@/lib/sat-practice/report";
-import type { SatPracticeAttempt, SatQuestionRow } from "@/lib/sat-practice/types";
+import { fixMathHtml } from "@/lib/sat-practice/mathml";
+import type {
+  SatPracticeAttempt,
+  SatQuestion,
+  SatQuestionRow,
+} from "@/lib/sat-practice/types";
 
 type Tab = "all" | "rw" | "math";
 
@@ -189,6 +194,7 @@ export default function SatPracticeDetailsPage() {
               <th className="px-3 py-2">Your Answer</th>
               <th className="px-3 py-2">Actions</th>
               <th className="px-3 py-2">Domain</th>
+              <th className="px-3 py-2">Difficulty</th>
             </tr>
           </thead>
           <tbody>
@@ -221,6 +227,7 @@ export default function SatPracticeDetailsPage() {
                   </button>
                 </td>
                 <td className="px-3 py-2">{row.question.domain}</td>
+                <td className="px-3 py-2">{difficultyLabel(row.question)}</td>
               </tr>
             ))}
           </tbody>
@@ -268,17 +275,26 @@ export default function SatPracticeDetailsPage() {
 
 function Rich({ html }: { html: string }) {
   if (!html) return null;
-  if (/<[a-z][\s\S]*>/i.test(html)) {
+  const markup = fixMathHtml(html);
+  if (/<[a-z][\s\S]*>/i.test(markup)) {
     return (
       <div
-        className="mt-2 text-sm leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: html }}
+        className="sat-rich-html mt-2 text-sm leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: markup }}
       />
     );
   }
   return (
-    <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{html}</div>
+    <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{markup}</div>
   );
+}
+
+function difficultyLabel(question: SatQuestion) {
+  const raw = String(question.difficulty || question.difficultyCode || "").trim();
+  if (/^e(asy)?$/i.test(raw)) return "Easy";
+  if (/^m(edium)?$/i.test(raw)) return "Medium";
+  if (/^h(ard)?$/i.test(raw)) return "Hard";
+  return raw || "—";
 }
 
 function Stat({ value, label }: { value: number; label: string }) {
@@ -325,6 +341,8 @@ function ReviewModal({
           <h2 className="text-sm font-semibold">{attemptTitle}</h2>
           <p className="text-xs text-muted">
             Knowledge and Skills: {row.question.domain}
+            <span className="mx-2">·</span>
+            {difficultyLabel(row.question)}
             <button type="button" className="ml-3" onClick={onClose}>
               ×
             </button>
@@ -361,8 +379,8 @@ function ReviewModal({
                         {opt.letter}
                       </span>
                       <span
-                        className="min-w-0 leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: opt.content }}
+                        className="sat-rich-html min-w-0 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: fixMathHtml(opt.content) }}
                       />
                     </li>
                   );

@@ -8,6 +8,7 @@ import {
   mergeQuestionBank,
   modulesNeedChoices,
   normalizeAnswerMap,
+  normalizeModules,
   normalizeSectionModules,
   parseMockHtml,
 } from "./parse-mock-html";
@@ -58,14 +59,16 @@ function asSatSection(value: unknown): SatSection {
 function asAttempt(row: Record<string, unknown>): SatPracticeAttempt {
   const rawModules = (row.modules as SatModules) || { m1: [], m2: [] };
   const fromHtml = parseMockHtml(String(row.source_html || ""));
-  const modules = mergeQuestionBank(
-    {
-      m1: Array.isArray(rawModules.m1) ? rawModules.m1 : [],
-      m2: Array.isArray(rawModules.m2) ? rawModules.m2 : [],
-      rw: rawModules.rw,
-      math: rawModules.math,
-    },
-    fromHtml,
+  const modules = normalizeModules(
+    mergeQuestionBank(
+      {
+        m1: Array.isArray(rawModules.m1) ? rawModules.m1 : [],
+        m2: Array.isArray(rawModules.m2) ? rawModules.m2 : [],
+        rw: rawModules.rw,
+        math: rawModules.math,
+      },
+      fromHtml,
+    ),
   );
   return {
     id: String(row.id),

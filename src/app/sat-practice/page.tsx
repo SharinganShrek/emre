@@ -107,7 +107,7 @@ export default function SatPracticePage() {
           import official Bluebook scores.
         </p>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {data.attempts.map((attempt) => (
             <ScoreCard
               key={attempt.id}
@@ -198,7 +198,7 @@ function ScoreCard({
   return (
     <article
       className={cn(
-        "w-[280px] shrink-0 overflow-hidden rounded-xl border bg-card",
+        "w-full overflow-hidden rounded-xl border bg-card",
         selected ? "border-primary" : "border-border",
       )}
     >

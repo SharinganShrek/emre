@@ -24,6 +24,8 @@ export interface SatQuestion {
   answerOptions: SatAnswerOption[];
   correctAnswers: string[];
   rationale: string;
+  /** Manual credit (e.g. rendering bug on an old mock). */
+  creditGiven?: boolean;
 }
 
 export interface SatSectionModules {

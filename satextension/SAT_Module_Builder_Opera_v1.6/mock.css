@@ -271,6 +271,29 @@ button,input{font-family:inherit}
 .content-html table{border-collapse:collapse;max-width:100%;margin:8px 0 14px}
 .content-html td,.content-html th{border:1px solid #c8c8c8;padding:6px 8px;vertical-align:top}
 .content-html ul,.content-html ol{margin:8px 0 12px;padding-left:22px}
+.content-html math,.choice-body math,.review math{
+  font-family:"Cambria Math","STIX Two Math","Latin Modern Math","Times New Roman",Times,serif;
+  font-size:1.05em;
+}
+.content-html math *,.choice-body math *,.review math *{box-sizing:content-box}
+.content-html .sr-only,
+.content-html .visually-hidden,
+.content-html .visuallyHidden,
+.content-html .screen-reader-only,
+.content-html .cb-sr-only,
+.content-html .sat-sr-only,
+.choice-body .sr-only,
+.review .sr-only{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
 .stem{margin-bottom:18px}
 .bb-left.content-html u,.stem u{text-decoration:underline}
 

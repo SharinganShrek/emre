@@ -76,7 +76,7 @@ async function loadData(){
 }
 
 loadData().then(data=>{
-  D=data;
+  D=typeof fixMockMath==='function'?fixMockMath(data):data;
   $('#loading').classList.add('hidden');
   if(!D?.m1?.length||!D?.m2?.length){
     $('#loading').classList.remove('hidden');

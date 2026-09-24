@@ -112,3 +112,27 @@ body {
   color: var(--muted-2);
   pointer-events: none;
 }
+
+.sat-rich-html math {
+  font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", "Times New Roman", Times, serif;
+  font-size: 1.05em;
+}
+.sat-rich-html math * {
+  box-sizing: content-box;
+}
+.sat-rich-html .sr-only,
+.sat-rich-html .visually-hidden,
+.sat-rich-html .visuallyHidden,
+.sat-rich-html .screen-reader-only,
+.sat-rich-html .cb-sr-only,
+.sat-rich-html .sat-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

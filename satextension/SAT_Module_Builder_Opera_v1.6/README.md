@@ -1,4 +1,4 @@
-# SAT Module Builder v1.6.1 (Opera)
+# SAT Module Builder v1.6.4 (Opera)
 
 Builds a timed **Reading and Writing** mock (27 + harder 27) or a timed **Math** mock (22 + harder 22) from your signed-in College Board Student Question Bank, then syncs the HTML, questions, and answers to Emre OS. Can also import official **Bluebook** practice tests (full 1600 SAT) from My Practice.
 
@@ -29,4 +29,5 @@ After Module 1 and Module 2 you submit, answers (and per-question time) sync to 
 - Bluebook imports are official College Board scores, not the QBank estimate.
 - Module 2 on QBank mocks is always the harder route.
 - Math supports multiple-choice and student-produced response.
+- MathML parentheses (`<mfenced>` / stretchy fences) are rewritten so Chrome/Opera show `f(x)` and `w(w + 29)` instead of dropping the brackets. R&W blanks render as `___` without the spoken word “blank”. Reload the extension after updating.
 - Time per question is recorded in the QBank player; hide it per mock on the app if you used a custom clock. Bluebook imports have timing off.

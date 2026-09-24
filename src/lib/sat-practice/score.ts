@@ -42,6 +42,14 @@ export function answersMatch(chosen: string | undefined, correctAnswers: string[
   return false;
 }
 
+export function questionIsCorrect(
+  chosen: string | undefined,
+  question: Pick<SatQuestion, "correctAnswers" | "creditGiven"> | undefined,
+) {
+  if (question?.creditGiven) return true;
+  return answersMatch(chosen, question?.correctAnswers || []);
+}
+
 function interpolate(raw: number, max: number, points: Array<[number, number]>) {
   const x = Math.max(0, Math.min(max, raw));
   for (let i = 1; i < points.length; i++) {
@@ -141,7 +149,10 @@ function scoreSection(
   const visit = (qs: SatQuestion[], module: 1 | 2) => {
     qs.forEach((q, i) => {
       total += 1;
-      const ok = answersMatch(answers[answerKey(module, i, keySection)], q.correctAnswers);
+      const ok = questionIsCorrect(
+        answers[answerKey(module, i, keySection)],
+        q,
+      );
       if (ok) correct += 1;
       const domain = canonicalDomain(section, q.domain, q.domainCode);
       let row = buckets.get(domain);

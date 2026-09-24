@@ -1,3 +1,5 @@
+importScripts('mathml.js');
+
 const HOST='https://digitalpractice-api.collegeboard.org';
 const API=HOST+'/mspractice-studentquestionbank-prod';
 const RESULTS_API=HOST+'/mspractice-testresults-prod';
@@ -299,23 +301,25 @@ function qNorm(meta,detail){
     domainCode:meta.primary_class_cd||'', domain:meta.primary_class_cd_desc||meta.primary_class_cd||'',
     skillCode:meta.skill_cd||'', skill:meta.skill_desc||meta.skill_cd||'',
     difficultyCode:meta.difficulty||'', difficulty:{E:'Easy',M:'Medium',H:'Hard'}[meta.difficulty]||meta.difficulty||'',
-    stimulus:first(detail,['stimulus','passage','scenario']), prompt:first(detail,['stem','body','prompt']),
-    answerOptions:opts.map((o,i)=>({letter:String.fromCharCode(65+i),content:String(o?.content||'')})),
-    correctAnswers:correct(detail), rationale:String(detail.rationale||'')
+    stimulus:fixMathHtml(first(detail,['stimulus','passage','scenario'])), prompt:fixMathHtml(first(detail,['stem','body','prompt'])),
+    answerOptions:opts.map((o,i)=>({letter:String.fromCharCode(65+i),content:fixMathHtml(String(o?.content||''))})),
+    correctAnswers:correct(detail), rationale:fixMathHtml(String(detail.rationale||''))
   };
 }
 function first(o,keys){for(const k of keys){if(typeof o?.[k]==='string'&&o[k].trim())return o[k];}return '';}
 function safeJson(x){return JSON.stringify(x).replace(/<\/script/gi,'<\\/script');}
 
 async function timedHtml(payload){
-  const [html,css,js]=await Promise.all([
+  const [html,css,math,js]=await Promise.all([
     fetch(chrome.runtime.getURL('mock.html')).then(r=>r.text()),
     fetch(chrome.runtime.getURL('mock.css')).then(r=>r.text()),
+    fetch(chrome.runtime.getURL('mathml.js')).then(r=>r.text()),
     fetch(chrome.runtime.getURL('mock.js')).then(r=>r.text())
   ]);
-  const data=safeJson(payload);
+  const data=safeJson(fixMockMath(payload));
   let out=html.replace(/<link rel="stylesheet" href="mock\.css">\s*/,'<style>\n'+css+'\n</style>\n');
-  out=out.replace(/<script src="mock\.js"><\/script>/,'<script id="DATA" type="application/json">'+data+'</script>\n<script>\n'+js.replace(/<\/script/gi,'<\\/script')+'\n</script>');
+  const scripts=(math+'\n'+js).replace(/<\/script/gi,'<\\/script');
+  out=out.replace(/<script src="mathml\.js"><\/script>\s*<script src="mock\.js"><\/script>/,'<script id="DATA" type="application/json">'+data+'</script>\n<script>\n'+scripts+'\n</script>');
   return out;
 }
 
@@ -568,11 +572,11 @@ function itemToQuestion(item){
     skill:meta.SKILL_DESC||meta.SKILL_CD||'',
     difficultyCode:diff,
     difficulty:{E:'Easy',M:'Medium',H:'Hard'}[diff]||diff||'',
-    stimulus:item.passage?.body||item.stimulus||'',
-    prompt:item.prompt||item.stem||'',
-    answerOptions:choiceOptions(item.answer?.choices),
+    stimulus:fixMathHtml(item.passage?.body||item.stimulus||''),
+    prompt:fixMathHtml(item.prompt||item.stem||''),
+    answerOptions:choiceOptions(item.answer?.choices).map(o=>({...o,content:fixMathHtml(o.content)})),
     correctAnswers,
-    rationale:String(item.answer?.rationale||'')
+    rationale:fixMathHtml(String(item.answer?.rationale||''))
   };
 }
 

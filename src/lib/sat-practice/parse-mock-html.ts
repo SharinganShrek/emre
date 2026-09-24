@@ -1,3 +1,4 @@
+import { fixMathHtml } from "./mathml";
 import type { SatAnswerMap, SatModules, SatQuestion, SatSectionModules } from "./types";
 import { allQuestions } from "./types";
 
@@ -79,6 +80,7 @@ function mergeQuestion(base: SatQuestion, extra?: SatQuestion): SatQuestion {
       ? base.correctAnswers
       : extra.correctAnswers || [],
     rationale: extra.rationale || base.rationale,
+    creditGiven: Boolean(base.creditGiven || extra.creditGiven) || undefined,
   };
 }
 
@@ -92,6 +94,16 @@ export function normalizeSectionModules(raw: unknown): SatSectionModules {
   return {
     m1: normalizeQuestions(obj.m1),
     m2: normalizeQuestions(obj.m2),
+  };
+}
+
+export function normalizeModules(raw: SatModules | null | undefined): SatModules {
+  const obj = raw || { m1: [], m2: [] };
+  return {
+    m1: normalizeQuestions(obj.m1),
+    m2: normalizeQuestions(obj.m2),
+    rw: obj.rw ? normalizeSectionModules(obj.rw) : undefined,
+    math: obj.math ? normalizeSectionModules(obj.math) : undefined,
   };
 }
 
@@ -122,17 +134,18 @@ export function normalizeQuestion(raw: unknown): SatQuestion {
     skill: String(q.skill || ""),
     difficultyCode: String(q.difficultyCode || ""),
     difficulty: String(q.difficulty || ""),
-    stimulus: String(q.stimulus || ""),
-    prompt: String(q.prompt || ""),
+    stimulus: fixMathHtml(String(q.stimulus || "")),
+    prompt: fixMathHtml(String(q.prompt || "")),
     answerOptions: opts.map((opt, i) => {
       const row =
         opt && typeof opt === "object" ? (opt as Record<string, unknown>) : {};
       return {
         letter: String(row.letter || String.fromCharCode(65 + i)),
-        content: String(row.content || ""),
+        content: fixMathHtml(String(row.content || "")),
       };
     }),
     correctAnswers: correct.map((value) => String(value || "").trim()).filter(Boolean),
-    rationale: String(q.rationale || ""),
+    rationale: fixMathHtml(String(q.rationale || "")),
+    creditGiven: q.creditGiven ? true : undefined,
   };
 }
