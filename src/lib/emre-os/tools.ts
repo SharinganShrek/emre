@@ -229,7 +229,7 @@ export function registerEmreOsTools(server: McpServer) {
     server,
     "updateSatVocabProgress",
     "Record SAT vocab progress",
-    "Use for learn, test, rest, word_results, send_test, or send_review_test. Learn day needs learn and test. send_test queues a session quiz and needs plan_id (1–200 items). send_review_test omits plan_id, has no item cap, and shows under SAT Vocab → Weak Words. See skill payloads.md. Confirm unless Emre asked to save.",
+    "Use for learn, test, rest, word_results, send_test, or send_review_test. send_review_test omits plan_id and shows under SAT Vocab → Weak Words. Quiz items must use kind. multiple_choice: word, prompt, choices (string array), answer (choice text). type_word and type_definition: word, prompt, accepted (string array). Do not send option objects. Mixed needs at least two kinds. Confirm unless Emre asked to save.",
     z.looseObject({
       action: z.enum(["learn", "test", "rest", "word_results", "send_test", "send_review_test"]),
       plan_id: z.string().optional(),
@@ -264,7 +264,35 @@ export function registerEmreOsTools(server: McpServer) {
             "multiple_choice",
             "mixed",
           ]),
-          items: z.array(z.record(z.string(), z.unknown())).min(1),
+          items: z
+            .array(
+              z.union([
+                z.object({
+                  kind: z.literal("multiple_choice"),
+                  word: z.string(),
+                  prompt: z.string(),
+                  choices: z.array(z.string()).min(2),
+                  answer: z.union([z.string(), z.number()]),
+                }),
+                z.object({
+                  kind: z.literal("type_word"),
+                  word: z.string(),
+                  prompt: z.string(),
+                  accepted: z.array(z.string()).min(1),
+                }),
+                z.object({
+                  kind: z.literal("type_definition"),
+                  word: z.string(),
+                  prompt: z.string(),
+                  accepted: z.array(z.string()).min(1),
+                }),
+                z.object({
+                  word: z.string(),
+                  definition: z.string(),
+                }),
+              ]),
+            )
+            .min(1),
         })
         .optional(),
     }),

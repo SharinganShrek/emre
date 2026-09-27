@@ -36,9 +36,9 @@ In-app mixed test (`send_test` replaces any queued test for that session):
 ```
 
 Item shapes:
-- multiple_choice: `word`, `prompt`, `choices`, `answer` (choice text or 0-based index)
-- type_word: `word`, `prompt` (definition shown), `accepted[]`
-- type_definition: `word`, `prompt` (word shown), `accepted[]`
+- multiple_choice: `kind` (required when format is mixed), `word`, `prompt`, `choices` (strings, not objects), `answer` (the correct choice text, or a 0-based index)
+- type_word: `kind`, `word`, `prompt` (definition shown), `accepted[]`
+- type_definition: `kind`, `word`, `prompt` (word shown), `accepted[]`
 - matching: `word`, `definition` (own format, not mixed; ≥2 pairs)
 
 1–200 items. Mixed needs ≥2 kinds. Use only words from that session. Rephrase catalog text when you can.

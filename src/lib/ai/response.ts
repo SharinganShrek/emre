@@ -56,7 +56,15 @@ export function aiCatch(err: unknown) {
     return aiError(err.message, err.status);
   }
   if (err instanceof ZodError) {
-    return aiError("Validation failed.", 422, err.flatten());
+    const issues = err.issues
+      .slice(0, 6)
+      .map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`)
+      .join("; ");
+    return aiError(
+      issues ? `Validation failed. ${issues}` : "Validation failed.",
+      422,
+      err.flatten(),
+    );
   }
   if (err instanceof SyntaxError) {
     return aiError("Request body must be valid JSON.", 400);

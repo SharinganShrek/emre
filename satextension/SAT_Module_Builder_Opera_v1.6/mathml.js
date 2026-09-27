@@ -89,6 +89,21 @@ function expandMfenced(html){
   return s;
 }
 const FENCE_CHAR='(?:[()\\[\\]{}|\\uFF08\\uFF09]|\\&(?:lpar|rpar|lsqb|rsqb|lcub|rcub);|\\&#(?:0*40|0*41|0*91|0*93|0*123|0*125);|\\&#x0*(?:28|29|5b|5d|7b|7d);)';
+function rewriteMroots(html){
+  const innermost=/<mroot(\s[^>]*)?>((?:(?!<mroot\b)[\s\S])*?)<\/mroot>/gi;
+  let s=String(html||''), prev='', guard=0;
+  while(s!==prev && guard++<40){
+    prev=s;
+    s=s.replace(innermost,(_,attr,inner)=>{
+      const kids=splitMathSiblings(inner);
+      if(kids.length<2) return `<msqrt>${inner}</msqrt>`;
+      const index=kids[kids.length-1];
+      const base=kids.slice(0,-1).join('');
+      return `<mrow><msup><mrow></mrow>${index}</msup><msqrt>${base}</msqrt></mrow>`;
+    });
+  }
+  return s;
+}
 function unstretchFenceMos(html){
   const re=new RegExp('<mo(\\s[^>]*)?>\\s*('+FENCE_CHAR+')\\s*</mo>','gi');
   return String(html||'').replace(re,(full,attr,ch)=>{
@@ -123,6 +138,7 @@ function fixMathHtml(html){
   let s=stripSrOnly(raw);
   s=fixBlankMarkers(s);
   if(/<mfenced|<mo[\s>]/i.test(s)) s=unstretchFenceMos(expandMfenced(s));
+  if(/<mroot\b/i.test(s)) s=rewriteMroots(s);
   return s;
 }
 function fixQuestionMath(q){

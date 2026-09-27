@@ -192,8 +192,8 @@ function render(){
   $('#qNum').textContent=String(idx+1);
   $('#qMenuLabel').textContent='Question '+(idx+1)+' of '+qs.length;
   $('#modTitle').textContent=sectionTitle(mod);
-  $('#passage').innerHTML=q.stimulus||'';
-  $('#prompt').innerHTML=q.prompt||'';
+  $('#passage').innerHTML=fixMathHtml(q.stimulus||'');
+  $('#prompt').innerHTML=fixMathHtml(q.prompt||'');
   renderAnswers(q);
   const marked=!!flagged[key()];
   $('#markBtn').classList.toggle('on', marked);
@@ -226,7 +226,7 @@ function renderAnswers(q){
     row.className='choice'+(sel===o.letter?' sel':'')+(elim[o.letter]?' elim':'');
     row.setAttribute('role','button');
     row.tabIndex=0;
-    row.innerHTML='<span class="bubble">'+o.letter+'</span><span class="choice-body">'+o.content+'</span>';
+    row.innerHTML='<span class="bubble">'+o.letter+'</span><span class="choice-body">'+fixMathHtml(o.content||'')+'</span>';
     if(elimOn){
       const x=document.createElement('button');
       x.type='button';
@@ -341,7 +341,7 @@ function showResults(){
     const chosen=answers['m'+m+'q'+i]||'—';
     const ok=q.correctAnswers.includes(chosen);
     const mark=flagged['m'+m+'q'+i]?' · Marked for review':'';
-    h+='<div class="result"><b>Module '+m+', Q'+(i+1)+'</b> <span class="'+(ok?'correct':'wrong')+'">'+(ok?'Correct':'Incorrect')+'</span>'+mark+'<div class="meta">'+q.domain+' · '+q.skill+' · '+q.difficulty+'</div><div class="content-html">'+(q.stimulus||'')+'</div><div class="content-html">'+(q.prompt||'')+'</div><p>Your answer: <b>'+chosen+'</b> · Correct: <b>'+q.correctAnswers.join(', ')+'</b></p>'+(q.rationale?'<div class="review content-html">'+q.rationale+'</div>':'')+'</div>';
+    h+='<div class="result"><b>Module '+m+', Q'+(i+1)+'</b> <span class="'+(ok?'correct':'wrong')+'">'+(ok?'Correct':'Incorrect')+'</span>'+mark+'<div class="meta">'+q.domain+' · '+q.skill+' · '+q.difficulty+'</div><div class="content-html">'+fixMathHtml(q.stimulus||'')+'</div><div class="content-html">'+fixMathHtml(q.prompt||'')+'</div><p>Your answer: <b>'+chosen+'</b> · Correct: <b>'+q.correctAnswers.join(', ')+'</b></p>'+(q.rationale?'<div class="review content-html">'+fixMathHtml(q.rationale)+'</div>':'')+'</div>';
   });
   h+='</div>';
   $('#results').innerHTML=h;

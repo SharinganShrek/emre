@@ -21,6 +21,7 @@ import {
 } from "@/lib/sat-vocab/ai";
 import { satVocabCatalog } from "@/lib/sat-vocab/catalog";
 import { computeSatStreak } from "@/lib/sat-vocab/streak";
+import { normalizeSatVocabWrite } from "@/lib/sat-vocab/normalize-quiz";
 import { satVocabProgressWrite } from "@/lib/validation";
 import { todayISO } from "@/lib/utils";
 
@@ -92,7 +93,9 @@ export async function POST(request: Request) {
     const ctx = authorizeAiRequest(request);
     assertPermission("sat_vocab", "write");
 
-    const body = satVocabProgressWrite.parse(await readJsonBody(request));
+    const body = satVocabProgressWrite.parse(
+      normalizeSatVocabWrite(await readJsonBody(request)),
+    );
     let progress = await loadSatProgress(ctx);
 
     if (body.action !== "word_results" && body.action !== "send_review_test") {

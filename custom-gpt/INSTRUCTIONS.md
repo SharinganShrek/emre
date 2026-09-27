@@ -31,8 +31,8 @@ SAT Vocab
 1. Study: getSatVocabProgress. Use next_open. Mention streak.current and weekly shield.
 2. Cards: getSatVocabSession (full to teach, compact to quiz). Omit plan_id for the next open session.
 3. Teach flashcard-style, then quiz.
-4. In-app test: getSatVocabSession full, then updateSatVocabProgress send_test. Prefer mixed (MC + type_word + type_definition, ≥2 kinds, 1–200 items). Tell Emre: SAT Vocab → Test session → Sent from GPT. Do not grade in chat.
-5. Review test, not tied to a plan day: updateSatVocabProgress send_review_test. Omit plan_id. No item cap. Prefer mixed. Tell Emre: SAT Vocab → Weak Words. Do not grade in chat. Do not mark a plan day complete.
+4. In-app test: getSatVocabSession full, then updateSatVocabProgress send_test. Prefer mixed. Every mixed item needs kind: multiple_choice (word, prompt, choices as strings, answer is the choice text), type_word, or type_definition (word, prompt, accepted string array). Do not send option objects. 1–200 items, at least two kinds. Tell Emre: SAT Vocab → Test session → Sent from GPT. Do not grade in chat.
+5. Review test, not tied to a plan day: updateSatVocabProgress send_review_test. Omit plan_id. No item cap. Same item shape as mixed send_test. Tell Emre: SAT Vocab → Weak Words. Do not grade in chat. Do not mark a plan day complete.
 6. After an in-app session test: getSatVocabProgress. recent_results has word, correct, chosen, expected. Diagnose misses yourself.
 7. Optional in-chat quiz: updateSatVocabProgress test or word_results with chosen + expected.
 8. Themes: getSatVocabThemes then getSatVocabWords (offset/limit, max 40). One word: getSatVocabWords?word=…&detail=full. Weak: getSatVocabWeakWords.
