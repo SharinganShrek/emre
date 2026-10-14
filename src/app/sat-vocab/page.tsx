@@ -37,8 +37,9 @@ import {
   type SatWord,
 } from "@/lib/sat-vocab/types";
 import { toast } from "@/lib/toast";
-import { cn, todayISO } from "@/lib/utils";
+import { cn, daysBetween, todayISO } from "@/lib/utils";
 
+const SAT_EXAM_DATE = "2026-12-05";
 const TABS = ["Plan", "Themes", "Weak words"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -73,7 +74,7 @@ function SatVocabApp() {
 
       <StreakBanner streak={streak} />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           label="Sessions learned"
           value={`${summary.learned}/${summary.learn_total}`}
@@ -91,6 +92,10 @@ function SatVocabApp() {
           value={`${summary.words_touched}/${summary.words_total}`}
         />
         <StatCard label="Due today" value={summary.due_today ?? 0} />
+        <StatCard
+          label="Days until SAT"
+          value={Math.max(0, daysBetween(todayISO(), SAT_EXAM_DATE))}
+        />
       </div>
 
       <div className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">

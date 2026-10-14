@@ -1,0 +1,1 @@
+{"ok":false,"error":"Missing AI API key. In GPT Actions set Authentication to API Key → Bearer and paste only the Vercel AI_API_KEY (do not type the word Bearer).","details":null}
