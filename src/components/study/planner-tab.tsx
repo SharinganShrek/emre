@@ -20,6 +20,7 @@ import {
   sessionMs,
   slotKey,
   subjectInSlot,
+  studyBeforePlanner,
 } from "@/lib/study/ypt";
 import type { YptStudy } from "@/lib/study/use-ypt";
 
@@ -81,6 +82,8 @@ export function PlannerTab({ study }: { study: YptStudy }) {
       .filter((s) => s.session_date === date)
       .reduce((sum, s) => sum + sessionMs(s), 0) +
     (date === study.today ? study.liveMs : 0);
+
+  const earlyStudy = studyBeforePlanner(study.sessions, date);
 
   const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString(undefined, {
     weekday: "short",
@@ -148,6 +151,16 @@ export function PlannerTab({ study }: { study: YptStudy }) {
     }
   }
 
+  async function clearEarlyStudy() {
+    if (busy || study.running) return;
+    setBusy(true);
+    try {
+      await study.clearBeforePlanner(date);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
       <Card>
@@ -183,6 +196,24 @@ export function PlannerTab({ study }: { study: YptStudy }) {
           <p className="mb-1 font-mono text-sm tabular-nums text-muted">
             {formatHMS(dayMs)}
           </p>
+          {earlyStudy.ms > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface-2 p-3">
+              <p className="flex-1 text-xs text-muted">
+                {formatHMS(earlyStudy.ms)} recorded before 05:00 is included in
+                this day&apos;s total but is outside this grid.
+                {study.running && " Pause the timer to clear it."}
+              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || study.running}
+                onClick={() => void clearEarlyStudy()}
+              >
+                <Trash2 />
+                Clear before 05:00
+              </Button>
+            </div>
+          )}
           <p className="mb-3 text-xs text-muted-2">
             Click and drag like highlighting text — every 10-minute box
             between the start and the cursor is selected. Then pick a

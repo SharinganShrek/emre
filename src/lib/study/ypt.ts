@@ -342,6 +342,23 @@ export function plannerSlotBounds(
   return { start, end: new Date(start.getTime() + 10 * 60_000) };
 }
 
+/** Calendar-day study counted in totals but preceding this day's grid. */
+export function studyBeforePlanner(sessions: StudySession[], dateISO: string) {
+  const start = plannerSlotBounds(dateISO, 0, 0).start;
+  const end = plannerSlotBounds(dateISO, PLANNER_HOURS[0], 0).start;
+  const ms = sessions.reduce((total, session) => {
+    if (session.session_date !== dateISO) return total;
+    const bounds = sessionBounds(session);
+    if (!bounds) return total;
+    return total + Math.max(
+      0,
+      Math.min(bounds.end.getTime(), end.getTime()) -
+        Math.max(bounds.start.getTime(), start.getTime()),
+    );
+  }, 0);
+  return { start, end, ms };
+}
+
 export function subjectInSlot(
   blocks: TimeBlock[],
   start: Date,

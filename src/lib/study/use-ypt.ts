@@ -23,6 +23,7 @@ import {
   sessionBounds,
   sessionMs,
   subjectById,
+  studyBeforePlanner,
   subtractTimeHoles,
   untimedBlocksForDate,
   type TodosByDate,
@@ -409,6 +410,22 @@ export function useYptStudy() {
     [carveSlots],
   );
 
+  const clearBeforePlanner = useCallback(
+    async (date: string) => {
+      if (timerRef.current.running) return;
+      try {
+        const { start, end } = studyBeforePlanner(data.studySessions, date);
+        await carveSlots(date, [{ start, end }]);
+        toast.success("Cleared study before 05:00");
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Could not clear early study",
+        );
+      }
+    },
+    [carveSlots, data.studySessions],
+  );
+
   return {
     settings,
     setSettings,
@@ -432,6 +449,7 @@ export function useYptStudy() {
     removeSession: (id: string) => remove("studySessions", id),
     fillPlannerSlots,
     clearPlannerSlots,
+    clearBeforePlanner,
   };
 }
 
