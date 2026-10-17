@@ -68,7 +68,7 @@ export async function GET(request: Request) {
       weak_skills: weakSkills(attempts),
       focus_next: focusNext(attempts),
       attempts: attemptCards(attempts),
-      note: "QBank R&W and Math mocks are separate; scaled_estimated is unofficial. Bluebook imports (source=bluebook, section=full) use official 400–1600 scores. Timing in reports is per-attempt include_timing_in_report.",
+      note: "QBank R&W and Math mocks are separate; scaled_estimated is unofficial (Albert.io Digital SAT per-module tables). Bluebook imports (source=bluebook, section=full) use official 400–1600 scores. Timing in reports is per-attempt include_timing_in_report.",
     });
   } catch (err) {
     return aiCatch(err);

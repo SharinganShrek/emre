@@ -50,48 +50,59 @@ export function questionIsCorrect(
   return answersMatch(chosen, question?.correctAnswers || []);
 }
 
-function interpolate(raw: number, max: number, points: Array<[number, number]>) {
-  const x = Math.max(0, Math.min(max, raw));
-  for (let i = 1; i < points.length; i++) {
-    const [x0, y0] = points[i - 1];
-    const [x1, y1] = points[i];
-    if (x <= x1) {
-      const t = x1 === x0 ? 0 : (x - x0) / (x1 - x0);
-      return Math.round((y0 + (y1 - y0) * t) / 10) * 10;
-    }
-  }
-  return points[points.length - 1][1];
+/**
+ * Albert.io Digital SAT calculator module tables
+ * (https://www.albert.io/blog/sat-score-calculator/).
+ * Index = raw correct in that module. Section score = M1 + M2, clamped 200–800.
+ * Unofficial; Albert aligns these to College Board practice-test curves.
+ */
+const RW_MODULE1 = [
+  100, 100, 120, 140, 160, 170, 180, 190, 200, 200, 210, 210, 220, 230, 240,
+  260, 270, 290, 310, 320, 340, 360, 370, 390, 410, 430, 440, 460,
+];
+const RW_MODULE2 = [
+  100, 100, 100, 110, 110, 110, 120, 120, 120, 130, 130, 140, 150, 170, 190,
+  190, 200, 210, 230, 240, 250, 260, 280, 290, 300, 310, 330, 340,
+];
+const MATH_MODULE1 = [
+  100, 100, 120, 140, 160, 160, 180, 180, 200, 200, 210, 240, 260, 280, 300,
+  320, 340, 360, 390, 410, 430, 450, 470,
+];
+const MATH_MODULE2 = [
+  100, 100, 100, 120, 120, 130, 150, 170, 170, 170, 190, 190, 200, 200, 210,
+  230, 240, 260, 270, 290, 300, 320, 330,
+];
+
+function lookupModuleScore(table: readonly number[], raw: number) {
+  const i = Math.max(0, Math.min(table.length - 1, Math.round(raw)));
+  return table[i] ?? table[0];
 }
 
-/** Estimated section scale (200–800). Not an official College Board conversion. */
-export function estimateScaledScore(section: SatPart, raw: number) {
-  if (section === "rw") {
-    return interpolate(raw, 54, [
-      [0, 200],
-      [8, 340],
-      [16, 450],
-      [24, 540],
-      [32, 620],
-      [40, 690],
-      [44, 710],
-      [48, 730],
-      [50, 750],
-      [52, 770],
-      [54, 800],
-    ]);
-  }
-  return interpolate(raw, 44, [
-    [0, 200],
-    [6, 350],
-    [12, 460],
-    [18, 550],
-    [24, 630],
-    [30, 690],
-    [35, 740],
-    [40, 770],
-    [42, 790],
-    [44, 800],
-  ]);
+function evenModuleSplit(raw: number, moduleSize: number) {
+  const m1 = Math.min(moduleSize, Math.round(raw / 2));
+  const m2 = Math.min(moduleSize, Math.max(0, raw - m1));
+  return { m1, m2 };
+}
+
+/** Estimated section scale (200–800). Albert per-module tables, not official CB. */
+export function estimateScaledScore(
+  section: SatPart,
+  raw: number,
+  m1Correct?: number,
+  m2Correct?: number,
+) {
+  const moduleSize = section === "rw" ? 27 : 22;
+  const split =
+    m1Correct == null || m2Correct == null
+      ? evenModuleSplit(raw, moduleSize)
+      : {
+          m1: Math.max(0, m1Correct),
+          m2: Math.max(0, m2Correct),
+        };
+  const tables = section === "rw" ? [RW_MODULE1, RW_MODULE2] : [MATH_MODULE1, MATH_MODULE2];
+  const scaled =
+    lookupModuleScore(tables[0], split.m1) + lookupModuleScore(tables[1], split.m2);
+  return Math.max(200, Math.min(800, scaled));
 }
 
 function canonicalDomain(section: SatPart, domain: string, domainCode?: string) {
@@ -146,6 +157,8 @@ function scoreSection(
 
   let correct = 0;
   let total = 0;
+  let m1Correct = 0;
+  let m2Correct = 0;
   const visit = (qs: SatQuestion[], module: 1 | 2) => {
     qs.forEach((q, i) => {
       total += 1;
@@ -153,7 +166,11 @@ function scoreSection(
         answers[answerKey(module, i, keySection)],
         q,
       );
-      if (ok) correct += 1;
+      if (ok) {
+        correct += 1;
+        if (module === 1) m1Correct += 1;
+        else m2Correct += 1;
+      }
       const domain = canonicalDomain(section, q.domain, q.domainCode);
       let row = buckets.get(domain);
       if (!row) {
@@ -202,7 +219,7 @@ function scoreSection(
   return {
     raw_correct: correct,
     raw_total: total,
-    scaled_estimated: estimateScaledScore(section, correct),
+    scaled_estimated: estimateScaledScore(section, correct, m1Correct, m2Correct),
     domain_stats,
   };
 }

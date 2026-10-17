@@ -221,6 +221,7 @@ export async function ensureSeedAttempt(
     throwIfError(existing.error);
     if (existing.data) {
       await repairSeedChoices(supabase, userId);
+      await ensureSeedHistory(supabase, userId);
       return;
     }
 
@@ -249,22 +250,7 @@ export async function ensureSeedAttempt(
       throwIfError(inserted.error);
     }
 
-    const settings = await ensureSettings(supabase, userId);
-    const hashes = new Set<string>([
-      ...(((settings.used_content_hashes as string[]) || []).map(String)),
-      ...seedContentHashes(),
-    ]);
-    const ids = new Set<string>([
-      ...(((settings.used_external_ids as string[]) || []).map(String)),
-      ...seedExternalIds(),
-    ]);
-    await supabase
-      .from("sat_practice_settings")
-      .update({
-        used_content_hashes: [...hashes],
-        used_external_ids: [...ids],
-      })
-      .eq("user_id", userId);
+    await ensureSeedHistory(supabase, userId);
   } catch (err) {
     console.error("[sat-practice] seed attempt skipped", err);
   }
@@ -289,22 +275,58 @@ async function repairSeedChoices(
     .eq("user_id", userId)
     .eq("id", SEED_RW_ATTEMPT_ID);
   throwIfError(error);
+}
+
+async function ensureSeedHistory(supabase: SupabaseClient, userId: string) {
   const settings = await ensureSettings(supabase, userId);
+  const currentHashes = ((settings.used_content_hashes as string[]) || []).map(String);
+  const currentIds = ((settings.used_external_ids as string[]) || []).map(String);
   const hashes = new Set<string>([
-    ...(((settings.used_content_hashes as string[]) || []).map(String)),
+    ...currentHashes,
     ...seedContentHashes(),
   ]);
   const ids = new Set<string>([
-    ...(((settings.used_external_ids as string[]) || []).map(String)),
+    ...currentIds,
     ...seedExternalIds(),
   ]);
-  await supabase
+  if (hashes.size === currentHashes.length && ids.size === currentIds.length) return;
+  const { error } = await supabase
     .from("sat_practice_settings")
     .update({
       used_content_hashes: [...hashes],
       used_external_ids: [...ids],
     })
     .eq("user_id", userId);
+  throwIfError(error);
+}
+
+async function refreshQbankEstimates(
+  supabase: SupabaseClient,
+  userId: string,
+) {
+  const { data, error } = await supabase
+    .from("sat_practice_attempts")
+    .select("id,section,source,status,modules,answers,source_html,scaled_estimated")
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .neq("source", "bluebook");
+  throwIfError(error);
+  for (const row of data || []) {
+    const attempt = asAttempt(row as Record<string, unknown>);
+    const next = scoreAttempt(
+      attempt.section,
+      attempt.modules,
+      attempt.answers,
+    ).scaled_estimated;
+    if (next !== attempt.scaled_estimated) {
+      const updated = await supabase
+        .from("sat_practice_attempts")
+        .update({ scaled_estimated: next })
+        .eq("user_id", userId)
+        .eq("id", attempt.id);
+      throwIfError(updated.error);
+    }
+  }
 }
 
 export async function listAttempts(
@@ -312,6 +334,7 @@ export async function listAttempts(
   userId = getHubUserId(),
 ): Promise<SatPracticeAttemptSummary[]> {
   await ensureSeedAttempt(supabase, userId);
+  await refreshQbankEstimates(supabase, userId);
   const { data, error } = await supabase
     .from("sat_practice_attempts")
     .select(LIST_COLS)
@@ -337,8 +360,20 @@ export async function getAttempt(
   throwIfError(error);
   if (!data) return null;
   const row = { ...(data as Record<string, unknown>) };
-  if (!opts?.includeHtml) delete row.source_html;
-  return asAttempt(row);
+  const attempt = asAttempt(row);
+  if (
+    attempt.status === "completed" &&
+    attempt.source !== "bluebook" &&
+    !attempt.official_total
+  ) {
+    attempt.scaled_estimated = scoreAttempt(
+      attempt.section,
+      attempt.modules,
+      attempt.answers,
+    ).scaled_estimated;
+  }
+  if (!opts?.includeHtml) attempt.source_html = null;
+  return attempt;
 }
 
 export async function getAttemptHtml(
@@ -723,6 +758,7 @@ export async function allCompletedAttempts(
   userId = getHubUserId(),
 ) {
   await ensureSeedAttempt(supabase, userId);
+  await refreshQbankEstimates(supabase, userId);
   const { data, error } = await supabase
     .from("sat_practice_attempts")
     .select(
