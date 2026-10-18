@@ -422,18 +422,62 @@ export async function rotateIngestToken(
   return token;
 }
 
+async function reconcileUsedQuestions(
+  supabase: SupabaseClient,
+  userId: string,
+) {
+  const row = await ensureSettings(supabase, userId);
+  const ids = new Set(
+    ((row.used_external_ids as string[]) || []).map(String).filter(Boolean),
+  );
+  const hashes = new Set(
+    ((row.used_content_hashes as string[]) || []).map(String).filter(Boolean),
+  );
+  const startIds = ids.size;
+  const startHashes = hashes.size;
+
+  for (const id of seedExternalIds()) ids.add(id);
+  for (const hash of seedContentHashes()) hashes.add(hash);
+
+  const attempts = await supabase
+    .from("sat_practice_attempts")
+    .select("modules")
+    .eq("user_id", userId);
+  throwIfError(attempts.error);
+  for (const attempt of attempts.data || []) {
+    const used = usedFromModules(
+      normalizeModules(attempt.modules as SatModules),
+    );
+    for (const id of used.external_ids) ids.add(id);
+    for (const hash of used.content_hashes) hashes.add(hash);
+  }
+
+  const nextIds = [...ids].slice(-4000);
+  const nextHashes = [...hashes].slice(-4000);
+  if (ids.size === startIds && hashes.size === startHashes) {
+    return { ids: nextIds, hashes: nextHashes, ingestToken: row.ingest_token_hash };
+  }
+  const { error } = await supabase
+    .from("sat_practice_settings")
+    .update({
+      used_external_ids: nextIds,
+      used_content_hashes: nextHashes,
+    })
+    .eq("user_id", userId);
+  throwIfError(error);
+  return { ids: nextIds, hashes: nextHashes, ingestToken: row.ingest_token_hash };
+}
+
 export async function settingsSummary(
   supabase: SupabaseClient,
   userId = getHubUserId(),
 ): Promise<SatPracticeSettings> {
   await ensureSeedAttempt(supabase, userId);
-  const row = await ensureSettings(supabase, userId);
-  const ids = (row.used_external_ids as string[]) || [];
-  const hashes = (row.used_content_hashes as string[]) || [];
+  const used = await reconcileUsedQuestions(supabase, userId);
   return {
-    has_ingest_token: Boolean(row.ingest_token_hash),
-    used_external_id_count: ids.length,
-    used_content_hash_count: hashes.length,
+    has_ingest_token: Boolean(used.ingestToken),
+    used_external_id_count: used.ids.length,
+    used_content_hash_count: used.hashes.length,
   };
 }
 
@@ -451,10 +495,10 @@ export async function usedQuestionLists(
   userId = getHubUserId(),
 ) {
   await ensureSeedAttempt(supabase, userId);
-  const row = await ensureSettings(supabase, userId);
+  const used = await reconcileUsedQuestions(supabase, userId);
   return {
-    external_ids: ((row.used_external_ids as string[]) || []).map(String),
-    content_hashes: ((row.used_content_hashes as string[]) || []).map(String),
+    external_ids: used.ids,
+    content_hashes: used.hashes,
   };
 }
 

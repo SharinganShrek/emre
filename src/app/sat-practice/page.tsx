@@ -142,8 +142,10 @@ function ConnectPanel({
       <p className="text-sm font-medium">Opera extension connection</p>
       <p className="mt-1 text-sm text-muted">
         Connect token is only for the extension. Custom GPT uses its own key.
-        Used-question history stays here ({settings.used_external_id_count} IDs,{" "}
-        {settings.used_content_hash_count} hashes).
+        The extension skips {settings.used_external_id_count} solved question
+        IDs. {settings.used_content_hash_count} content hashes are fingerprints
+        of those same items, including older HTML variants — extra hashes do
+        not mean questions can reappear.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button onClick={onGenerate} disabled={busy} size="sm">
