@@ -177,6 +177,102 @@ export function buildResultsReport(
   return lines.join("\n").trim() + "\n";
 }
 
+/** Stay under ChatGPT's tool-response cap. One SAT question is always returned. */
+const REPORT_PAGE_BUDGET = 36_000;
+const REPORT_PAGE_MAX = 8;
+
+export interface ReportPageQuestion {
+  number: number;
+  section: string;
+  module: 1 | 2;
+  question: number;
+  domain: string;
+  skill: string;
+  difficulty: string;
+  stimulus?: string;
+  prompt: string;
+  choices?: { letter: string; text: string }[];
+  chosen: string;
+  correct: string;
+  is_correct: boolean;
+  flagged: boolean;
+  seconds_spent?: number | null;
+  rationale?: string;
+}
+
+export function pageReportQuestions(
+  rows: SatQuestionRow[],
+  opts: { offset?: number; missesOnly?: boolean; includeTiming?: boolean },
+) {
+  const filtered = opts.missesOnly ? rows.filter((row) => !row.isCorrect) : rows;
+  const offset = Math.max(0, Math.floor(Number(opts.offset) || 0));
+  const questions: ReportPageQuestion[] = [];
+  let used = 2;
+  for (let i = offset; i < filtered.length; i++) {
+    const item = fitReportQuestion(toReportQuestion(filtered[i], !!opts.includeTiming));
+    const chunk = JSON.stringify(item).length + 1;
+    if (questions.length > 0 && (used + chunk > REPORT_PAGE_BUDGET || questions.length >= REPORT_PAGE_MAX)) {
+      break;
+    }
+    questions.push(item);
+    used += chunk;
+  }
+  const next = offset + questions.length;
+  return {
+    question_count: rows.length,
+    match_count: filtered.length,
+    miss_count: rows.filter((row) => !row.isCorrect).length,
+    offset,
+    next_offset: next < filtered.length ? next : null,
+    questions,
+  };
+}
+
+function toReportQuestion(row: SatQuestionRow, includeTiming: boolean): ReportPageQuestion {
+  const stimulus = stripForReport(row.question.stimulus || "");
+  const prompt = stripForReport(row.question.prompt || "");
+  const rationale = stripForReport(row.question.rationale || "");
+  const choices = (row.question.answerOptions || [])
+    .map((opt) => ({
+      letter: opt.letter,
+      text: stripForReport(opt.content || ""),
+    }))
+    .filter((opt) => opt.letter || opt.text);
+  const item: ReportPageQuestion = {
+    number: row.number,
+    section: row.sectionLabel,
+    module: row.module,
+    question: row.index + 1,
+    domain: row.question.domain || "",
+    skill: row.question.skill || "",
+    difficulty: String(row.question.difficulty || ""),
+    prompt,
+    chosen: row.chosen,
+    correct: row.correct,
+    is_correct: row.isCorrect,
+    flagged: row.flagged,
+  };
+  if (stimulus) item.stimulus = stimulus;
+  if (choices.length) item.choices = choices;
+  if (includeTiming) item.seconds_spent = row.secondsSpent;
+  if (rationale) item.rationale = rationale;
+  return item;
+}
+
+function fitReportQuestion(item: ReportPageQuestion) {
+  const cap = (value: string, max: number) =>
+    value.length <= max ? value : `${value.slice(0, max).trimEnd()}…`;
+  const size = () => JSON.stringify(item).length;
+  if (size() <= REPORT_PAGE_BUDGET) return item;
+  if (item.rationale) item.rationale = cap(item.rationale, 4_000);
+  if (item.stimulus) item.stimulus = cap(item.stimulus, 12_000);
+  if (size() <= REPORT_PAGE_BUDGET) return item;
+  item.prompt = cap(item.prompt, 8_000);
+  if (item.stimulus) item.stimulus = cap(item.stimulus, 6_000);
+  if (item.rationale) item.rationale = cap(item.rationale, 1_500);
+  return item;
+}
+
 function stripForReport(html: string) {
   return fixMathHtml(String(html || ""))
     .replace(/<br\s*\/?>/gi, "\n")

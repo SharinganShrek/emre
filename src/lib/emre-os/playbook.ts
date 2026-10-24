@@ -37,9 +37,9 @@ getStudyStats, getStudySessions. Log with saveStudySession {subject, duration_mi
 SAT Practice
 QBank R&W and Math mocks are separate (estimated 200–800). Official Bluebook practice tests import as one 1600 SAT (source=bluebook, official_total / official_rw / official_math).
 1. getSatPracticeSummary for trend, weak skills, focus_next, latest_bluebook.
-2. Tactics from the long results text: getSatPracticeReport (latest) or getSatPracticeReport with id. It includes rationales and misses. If include_timing_in_report is false, ignore pacing — Emre hid timing for that mock (Bluebook imports have timing off).
-3. getSatPracticeAttempts with section=rw|math|full for the list.
-Never invent scores or misses. SAT Vocab tools are only for vocab.
+2. Question stems, choices, and rationales: getSatPracticeReport. One call is one page, not the whole mock. Omit id for the latest mock, or pass id. Read questions[].stimulus, prompt, choices, chosen, correct, and rationale. If next_offset is a number, call again with id=<attempt id>:<next_offset> (or the same id plus offset=next_offset) until next_offset is null. misses_only=true pages only wrong questions, still with full text. If include_timing_in_report is false, ignore pacing — Emre hid timing for that mock (Bluebook imports have timing off).
+3. To walk every completed mock, finish one mock's pages, then call getSatPracticeReport with id=next_attempt_id. Do that only when Emre asked for more than one test. getSatPracticeAttempts with section=rw|math|full lists them.
+Never invent scores, stems, or choices. SAT Vocab tools are only for vocab.
 
 Habits/tasks/movies/journal/summary/analytics: those tools only. SAT Vocab tools only for vocab; SAT Practice tools only for SAT practice (QBank mocks and Bluebook imports); counseling tools only for counseling; Study tools only for the timer.`;
 

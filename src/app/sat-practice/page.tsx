@@ -22,6 +22,7 @@ export default function SatPracticePage() {
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -40,6 +41,34 @@ export default function SatPracticePage() {
     () => data?.attempts.find((a) => a.id === selectedId) || data?.attempts[0],
     [data, selectedId],
   );
+
+  const completedCount =
+    data?.attempts.filter((attempt) => attempt.status === "completed").length ?? 0;
+
+  async function downloadReports() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/sat-practice/export");
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(json.error || "Could not download the reports");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `sat-practice-reports-${stamp}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Download failed");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function generateToken() {
     setBusy(true);
@@ -93,12 +122,25 @@ export default function SatPracticePage() {
         />
       </div>
 
-      <div>
-        <h2 className="text-xl font-semibold">SAT Practice Tests</h2>
-        <p className="mt-1 text-sm text-muted">
-          QBank R&amp;W and Math mocks stay separate. Official Bluebook practice
-          tests import as one 1600 SAT.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold">SAT Practice Tests</h2>
+          <p className="mt-1 text-sm text-muted">
+            QBank R&amp;W and Math mocks stay separate. Official Bluebook practice
+            tests import as one 1600 SAT.
+          </p>
+        </div>
+        {completedCount > 0 ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadReports}
+            disabled={exporting}
+          >
+            {exporting ? <Loader2 className="animate-spin" /> : <Download />}
+            Download all reports
+          </Button>
+        ) : null}
       </div>
 
       {data.attempts.length === 0 ? (

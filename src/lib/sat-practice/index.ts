@@ -5,5 +5,10 @@ export {
   questionIsCorrect,
   scoreAttempt,
 } from "./score";
-export { buildResultsReport, flattenQuestions, formatSpent } from "./report";
+export {
+  buildResultsReport,
+  flattenQuestions,
+  formatSpent,
+  pageReportQuestions,
+} from "./report";
 export * from "./types";

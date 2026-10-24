@@ -985,7 +985,8 @@ paths:
       description: |
         QBank R&W and Math are separate mocks; scaled_estimated is unofficial.
         Bluebook imports are official 400–1600 SAT scores (section=full,
-        source=bluebook). Use getSatPracticeReport for the full results text.
+        source=bluebook). Use getSatPracticeReport, one page at a time, for
+        question stems, choices, and rationales.
       parameters:
         - name: api_key
           in: query
@@ -1038,12 +1039,18 @@ paths:
     get:
       operationId: getSatPracticeReport
       tags: [SAT Practice]
-      summary: Full results text for one mock
+      summary: One page of a mock, with stems and choices
       description: |
-        Returns the long SAT® Results report (domain table, every question,
-        your answer, correct answer, rationale). Time spent is included only
-        when include_timing_in_report is true for that mock. Omit id to get
-        the latest completed mock.
+        Returns one page of questions so the response stays under the tool
+        size limit. Each question includes the passage (stimulus), stem
+        (prompt), A–D choice text, Emre's answer, the correct answer, and
+        the rationale. If next_offset is a number, call again with
+        id=<attempt id>:<next_offset>, or the same id plus offset=next_offset,
+        until next_offset is null. misses_only pages only incorrect questions
+        and still includes the full text. next_attempt_id is set when this
+        mock is finished; pass it as id to continue into the next older
+        completed mock. Omit id for the latest completed mock. Time spent is
+        included only when include_timing_in_report is true.
       parameters:
         - name: api_key
           in: query
@@ -1055,13 +1062,21 @@ paths:
           required: false
           schema:
             type: string
-          description: Attempt UUID. Latest completed mock if omitted.
+          description: Attempt UUID. Latest completed mock if omitted. Append :offset (for example uuid:8) to continue a page when the offset parameter is not sent.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Start index in this page sequence. Use next_offset from the previous call.
         - name: misses_only
           in: query
           required: false
           schema:
             type: boolean
-          description: If true, omit the long report string and return misses only.
+          description: If true, page only incorrect questions. Stems, choices, and rationales are still included.
       responses:
         "200":
           description: Report payload

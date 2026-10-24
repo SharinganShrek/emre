@@ -551,10 +551,11 @@ export function registerEmreOsTools(server: McpServer) {
   tool(
     server,
     "getSatPracticeReport",
-    "SAT practice results report",
-    "Use for the long results text, rationales, and misses. Omit id for the latest completed mock. misses_only skips the long string. If include_timing_in_report is false, ignore pacing.",
+    "SAT practice questions, one page at a time",
+    "One call returns a page of questions with the stem, A–D choice text, Emre's answer, the correct answer, and the rationale. A whole mock is too large and will be rejected. Omit id for the latest completed mock. If next_offset is a number, call again with id set to <attempt id>:<next_offset>, or the same id plus that offset, until next_offset is null. misses_only pages only incorrect questions, still with full text. next_attempt_id is the next older completed mock; use it as id only when Emre asked for more than this test. If include_timing_in_report is false, ignore pacing.",
     z.object({
       id: z.string().optional(),
+      offset: z.number().int().min(0).optional(),
       misses_only: z.boolean().optional(),
     }),
     true,

@@ -39,7 +39,7 @@ import {
 import { toast } from "@/lib/toast";
 import { cn, daysBetween, todayISO } from "@/lib/utils";
 
-const SAT_EXAM_DATE = "2026-12-05";
+const SAT_EXAM_DATE = "2026-11-07";
 const TABS = ["Plan", "Themes", "Weak words"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -93,7 +93,7 @@ function SatVocabApp() {
         />
         <StatCard label="Due today" value={summary.due_today ?? 0} />
         <StatCard
-          label="Days until SAT"
+          label="Days until Nov 7"
           value={Math.max(0, daysBetween(todayISO(), SAT_EXAM_DATE))}
         />
       </div>
