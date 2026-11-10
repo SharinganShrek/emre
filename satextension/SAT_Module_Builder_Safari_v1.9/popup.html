@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAT Module Builder</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <h1>SAT Module Builder</h1>
+    <p class="sub">Safari 1.9 · R&amp;W 27+27 veya Math 22+22. Uygulamaya bağlanmaz.</p>
+
+    <section class="statusbox">
+      <span id="dot" class="dot"></span>
+      <span id="status">College Board oturumu kontrol ediliyor…</span>
+    </section>
+
+    <fieldset class="seg">
+      <legend>Bölüm</legend>
+      <label><input type="radio" name="section" value="rw" checked> Reading and Writing</label>
+      <label><input type="radio" name="section" value="math"> Math</label>
+    </fieldset>
+
+    <fieldset class="seg" id="rwDifficulty">
+      <legend>R&amp;W zorluk · kolay / orta / zor</legend>
+      <label><input type="radio" name="difficulty" value="next" checked> Yeni — Modül 1: 5 / 18 / 4, Modül 2: 2 / 5 / 20</label>
+      <label><input type="radio" name="difficulty" value="old"> Eski — Modül 1: 7 / 12 / 8, Modül 2: 4 / 9 / 14</label>
+    </fieldset>
+
+    <label class="row"><input id="excludeActive" type="checkbox" checked> Aktif Bluebook deneme sorularını çıkar</label>
+    <label class="row"><input id="avoidHistory" type="checkbox" checked> Daha önce kullanılan soruları kullanma (yalnızca bu eklentide saklanır)</label>
+    <label class="field">Testteki ad <input id="studentName" type="text" placeholder="Student"></label>
+    <label class="field">Rastgele tohum <input id="seed" type="text" placeholder="boş bırakırsan rastgele"></label>
+
+    <button id="reconnect" class="secondary">College Board’a yeniden bağlan</button>
+    <button id="build" disabled>Denemeyi oluştur ve aç</button>
+    <button id="buildDownload" disabled>Denemeyi HTML olarak indir</button>
+    <button id="downloadCurrent" class="secondary" disabled>Son denemenin HTML’ini indir</button>
+    <button id="reset" class="secondary">Soru geçmişini sıfırla</button>
+
+    <div id="progress" class="progress" hidden>
+      <div id="bar"></div>
+    </div>
+    <pre id="log"></pre>
+
+    <p class="note">Bu sürüm Emre OS’a bağlanmaz. Denemeyi bitirince sonuçlar yeni bir HTML dosyasına yazılır. O dosyayı tekrar açınca sonuç ekranı gelir; ilk dosya denemeyi baştan başlatır. Safari 18 veya daha yenisi gerekir.</p>
+  </main>
+<script src="popup.js"></script>
+</body>
+</html>
