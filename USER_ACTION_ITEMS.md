@@ -3,6 +3,10 @@
 Kod tarafı (Phase 2 sync, College Counseling persist, OpenAPI, PWA) hazır.
 Aşağıdakiler **senin ortamında / dashboard’da** yapılmalı — agent bunları senin yerine tamamlayamaz.
 
+**Yeni:** Aga ile film / dizi / anime / manga / kitap göndermek için [bölüm 8](#8-media-exchange-aga).
+
+---
+
 ---
 
 ## 1. Supabase şemasını uygula
@@ -156,3 +160,33 @@ Not: Service worker yalnızca **production**’da register olur (`NODE_ENV=produ
 | PWA install yok | Dev mode veya HTTPS yok (localhost hariç) |
 
 Sorun olursa Settings sayfasındaki sync durumuna ve browser Network → `/api/hub` / `/api/college-counseling` yanıtlarına bak.
+
+---
+
+## 8. Media exchange (Aga)
+
+Ana sayfada, selamlamanın hemen altında **from Aga** / **to Aga** panelleri var.
+İki site birbirine birer film, dizi, anime, manga veya kitap gönderir. Aynı anda her
+yönde tek açık kayıt olur. Süre, alan sitede hesaplanır: uzunluğun saati kadar gün
+(en az 2, en fazla 60; uzunluk yoksa 7 gün).
+
+Bunları sen yapacaksın — token’ı sohbete veya koda yapıştırma:
+
+1. Supabase SQL Editor’da çalıştır:
+
+```text
+supabase/media_share_schema.sql
+```
+
+2. Vercel (ve `.env.local`) ortamına şunları ekle, sonra yeniden deploy et:
+   - `FRIEND_SITE_URL` = Aga’nın canlı adresi (ör. `https://www.sadwankel.site`)
+   - `FRIEND_NAME` = `Aga`
+   - `EXCHANGE_TOKEN` = ikinizde **birebir aynı** sır. Bir kez üret: `openssl rand -hex 32`. WhatsApp vb. ile paylaş; commit etme, AI sohbetine yapıştırma.
+3. Kendi sitenin adresini Aga’ya gönder; o da kendi `FRIEND_SITE_URL` alanına yazacak.
+4. Göndermek için katalog anahtarları (almak için gerekmez):
+   - `TMDB_API_KEY` — themoviedb.org → Settings → API
+   - `MAL_CLIENT_ID` — myanimelist.net/apiconfig
+   - `GOOGLE_BOOKS_API_KEY` — Google Cloud → Books API
+
+Panel “tablo yok” veya “arkadaş sitesi bağlı değil” diyorsa yukarıdakilerden biri eksiktir.
+Token tutmuyorsa gönderim “refused the token” der; iki sitedeki `EXCHANGE_TOKEN` aynı olmalı.

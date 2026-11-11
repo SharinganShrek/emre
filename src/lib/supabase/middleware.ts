@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { UNLOCK_COOKIE, tokenMatches } from "@/lib/access-edge";
+import {
+  UNLOCK_COOKIE,
+  friendMayCall,
+  tokenMatches,
+  verifyFriendToken,
+} from "@/lib/access-edge";
 import { AI_CORS_HEADERS } from "@/lib/ai/key";
 
 /**
@@ -55,6 +60,19 @@ export async function updateSession(request: NextRequest) {
     pathname === "/apple-icon" ||
     pathname.startsWith("/icons/") ||
     pathname === "/manifest.webmanifest";
+
+  // The friend's site authenticates with EXCHANGE_TOKEN on exactly two POSTs.
+  // Checked before the password bypass so an open gate cannot expose the inbox.
+  // A session cookie is not enough, and this token must not open any other path.
+  // Static env access so the value is available in Edge middleware.
+  if (friendMayCall(request.method, pathname)) {
+    const allowed = await verifyFriendToken(
+      request.headers.get("authorization"),
+      process.env.EXCHANGE_TOKEN,
+    );
+    if (allowed) return passThrough();
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   if (!password || isPublic) {
     return passThrough();
